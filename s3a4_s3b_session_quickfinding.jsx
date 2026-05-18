@@ -158,7 +158,7 @@ export function S3a4SessionComplete({
         </div>
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button className="done-btn" onClick={onDone} style={{
           width: "100%", padding: "14px", background: C.sage, color: C.white,
           border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
@@ -381,7 +381,7 @@ export function S3bQuickFinding({
       </div>
 
       {step === "details" && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+        <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
           <button className="submit-btn" onClick={handleSubmit} disabled={submitting || !desc.trim()} style={{
             width: "100%", padding: "14px",
             background: submitting || !desc.trim() ? "#B0C8BA" : C.sage,
