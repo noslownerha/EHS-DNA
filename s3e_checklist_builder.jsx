@@ -161,7 +161,7 @@ function SectionHeader({ name, count, onRename, onAdd }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S3eChecklistBuilder({ companyName, onBack 
+export default function S3eChecklistBuilder({ companyName, onBack ,
   onHome,
 }) {
   const [selectedTemplate, setSelectedTemplate] = useState(SEED_TEMPLATES[0]);

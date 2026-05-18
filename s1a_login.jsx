@@ -67,7 +67,7 @@ function Divider() {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1aLogin({ onSignIn, onStartSetup 
+export default function S1aLogin({ onSignIn, onStartSetup ,
   onHome,
 }) {
   const [email, setEmail] = useState("ahren@whistlepigwhiskey.com");

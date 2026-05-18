@@ -315,7 +315,7 @@ function NotificationRulesEditor({ rules, onChange }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S0fTriageSettings({ onBack, onSave 
+export default function S0fTriageSettings({ onBack, onSave ,
   onHome,
 }) {
   const [enabled,      setEnabled]      = useState(true);

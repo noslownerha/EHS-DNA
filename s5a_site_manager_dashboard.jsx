@@ -63,7 +63,7 @@ export default function S5aSiteManagerDashboard({
   companyName = "WhistlePig Whiskey",
   manager     = { name: "Dana Kowalski", site: "Moriah" },
   onNavigate, // (destination: string) => void
-
+,
   onHome,
 }) {
   const [reminderSent, setReminderSent] = useState(false);

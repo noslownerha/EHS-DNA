@@ -72,7 +72,7 @@ export function S0dNotificationsSent({
   },
   onViewRecord,   // () => void â s0e
   onDone,         // () => void â home
-
+,
   onHome,
 }) {
   const notified     = NOTIFICATION_RULES[outcome] ?? [];

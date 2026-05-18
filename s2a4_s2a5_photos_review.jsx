@@ -68,7 +68,7 @@ function PhotoThumb({ photo, onRemove }) {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S2a4 â Photos & Location
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S2a4PhotosLocation({ onContinue, onBack 
+export function S2a4PhotosLocation({ onContinue, onBack ,
   onHome,
 }) {
   const [photos,     setPhotos]    = useState([]);
@@ -242,7 +242,7 @@ const OPTIONAL_RECIPIENTS = [
   { id: "dept",    name: "â",          role: "Department Lead",  site: "Moriah" },
 ];
 
-export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack 
+export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack ,
   onHome,
 }) {
   const [optionalChecked, setOptionalChecked] = useState({});

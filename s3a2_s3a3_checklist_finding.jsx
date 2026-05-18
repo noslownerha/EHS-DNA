@@ -395,7 +395,7 @@ export function S3a2ChecklistInProgress({
 // S3a3 â Log Finding from Checklist (standalone full-screen version)
 // This is the same form but as a full screen when accessed outside a checklist
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S3a3LogFinding({ prefill = {}, onSubmit, onBack 
+export function S3a3LogFinding({ prefill = {}, onSubmit, onBack ,
   onHome,
 }) {
   const [photo,       setPhoto]     = useState(null);

@@ -109,7 +109,7 @@ function CARow({ ca, onVerify, onViewIncident }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S2eCATracker({ companyName, onViewIncident 
+export default function S2eCATracker({ companyName, onViewIncident ,
   onHome,
 }) {
   const [cas,          setCas]         = useState(SEED_CAS);

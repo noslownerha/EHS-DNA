@@ -393,7 +393,7 @@ function SiteForm({ editingSite, onAdd, onUpdate, onCancel }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue, onBack 
+export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue, onBack ,
   onHome,
 }) {
   const [sites, setSites] = useState(initialSites);

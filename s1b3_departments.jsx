@@ -329,7 +329,7 @@ function DeptIdleCard({ dept, onSelect }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1b3Departments({ industry = "Spirits / Distilling", onContinue, onBack 
+export default function S1b3Departments({ industry = "Spirits / Distilling", onContinue, onBack ,
   onHome,
 }) {
   const template = DEPT_TEMPLATES[industry] ?? DEFAULT_TEMPLATE;

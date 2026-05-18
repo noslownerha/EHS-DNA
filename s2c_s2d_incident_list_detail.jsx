@@ -61,7 +61,7 @@ function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S2c â Incident List (Desktop)
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S2cIncidentList({ companyName, onViewIncident, onNewIncident 
+export function S2cIncidentList({ companyName, onViewIncident, onNewIncident ,
   onHome,
 }) {
   const [search,      setSearch]      = useState("");
@@ -356,7 +356,7 @@ function EditableField({ label, value, onSave, multiline = false, canEdit = true
   );
 }
 
-export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport 
+export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport ,
   onHome,
 }) {
   const [incident, setIncident] = useState({ ...SEED_DETAIL, id: incidentId ?? SEED_DETAIL.id });

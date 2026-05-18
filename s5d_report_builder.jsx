@@ -163,7 +163,7 @@ function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", onBack 
+export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", onBack ,
   onHome,
 }) {
   // Spec Â§15.3: user selects (1) time frame type, (2) specific period

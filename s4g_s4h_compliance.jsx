@@ -84,7 +84,7 @@ function ComplianceBar({ pct, compact = false }) {
 // S4g â Compliance Dashboard (desktop)
 // Spec Â§14.3: 4 KPI tiles (value + label only), "Send Reminders" BELOW tile row
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4gComplianceDashboard({ companyName, onViewStaff 
+export function S4gComplianceDashboard({ companyName, onViewStaff ,
   onHome,
 }) {
   const [filterSite, setFilterSite] = useState("");
@@ -264,7 +264,7 @@ export function S4gComplianceDashboard({ companyName, onViewStaff
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S4h â Staff Compliance Detail (desktop)
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4hStaffComplianceDetail({ staffId, companyName, onBack 
+export function S4hStaffComplianceDetail({ staffId, companyName, onBack ,
   onHome,
 }) {
   const staff = SEED_STAFF.find(s => s.id === (staffId ?? 1)) ?? SEED_STAFF[0];

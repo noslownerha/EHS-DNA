@@ -81,7 +81,7 @@ export default function S3a1StartInspection({
   onMode,         // (mode: "quick"|"checklist"|"gemba"|"scheduled") => void
   onResume,       // (inspectionId) => void
   onViewFinding,  // (findingId) => void
-
+,
   onHome,
 }) {
   const [selectedMode, setSelectedMode] = useState(null);

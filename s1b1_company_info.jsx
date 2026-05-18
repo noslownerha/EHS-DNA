@@ -176,7 +176,7 @@ function InlineError({ msg }) {
 }
 
 // ââ Main component âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack 
+export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack ,
   onHome,
 }) {
   const [companyName, setCompanyName] = useState(initialData.companyName ?? "WhistlePig Whiskey");

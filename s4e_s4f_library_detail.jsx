@@ -59,7 +59,7 @@ function pill(label, bg, color) {
 // S4e â Training Library (desktop)
 // Spec Â§14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining 
+export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining ,
   onHome,
 }) {
   const [filterType, setFilterType] = useState("");
@@ -203,7 +203,7 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
 // S4f â Training Record Detail (desktop)
 // Spec Â§14.1: expiration derived from recurrence_months; status chips
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = "admin" 
+export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = "admin" ,
   onHome,
 }) {
   const training = SEED_LIBRARY.find(t => t.id === (trainingId ?? 1)) ?? SEED_LIBRARY[0];
