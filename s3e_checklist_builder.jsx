@@ -349,7 +349,7 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
       </div>
 
       {/* Fixed save bar */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: "1px solid #E2EBE6", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50, boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, background: C.white, borderTop: "1px solid #E2EBE6", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50, boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <span style={{ fontSize: ".8rem", color: C.mist }}>
           {items.length} items · {sections.length} sections
         </span>
