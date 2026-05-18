@@ -328,7 +328,7 @@ export default function S0cImmediateAction({
 
       {/* Fixed bottom CTA */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 58, left: 0, right: 0,
         padding: "16px 20px",
         background: "rgba(15,31,23,.85)",
         backdropFilter: "blur(12px)",
