@@ -293,7 +293,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
       </div>
 
       {/* Next button */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="next-btn"
           onClick={handleNext}
@@ -466,7 +466,7 @@ export function S4cInPersonSignOff({
         </div>
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="submit-btn"
           onClick={() => { setSubmitted(true); onComplete?.({ training: selectedTraining, staff: selectedStaff, trainer: trainer.name, notes }); }}
