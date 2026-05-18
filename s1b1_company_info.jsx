@@ -418,7 +418,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
 
       {/* ── Fixed action bar ── */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 58, left: 0, right: 0,
         background: C.white,
         borderTop: "1px solid #E2EBE6",
         padding: "14px 28px",
