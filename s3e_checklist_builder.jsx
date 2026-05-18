@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -9,7 +11,7 @@ const C = {
   orange: "#D4622A", orangeLt: "#FEF0E7",
 };
 
-// Spec §13.1: Critical / Major / Minor / Noted (default severity includes Noted)
+// Spec Â§13.1: Critical / Major / Minor / Noted (default severity includes Noted)
 const SEVERITIES = ["Critical", "Major", "Minor", "Noted"];
 
 const ASSIGNEES = ["Site Manager", "Department Lead", "Maintenance", "Safety Officer", "Inspector"];
@@ -41,18 +43,11 @@ const SEV_COLORS = {
 
 function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>Checklist Builder</div>
-    </div>
+    <EHSHeader onHome={onHome} />
   );
 }
 
-// ── Checklist item row in editor ──────────────────────────────────────────────
+// ââ Checklist item row in editor ââââââââââââââââââââââââââââââââââââââââââââââ
 function ItemRow({ item, index, totalItems, onUpdate, onRemove, onMove, isDragging }) {
   const [expanded, setExpanded] = useState(false);
   const [textFocused, setTextF] = useState(false);
@@ -70,9 +65,9 @@ function ItemRow({ item, index, totalItems, onUpdate, onRemove, onMove, isDraggi
         {/* Drag handle + reorder */}
         <div style={{ display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 }}>
           <button onClick={() => onMove(index, -1)} disabled={index === 0}
-            style={{ background: "none", border: "none", cursor: index === 0 ? "default" : "pointer", color: index === 0 ? "#D0DEDB" : C.mist, fontSize: ".6rem", padding: "1px 3px", lineHeight: 1 }}>▲</button>
+            style={{ background: "none", border: "none", cursor: index === 0 ? "default" : "pointer", color: index === 0 ? "#D0DEDB" : C.mist, fontSize: ".6rem", padding: "1px 3px", lineHeight: 1 }}>â²</button>
           <button onClick={() => onMove(index, 1)} disabled={index === totalItems - 1}
-            style={{ background: "none", border: "none", cursor: index === totalItems - 1 ? "default" : "pointer", color: index === totalItems - 1 ? "#D0DEDB" : C.mist, fontSize: ".6rem", padding: "1px 3px", lineHeight: 1 }}>▼</button>
+            style={{ background: "none", border: "none", cursor: index === totalItems - 1 ? "default" : "pointer", color: index === totalItems - 1 ? "#D0DEDB" : C.mist, fontSize: ".6rem", padding: "1px 3px", lineHeight: 1 }}>â¼</button>
         </div>
 
         {/* Item number */}
@@ -108,24 +103,24 @@ function ItemRow({ item, index, totalItems, onUpdate, onRemove, onMove, isDraggi
 
         {/* Expand / remove */}
         <button onClick={() => setExpanded(e => !e)} style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: ".8rem", padding: "2px 4px" }}>
-          {expanded ? "▲" : "▼"}
+          {expanded ? "â²" : "â¼"}
         </button>
         <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: "1rem", padding: "2px 4px" }}
-          onMouseEnter={e => e.target.style.color = C.red} onMouseLeave={e => e.target.style.color = C.mist}>×</button>
+          onMouseEnter={e => e.target.style.color = C.red} onMouseLeave={e => e.target.style.color = C.mist}>Ã</button>
       </div>
 
-      {/* Expanded config — auto-assign on fail, default severity */}
+      {/* Expanded config â auto-assign on fail, default severity */}
       {expanded && (
         <div style={{ padding: "0 12px 12px 54px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderTop: "1px solid #F0F4F2", paddingTop: 10 }}>
           <div>
             <div style={{ fontSize: ".68rem", fontWeight: 600, color: C.mist, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Default severity on fail</div>
             <select value={item.defaultSeverity} onChange={e => onUpdate({ ...item, defaultSeverity: e.target.value })} style={{ width: "100%", padding: "7px 10px", border: "1.5px solid #D0DEDB", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", cursor: "pointer", appearance: "none" }}>
-              {/* Spec §s3e: default severity includes Noted */}
+              {/* Spec Â§s3e: default severity includes Noted */}
               {SEVERITIES.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            {/* Spec §s3e: auto-assign on fail configured per item */}
+            {/* Spec Â§s3e: auto-assign on fail configured per item */}
             <div style={{ fontSize: ".68rem", fontWeight: 600, color: C.mist, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Auto-assign on fail</div>
             <select value={item.autoAssign} onChange={e => onUpdate({ ...item, autoAssign: e.target.value })} style={{ width: "100%", padding: "7px 10px", border: "1.5px solid #D0DEDB", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", cursor: "pointer", appearance: "none" }}>
               {ASSIGNEES.map(a => <option key={a}>{a}</option>)}
@@ -137,7 +132,7 @@ function ItemRow({ item, index, totalItems, onUpdate, onRemove, onMove, isDraggi
   );
 }
 
-// ── Section header ────────────────────────────────────────────────────────────
+// ââ Section header ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function SectionHeader({ name, count, onRename, onAdd }) {
   const [editing, setEditing] = useState(false);
   const [val,     setVal]     = useState(name);
@@ -165,7 +160,7 @@ function SectionHeader({ name, count, onRename, onAdd }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S3eChecklistBuilder({ companyName, onBack }) {
   const [selectedTemplate, setSelectedTemplate] = useState(SEED_TEMPLATES[0]);
   const [items,    setItems]    = useState(SEED_ITEMS);
@@ -182,6 +177,8 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
   function addItem(section) {
     const newItem = { id: nextId.current++, section, text: "New checklist item", defaultSeverity: "Minor", autoAssign: "Site Manager" };
     setItems(its => [...its, newItem]);
+  onHome,
+
   }
 
   function moveItem(section, index, dir) {
@@ -238,7 +235,7 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
           </div>
         </div>
 
-        {/* Spec §s3e: template list + editor side by side */}
+        {/* Spec Â§s3e: template list + editor side by side */}
         <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
 
           {/* Left: template list */}
@@ -258,7 +255,7 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
                   borderLeft: selectedTemplate?.id === t.id ? `3px solid ${C.sage}` : "3px solid transparent",
                 }}>
                   <div style={{ fontWeight: 600, fontSize: ".88rem", color: selectedTemplate?.id === t.id ? C.pine : C.ink, marginBottom: 3 }}>{t.name}</div>
-                  <div style={{ fontSize: ".72rem", color: C.mist }}>{t.items} items · {t.schedule}</div>
+                  <div style={{ fontSize: ".72rem", color: C.mist }}>{t.items} items Â· {t.schedule}</div>
                   <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 1 }}>{t.site}</div>
                 </div>
               ))}
@@ -274,7 +271,7 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
                   <div>
                     <h2 style={{ fontSize: "1.05rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>{selectedTemplate.name}</h2>
                     <div style={{ fontSize: ".78rem", color: C.mist }}>
-                      {selectedTemplate.site} · {selectedTemplate.dept} · {selectedTemplate.schedule} · Last used {selectedTemplate.lastUsed}
+                      {selectedTemplate.site} Â· {selectedTemplate.dept} Â· {selectedTemplate.schedule} Â· Last used {selectedTemplate.lastUsed}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -330,7 +327,7 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
                       onKeyDown={e => { if (e.key === "Enter") addSection(); if (e.key === "Escape") setAddingSection(false); }}
                       onFocus={() => setSecFocused(true)}
                       onBlur={() => setSecFocused(false)}
-                      placeholder="New section name…"
+                      placeholder="New section nameâ¦"
                       autoFocus
                       style={{ flex: 1, padding: "8px 10px", border: `1.5px solid ${secFocused ? C.sage : "#D0DEDB"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, outline: "none", transition: "all .18s" }}
                     />
@@ -349,16 +346,16 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
       </div>
 
       {/* Fixed save bar */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white, borderTop: "1px solid #E2EBE6", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50, boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 68, left: 0, right: 0, background: C.white, borderTop: "1px solid #E2EBE6", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50, boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <span style={{ fontSize: ".8rem", color: C.mist }}>
-          {items.length} items · {sections.length} sections
+          {items.length} items Â· {sections.length} sections
         </span>
         <button className="save-btn" onClick={handleSave} disabled={saved} style={{
           padding: "10px 24px", background: saved ? C.sage + "99" : C.sage, color: C.white,
           border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
           fontSize: ".88rem", fontWeight: 600, cursor: saved ? "default" : "pointer", transition: "all .18s",
         }}>
-          {saved ? "✓ Saved" : "Save template"}
+          {saved ? "â Saved" : "Save template"}
         </button>
       </div>
     </div>

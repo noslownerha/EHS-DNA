@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -45,14 +47,7 @@ const STAFF_TRAININGS = [
 
 function DesktopNav({ companyName = "WhistlePig Whiskey", active }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>{active}</div>
-    </div>
+    <EHSHeader onHome={onHome} />
   );
 }
 
@@ -85,10 +80,10 @@ function ComplianceBar({ pct, compact = false }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S4g — Compliance Dashboard (desktop)
-// Spec §14.3: 4 KPI tiles (value + label only), "Send Reminders" BELOW tile row
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S4g â Compliance Dashboard (desktop)
+// Spec Â§14.3: 4 KPI tiles (value + label only), "Send Reminders" BELOW tile row
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S4gComplianceDashboard({ companyName, onViewStaff }) {
   const [filterSite, setFilterSite] = useState("");
   const [filterDept, setFilterDept] = useState("");
@@ -105,6 +100,8 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
       if (filterDept && s.dept !== filterDept) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
+  onHome,
+
     }),
     [filterSite, filterDept, search]
   );
@@ -150,10 +147,10 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
 
         <div className="anim" style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Training Compliance</h1>
-          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>All sites · {SEED_STAFF.length} staff · avg {avgCompliance}% compliant</p>
+          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>All sites Â· {SEED_STAFF.length} staff Â· avg {avgCompliance}% compliant</p>
         </div>
 
-        {/* Spec §14.3: 4 KPI tiles — value and label ONLY, fixed height, no actions inside */}
+        {/* Spec Â§14.3: 4 KPI tiles â value and label ONLY, fixed height, no actions inside */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 8 }}>
           {kpis.map((kpi, i) => (
             <div key={i} style={{
@@ -169,7 +166,7 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
           ))}
         </div>
 
-        {/* Spec §14.3: "Send Reminders" action in the supporting context row BELOW tiles, never inside a tile */}
+        {/* Spec Â§14.3: "Send Reminders" action in the supporting context row BELOW tiles, never inside a tile */}
         <div className="anim" style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           marginBottom: 22, paddingLeft: 4,
@@ -189,7 +186,7 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
                 cursor: reminderSent ? "default" : "pointer", transition: "all .15s",
               }}
             >
-              {reminderSent ? "✓ Reminders sent" : `Send reminders (${overdueStaff})`}
+              {reminderSent ? "â Reminders sent" : `Send reminders (${overdueStaff})`}
             </button>
           )}
         </div>
@@ -199,9 +196,9 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
           <div style={{ position: "relative" }}>
             <input value={search} onChange={e => setSearch(e.target.value)}
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
-              placeholder="Search staff…"
+              placeholder="Search staffâ¦"
               style={{ padding: "8px 12px 8px 30px", width: 200, border: `1.5px solid ${sfocused ? C.sage : "#D0DEDB"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", boxShadow: sfocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>ð</span>
           </div>
           {[
             { label: "All sites", value: filterSite, set: setFilterSite, options: sites },
@@ -243,16 +240,16 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     {s.overdue > 0
                       ? <span style={{ fontWeight: 700, color: C.red, fontSize: ".88rem" }}>{s.overdue}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
+                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>â</span>
                     }
                   </td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     {s.expiring > 0
                       ? <span style={{ fontWeight: 600, color: C.gold, fontSize: ".82rem" }}>{s.expiring}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
+                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>â</span>
                     }
                   </td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>→</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>â</td>
                 </tr>
               ))}
             </tbody>
@@ -264,9 +261,9 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S4h — Staff Compliance Detail (desktop)
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S4h â Staff Compliance Detail (desktop)
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S4hStaffComplianceDetail({ staffId, companyName, onBack }) {
   const staff = SEED_STAFF.find(s => s.id === (staffId ?? 1)) ?? SEED_STAFF[0];
   const trainings = STAFF_TRAININGS;
@@ -296,12 +293,12 @@ export function S4hStaffComplianceDetail({ staffId, companyName, onBack }) {
         {/* Breadcrumb + header */}
         <div className="anim" style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Compliance</button>
+            <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Compliance</button>
             <span style={{ color: "#D0DEDB" }}>/</span>
             <span style={{ fontSize: ".82rem", color: C.ink }}>{staff.name}</span>
           </div>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink, marginBottom: 6 }}>{staff.name}</h1>
-          <div style={{ fontSize: ".82rem", color: C.mist }}>{staff.dept} · {staff.site}</div>
+          <div style={{ fontSize: ".82rem", color: C.mist }}>{staff.dept} Â· {staff.site}</div>
         </div>
 
         {/* Summary card */}
@@ -351,7 +348,7 @@ export function S4hStaffComplianceDetail({ staffId, companyName, onBack }) {
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".82rem", color: C.slate }}>
                       {t.due && <span style={{ color: t.status === "overdue" ? C.red : C.slate }}>Due {t.due}</span>}
                       {t.expiresAt && <span style={{ color: t.status === "expiring_soon" ? C.gold : C.mist }}>Expires {t.expiresAt}</span>}
-                      {!t.due && !t.expiresAt && <span style={{ color: C.mist }}>—</span>}
+                      {!t.due && !t.expiresAt && <span style={{ color: C.mist }}>â</span>}
                     </td>
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2" }}>
                       {(t.status === "overdue" || t.status === "not_started" || t.status === "expired") && (

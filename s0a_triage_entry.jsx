@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -11,6 +13,8 @@ export default function S0aTriageEntry({
   user = { name: "Alex Torres", site: "Riverside" },
   onStart,
   onReportInstead,
+  onHome,
+
 }) {
   return (
     <div style={{
@@ -32,17 +36,12 @@ export default function S0aTriageEntry({
         .a3 { animation: fadeUp .4s ease .35s both; }
       `}</style>
 
-      <div style={{ padding: "16px 18px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: "rgba(255,255,255,.5)" }}>EHS</span> DNA
-        </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.3)" }}>{user.name} · {user.site}</div>
-      </div>
+      <EHSHeader onHome={onHome} dark={true} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 24px" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 80px" }}>
 
         <div className="a1" style={{ marginBottom: 32, textAlign: "center" }}>
-          <div style={{ fontSize: "3rem", marginBottom: 14 }}>🚨</div>
+          <div style={{ fontSize: "3rem", marginBottom: 14 }}>ð¨</div>
           <h1 style={{ fontSize: "1.45rem", fontWeight: 800, color: C.white, lineHeight: 1.25, marginBottom: 10 }}>
             Did something just happen?
           </h1>
@@ -66,7 +65,7 @@ export default function S0aTriageEntry({
             }}
           >
             <span>Guide me through this now</span>
-            <span style={{ opacity: .8 }}>→</span>
+            <span style={{ opacity: .8 }}>â</span>
           </button>
 
           {/* Secondary: for after-the-fact reporting */}
@@ -81,7 +80,7 @@ export default function S0aTriageEntry({
               cursor: "pointer", transition: "background .15s",
             }}
           >
-            The immediate situation is handled — file a report
+            The immediate situation is handled â file a report
           </button>
         </div>
 

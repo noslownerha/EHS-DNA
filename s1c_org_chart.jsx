@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ââ Design tokens ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
   mint: "#A8D5B5", foam: "#E8F5EC", ink: "#0F1F17",
@@ -9,13 +11,13 @@ const C = {
   red: "#C0392B", redLt: "#FDECEA",
 };
 
-// ── Seed data ────────────────────────────────────────────────────────────────
+// ââ Seed data ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SEED_ORG = [
   {
     id: 1, name: "Moriah", location: "Mineville, NY", status: "Active", expanded: true,
     departments: [
       {
-        id: 11, emoji: "🏭", name: "Bottling & Packaging", lead: null,
+        id: 11, emoji: "ð­", name: "Bottling & Packaging", lead: null,
         staff: [
           { id: 101, first: "Sarah",  last: "Mitchell" },
           { id: 102, first: "Jake",   last: "Larson"   },
@@ -23,14 +25,14 @@ const SEED_ORG = [
         ],
       },
       {
-        id: 12, emoji: "📦", name: "Warehouse", lead: "Marcus Webb",
+        id: 12, emoji: "ð¦", name: "Warehouse", lead: "Marcus Webb",
         staff: [
           { id: 104, first: "Marcus", last: "Webb"     },
           { id: 105, first: "Carlos", last: "R."       },
         ],
       },
       {
-        id: 13, emoji: "🔧", name: "Maintenance", lead: null,
+        id: 13, emoji: "ð§", name: "Maintenance", lead: null,
         staff: [
           { id: 106, first: "Tom",    last: "Rivera"   },
         ],
@@ -41,7 +43,7 @@ const SEED_ORG = [
     id: 2, name: "Middlebury", location: "Middlebury, VT", status: "Active", expanded: false,
     departments: [
       {
-        id: 21, emoji: "⚗️", name: "Production / Distilling", lead: "Dana Kowalski",
+        id: 21, emoji: "âï¸", name: "Production / Distilling", lead: "Dana Kowalski",
         staff: [
           { id: 201, first: "Dana",   last: "Kowalski" },
           { id: 202, first: "Lena",   last: "Park"     },
@@ -49,7 +51,7 @@ const SEED_ORG = [
         ],
       },
       {
-        id: 22, emoji: "🔬", name: "Quality Control", lead: null,
+        id: 22, emoji: "ð¬", name: "Quality Control", lead: null,
         staff: [
           { id: 204, first: "Mia",    last: "Chen"     },
         ],
@@ -60,7 +62,7 @@ const SEED_ORG = [
     id: 3, name: "Shoreham", location: "Shoreham, VT", status: "Active", expanded: false,
     departments: [
       {
-        id: 31, emoji: "🏭", name: "Bottling & Packaging", lead: null,
+        id: 31, emoji: "ð­", name: "Bottling & Packaging", lead: null,
         staff: [
           { id: 301, first: "Drew",   last: "Nash"     },
         ],
@@ -71,7 +73,7 @@ const SEED_ORG = [
     id: 4, name: "Brandenburg", location: "Brandenburg, KY", status: "Active", expanded: false,
     departments: [
       {
-        id: 41, emoji: "🗂",  name: "Administration", lead: "Priya Nair",
+        id: 41, emoji: "ð",  name: "Administration", lead: "Priya Nair",
         staff: [
           { id: 401, first: "Priya",  last: "Nair"     },
         ],
@@ -80,7 +82,7 @@ const SEED_ORG = [
   },
 ];
 
-// ── Utilities ────────────────────────────────────────────────────────────────
+// ââ Utilities ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function initials(first, last) {
   return `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
 }
@@ -105,12 +107,12 @@ function buildTransferPreview(person, newDept, newSite, org) {
     changes.push({ type: "remove", text: `Removed from: ${oldDept.name} training group` });
   if (newDept && oldDept?.name !== newDept)
     changes.push({ type: "add",    text: `Added to: ${newDept} training group` });
-  changes.push({ type: "keep", text: "Forklift Certified group (manual — retained)" });
+  changes.push({ type: "keep", text: "Forklift Certified group (manual â retained)" });
   changes.push({ type: "keep", text: "All prior training completion records" });
   return changes;
 }
 
-// ── Avatar chip ──────────────────────────────────────────────────────────────
+// ââ Avatar chip ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function StaffChip({ person, highlight, onClick }) {
   const [hov, setHov] = useState(false);
   return (
@@ -164,7 +166,7 @@ function AddChip({ onClick }) {
   );
 }
 
-// ── Dept block ───────────────────────────────────────────────────────────────
+// ââ Dept block âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function DeptBlock({ dept, searchQuery, onChipClick, onTransferOpen }) {
   const matched = searchQuery
     ? dept.staff.filter(p => fullName(p).toLowerCase().includes(searchQuery.toLowerCase()))
@@ -176,29 +178,7 @@ function DeptBlock({ dept, searchQuery, onChipClick, onTransferOpen }) {
       background: C.chalk, borderRadius: 7,
       borderLeft: `3px solid ${C.sage}`,
     }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7,
-      }}>
-        <strong style={{ fontSize: ".85rem", color: C.pine }}>
-          {dept.emoji} {dept.name}
-        </strong>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <small style={{ fontSize: ".73rem", color: C.mist }}>
-            Lead: {dept.lead ?? "— unassigned"}
-          </small>
-          <button
-            onClick={() => onTransferOpen && onTransferOpen(dept)}
-            style={{
-              padding: "3px 9px", background: "none", color: C.mist,
-              border: "1px solid transparent", borderRadius: 5,
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".72rem",
-              cursor: "pointer", transition: "all .15s",
-            }}
-            onMouseEnter={e => { e.target.style.color = C.pine; e.target.style.background = C.foam; e.target.style.borderColor = C.mint; }}
-            onMouseLeave={e => { e.target.style.color = C.mist; e.target.style.background = "none"; e.target.style.borderColor = "transparent"; }}
-          >Edit</button>
-        </div>
-      </div>
+      <EHSHeader onHome={onHome} />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
         {dept.staff.map(p => (
           <StaffChip
@@ -214,7 +194,7 @@ function DeptBlock({ dept, searchQuery, onChipClick, onTransferOpen }) {
   );
 }
 
-// ── Site accordion ───────────────────────────────────────────────────────────
+// ââ Site accordion âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function SiteBlock({ site, searchQuery, onToggle, onChipClick, onTransferOpen }) {
   const staffCount = site.departments.reduce((n, d) => n + d.staff.length, 0);
 
@@ -236,12 +216,12 @@ function SiteBlock({ site, searchQuery, onToggle, onChipClick, onTransferOpen })
       >
         <div>
           <div style={{ fontWeight: 600, fontSize: ".92rem", display: "flex", alignItems: "center", gap: 6 }}>
-            <span>📍</span> {site.name}
+            <span>ð</span> {site.name}
             <span style={{
               fontSize: ".65rem", color: C.forest, background: C.mint,
               padding: "2px 7px", borderRadius: 10, fontWeight: 700, marginLeft: 2,
             }}>
-              {site.expanded ? "▲" : "▼"}
+              {site.expanded ? "â²" : "â¼"}
             </span>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 3 }}>
@@ -286,7 +266,7 @@ function SiteBlock({ site, searchQuery, onToggle, onChipClick, onTransferOpen })
   );
 }
 
-// ── Transfer panel ────────────────────────────────────────────────────────────
+// ââ Transfer panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
   const [personQuery, setPersonQuery]   = useState(initialPerson ? fullName(initialPerson) : "");
   const [personFocus, setPersonFocus]   = useState(false);
@@ -339,7 +319,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.gold }}>🔄 Transfer a person</h2>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.gold }}>ð Transfer a person</h2>
           <p style={{ fontSize: ".78rem", color: "#9A7A3A", marginTop: 2 }}>
             Moving someone? The system shows exactly what changes before you confirm.
           </p>
@@ -347,7 +327,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
         <button onClick={onClose} style={{
           background: "none", border: "none", color: C.mist, fontSize: "1.1rem",
           cursor: "pointer", padding: "2px 6px", borderRadius: 4,
-        }}>×</button>
+        }}>Ã</button>
       </div>
 
       {/* 3-col form */}
@@ -361,7 +341,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
             onChange={e => { setPersonQuery(e.target.value); setSelected(null); }}
             onFocus={() => setPersonFocus(true)}
             onBlur={() => setTimeout(() => setPersonFocus(false), 150)}
-            placeholder="Search by name…"
+            placeholder="Search by nameâ¦"
             style={inputStyle(personFocus)}
           />
           {suggestions.length > 0 && personFocus && (
@@ -384,7 +364,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
                   onMouseLeave={e => e.currentTarget.style.background = C.white}
                 >
                   <div style={{ fontWeight: 600, color: C.ink }}>{fullName(p)}</div>
-                  <div style={{ fontSize: ".72rem", color: C.mist }}>{p.dept} · {p.site}</div>
+                  <div style={{ fontSize: ".72rem", color: C.mist }}>{p.dept} Â· {p.site}</div>
                 </div>
               ))}
             </div>
@@ -395,7 +375,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
         <div>
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>New primary department</div>
           <select value={newDept} onChange={e => setNewDept(e.target.value)} style={selectStyle}>
-            <option value="">— select dept —</option>
+            <option value="">â select dept â</option>
             {allDepts.map(d => <option key={d}>{d}</option>)}
           </select>
         </div>
@@ -404,7 +384,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
         <div>
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>New site (if moving)</div>
           <select value={newSite} onChange={e => setNewSite(e.target.value)} style={selectStyle}>
-            <option value="">— same site —</option>
+            <option value="">â same site â</option>
             {org.map(s => <option key={s.id}>{s.name}</option>)}
           </select>
         </div>
@@ -425,7 +405,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
                 display: "flex", gap: 5, alignItems: "flex-start",
               }}>
                 <span style={{ flexShrink: 0, fontWeight: 700 }}>
-                  {c.type === "remove" ? "−" : c.type === "add" ? "+" : "="}
+                  {c.type === "remove" ? "â" : c.type === "add" ? "+" : "="}
                 </span>
                 {c.text}
               </div>
@@ -447,7 +427,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
             cursor: (!selectedPerson || (!newDept && !newSite)) ? "default" : "pointer",
             transition: "all .18s",
           }}
-        >{confirmed ? "✓ Transferred" : "Confirm transfer"}</button>
+        >{confirmed ? "â Transferred" : "Confirm transfer"}</button>
         <button
           onClick={onClose}
           style={{
@@ -461,12 +441,14 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S1cOrgChart({
   companyName = "WhistlePig Whiskey",
   initialOrg  = SEED_ORG,
   onAddStaff,
   onAddSite,
+  onHome,
+
 }) {
   const [org,            setOrg]           = useState(initialOrg.map(s => ({ ...s, departments: s.departments.map(d => ({ ...d, staff: [...d.staff] })) })));
   const [search,         setSearch]         = useState("");
@@ -539,7 +521,7 @@ export default function S1cOrgChart({
         select option { color: ${C.ink}; }
       `}</style>
 
-      {/* ── Top nav ── */}
+      {/* ââ Top nav ââ */}
       <div style={{
         position: "sticky", top: 0, zIndex: 100,
         height: 56, background: C.forest,
@@ -554,7 +536,7 @@ export default function S1cOrgChart({
         </div>
       </div>
 
-      {/* ── Content ── */}
+      {/* ââ Content ââ */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
         {/* Page header */}
@@ -566,7 +548,7 @@ export default function S1cOrgChart({
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Organization</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
-              {companyName} · {org.length} site{org.length !== 1 ? "s" : ""} · {totalStaff} staff · {totalDepts} departments
+              {companyName} Â· {org.length} site{org.length !== 1 ? "s" : ""} Â· {totalStaff} staff Â· {totalDepts} departments
             </p>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -577,7 +559,7 @@ export default function S1cOrgChart({
                 onChange={e => setSearch(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
-                placeholder="Search people, depts, sites…"
+                placeholder="Search people, depts, sitesâ¦"
                 style={{
                   padding: "8px 12px 8px 32px", width: 224,
                   border: `1.5px solid ${searchFocused ? C.sage : "#D0DEDB"}`,
@@ -590,7 +572,7 @@ export default function S1cOrgChart({
               <span style={{
                 position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
                 fontSize: ".85rem", color: C.mist, pointerEvents: "none",
-              }}>🔍</span>
+              }}>ð</span>
               {search && (
                 <span
                   onClick={() => setSearch("")}
@@ -598,7 +580,7 @@ export default function S1cOrgChart({
                     position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
                     fontSize: ".8rem", color: C.mist, cursor: "pointer",
                   }}
-                >×</span>
+                >Ã</span>
               )}
             </div>
 
@@ -621,7 +603,7 @@ export default function S1cOrgChart({
               border: "none", borderRadius: 6,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600,
               cursor: "pointer", transition: "all .15s",
-            }}>🔄 Bulk transfer</button>
+            }}>ð Bulk transfer</button>
           </div>
         </div>
 
@@ -634,14 +616,14 @@ export default function S1cOrgChart({
             background: "none", border: "none", color: C.mist, fontSize: ".75rem",
             cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "color .15s",
           }}>Expand all</button>
-          <span style={{ color: "#D0DEDB", fontSize: ".8rem" }}>·</span>
+          <span style={{ color: "#D0DEDB", fontSize: ".8rem" }}>Â·</span>
           <button className="expand-btn" onClick={collapseAll} style={{
             background: "none", border: "none", color: C.mist, fontSize: ".75rem",
             cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "color .15s",
           }}>Collapse all</button>
           {search && (
             <>
-              <span style={{ color: "#D0DEDB", fontSize: ".8rem" }}>·</span>
+              <span style={{ color: "#D0DEDB", fontSize: ".8rem" }}>Â·</span>
               <span style={{ fontSize: ".75rem", color: C.sage }}>
                 {matchedIds?.size ?? 0} result{matchedIds?.size !== 1 ? "s" : ""} for "{search}"
               </span>
@@ -693,8 +675,8 @@ export default function S1cOrgChart({
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
           animationDelay: "80ms",
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10 }}>✏️</span>
-          UX NOTE: Transfer preview is the key UX win — no surprises. Shows additions, removals, and what's retained BEFORE committing.
+          <span style={{ position: "absolute", left: 10, top: 10 }}>âï¸</span>
+          UX NOTE: Transfer preview is the key UX win â no surprises. Shows additions, removals, and what's retained BEFORE committing.
           Org chart collapses by site to keep the view manageable at scale. Global search highlights matching chips across all expanded sites.
           Click any staff chip to pre-fill the transfer panel for that person.
         </div>

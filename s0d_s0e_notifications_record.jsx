@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -8,7 +10,7 @@ const C = {
   red: "#C0392B", alarm: "#B91C1C",
 };
 
-// ── Notification rules per outcome (spec §11.6) ───────────────────────────────
+// ââ Notification rules per outcome (spec Â§11.6) âââââââââââââââââââââââââââââââ
 const NOTIFICATION_RULES = {
   "911":      ["Site Manager", "Emergency Response Coordinator (ERC)"],
   "triage":   ["Site Manager"],
@@ -17,13 +19,13 @@ const NOTIFICATION_RULES = {
 };
 
 const OUTCOME_SEVERITY = {
-  "911":      { label: "Serious",     color: C.alarm,  emoji: "🚨" },
-  "triage":   { label: "Moderate",    color: C.gold,   emoji: "📞" },
-  "firstaid": { label: "Minor",       color: C.pine,   emoji: "🩹" },
-  "secure":   { label: "Property",    color: C.slate,  emoji: "⚠️" },
+  "911":      { label: "Serious",     color: C.alarm,  emoji: "ð¨" },
+  "triage":   { label: "Moderate",    color: C.gold,   emoji: "ð" },
+  "firstaid": { label: "Minor",       color: C.pine,   emoji: "ð©¹" },
+  "secure":   { label: "Property",    color: C.slate,  emoji: "â ï¸" },
 };
 
-// ── Notified person row ───────────────────────────────────────────────────────
+// ââ Notified person row âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function NotifiedRow({ role, name, method, sent }) {
   return (
     <div style={{
@@ -42,34 +44,36 @@ function NotifiedRow({ role, name, method, sent }) {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.white }}>
-          {name ?? "—"}
+          {name ?? "â"}
         </div>
         <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>
-          {role} · via {method}
+          {role} Â· via {method}
         </div>
       </div>
       {sent
-        ? <span style={{ fontSize: ".75rem", color: C.mint, display: "flex", alignItems: "center", gap: 4 }}>✓ Sent</span>
+        ? <span style={{ fontSize: ".75rem", color: C.mint, display: "flex", alignItems: "center", gap: 4 }}>â Sent</span>
         : <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.25)" }}>Not notified</span>
       }
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S0d — Notifications Sent
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S0d â Notifications Sent
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S0dNotificationsSent({
   outcome    = "triage",
   responder  = "Responder",
-  site       = "Moriah",
+  site = SITES[0].name,
   timestamp  = new Date(),
   contacts   = {
     "Site Manager":                        { name: "Dana Kowalski",  method: "SMS + app" },
     "Emergency Response Coordinator (ERC)":{ name: "Priya Nair",     method: "SMS + email" },
+  onHome,
+
   },
-  onViewRecord,   // () => void → s0e
-  onDone,         // () => void → home
+  onViewRecord,   // () => void â s0e
+  onDone,         // () => void â home
 }) {
   const notified     = NOTIFICATION_RULES[outcome] ?? [];
   const sev          = OUTCOME_SEVERITY[outcome] ?? OUTCOME_SEVERITY["secure"];
@@ -96,21 +100,16 @@ export function S0dNotificationsSent({
       `}</style>
 
       {/* Top bar */}
-      <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end" }}>
-        <div style={{
-          fontSize: ".72rem", color: "rgba(255,255,255,.3)",
-          background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20,
-        }}>{responder} · {site}</div>
-      </div>
+      <EHSHeader onHome={onHome} dark={true} />
 
       <div style={{
-        flex: 1, padding: "0 20px 100px",
+        flex: 1, padding: "0 20px 80px",
         maxWidth: 460, margin: "0 auto", width: "100%",
       }}>
 
         {/* Header */}
         <div className="a0" style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: "2.8rem", marginBottom: 10 }}>📬</div>
+          <div style={{ fontSize: "2.8rem", marginBottom: 10 }}>ð¬</div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: C.white, marginBottom: 6 }}>
             Notifications sent
           </h1>
@@ -128,7 +127,7 @@ export function S0dNotificationsSent({
           borderRadius: 10, marginBottom: 16,
         }}>
           <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)" }}>
-            Outcome · {dateStr} at {timeStr}
+            Outcome Â· {dateStr} at {timeStr}
           </div>
           <span style={{
             display: "inline-flex", alignItems: "center", gap: 5,
@@ -160,7 +159,7 @@ export function S0dNotificationsSent({
 
           {notified.length === 0 ? (
             <div style={{ padding: "16px", fontSize: ".85rem", color: "rgba(255,255,255,.3)", textAlign: "center" }}>
-              Logged only — no notifications for minor outcomes unless configured.
+              Logged only â no notifications for minor outcomes unless configured.
             </div>
           ) : notified.map(role => (
             <NotifiedRow
@@ -193,7 +192,7 @@ export function S0dNotificationsSent({
                 display: "flex", gap: 8,
                 fontSize: ".84rem", color: "rgba(255,255,255,.55)", lineHeight: 1.5,
               }}>
-                <span style={{ color: C.sage, flexShrink: 0 }}>→</span> {item}
+                <span style={{ color: C.sage, flexShrink: 0 }}>â</span> {item}
               </li>
             ))}
           </ul>
@@ -202,7 +201,7 @@ export function S0dNotificationsSent({
 
       {/* Fixed bottom */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         padding: "16px 20px",
         background: "rgba(8,15,12,.9)", backdropFilter: "blur(12px)",
         borderTop: "1px solid rgba(255,255,255,.07)",
@@ -215,23 +214,23 @@ export function S0dNotificationsSent({
           border: "none", borderRadius: 10,
           fontFamily: "'DM Sans', sans-serif",
           fontSize: ".95rem", fontWeight: 700, cursor: "pointer", transition: "all .15s",
-        }}>Done — go to home screen</button>
+        }}>Done â go to home screen</button>
         <button className="record-btn" onClick={onViewRecord} style={{
           width: "100%", padding: "12px",
           background: "none", color: "rgba(255,255,255,.45)",
           border: "1px solid rgba(255,255,255,.1)", borderRadius: 10,
           fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem",
           cursor: "pointer", transition: "background .15s",
-        }}>View triage record →</button>
+        }}>View triage record â</button>
       </div>
     </div>
   );
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S0e — Triage Record
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S0e â Triage Record
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S0eTriageRecord({
   record = {
     id:           "TRG-2024-0041",
@@ -243,8 +242,10 @@ export function S0eTriageRecord({
     stepsCompleted: ["Called triage line", "Stayed with person"],
     notified:     ["Site Manager"],
     linkedReportId: null,
+  onHome,
+
   },
-  onFileReport,   // () => void → Flow 2 pre-populated
+  onFileReport,   // () => void â Flow 2 pre-populated
   onDone,
 }) {
   const sev     = OUTCOME_SEVERITY[record.outcome] ?? OUTCOME_SEVERITY["secure"];
@@ -284,7 +285,7 @@ export function S0eTriageRecord({
         <button onClick={onDone} style={{
           background: "none", border: "none", color: "rgba(255,255,255,.4)",
           fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-        }}>← Back</button>
+        }}>â Back</button>
         <div style={{
           fontFamily: "'DM Mono', monospace", fontSize: ".72rem",
           color: "rgba(255,255,255,.25)", letterSpacing: ".06em",
@@ -292,7 +293,7 @@ export function S0eTriageRecord({
       </div>
 
       <div style={{
-        flex: 1, padding: "4px 20px 100px",
+        flex: 1, padding: "4px 20px 80px",
         maxWidth: 460, margin: "0 auto", width: "100%",
       }}>
 
@@ -344,7 +345,7 @@ export function S0eTriageRecord({
                 display: "flex", gap: 8, fontSize: ".85rem",
                 color: "rgba(255,255,255,.5)", marginBottom: 6, alignItems: "flex-start",
               }}>
-                <span style={{ color: C.sage, flexShrink: 0 }}>✓</span> {s}
+                <span style={{ color: C.sage, flexShrink: 0 }}>â</span> {s}
               </div>
             ))}
           </div>
@@ -368,7 +369,7 @@ export function S0eTriageRecord({
 
       {/* Fixed bottom */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         padding: "16px 20px",
         background: "rgba(8,15,12,.9)", backdropFilter: "blur(12px)",
         borderTop: "1px solid rgba(255,255,255,.07)",
@@ -382,7 +383,7 @@ export function S0eTriageRecord({
             border: "none", borderRadius: 10,
             fontFamily: "'DM Sans', sans-serif",
             fontSize: ".95rem", fontWeight: 700, cursor: "pointer", transition: "all .15s",
-          }}>File incident report →</button>
+          }}>File incident report â</button>
         )}
         <button className="done-btn" onClick={onDone} style={{
           width: "100%", padding: "12px",

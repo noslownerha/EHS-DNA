@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -39,7 +41,7 @@ const SEVERITIES = [
   },
 ];
 
-// Spec: contextual OSHA guidance shown when injury type selected — informational only
+// Spec: contextual OSHA guidance shown when injury type selected â informational only
 const INJURY_TYPES = ["Laceration / Cut", "Sprain / Strain", "Fracture", "Burns", "Chemical exposure", "Head injury", "Eye injury", "Other injury"];
 const NON_INJURY_GUIDANCE = null; // only shown for injury types
 
@@ -93,6 +95,8 @@ export default function S2a2WhatHappened({
   incidentType = "injury",
   onContinue,
   onBack,
+  onHome,
+
 }) {
   const [description, setDescription] = useState("");
   const [location,    setLocation]    = useState("");
@@ -124,17 +128,14 @@ export default function S2a2WhatHappened({
       `}</style>
 
       {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} />
 
       <div style={{ padding: "14px 0 6px" }}>
         <MobileProgress step={1} total={5} />
       </div>
 
-      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>What happened?</h1>
@@ -149,7 +150,7 @@ export default function S2a2WhatHappened({
             onChange={e => setDescription(e.target.value)}
             onFocus={() => setDescFocused(true)}
             onBlur={() => setDescFocused(false)}
-            placeholder="Describe what happened, what you saw, and what you did…"
+            placeholder="Describe what happened, what you saw, and what you didâ¦"
             rows={4}
             style={{
               width: "100%", padding: "10px 12px",
@@ -193,10 +194,10 @@ export default function S2a2WhatHappened({
               value={injuryType}
               onChange={setInjuryType}
               options={INJURY_TYPES}
-              placeholder="Select injury type…"
+              placeholder="Select injury typeâ¦"
             />
 
-            {/* Spec: contextual OSHA guidance when injury type selected — informational only, not accusatory */}
+            {/* Spec: contextual OSHA guidance when injury type selected â informational only, not accusatory */}
             {showOsha && (
               <div style={{
                 marginTop: 12, padding: "11px 13px",
@@ -204,13 +205,13 @@ export default function S2a2WhatHappened({
                 borderRadius: 7, fontSize: ".8rem", color: C.pine, lineHeight: 1.6,
                 animation: "fadeUp .2s ease both",
               }}>
-                <strong>What makes an injury recordable?</strong> OSHA requires recording injuries that result in medical treatment beyond first aid, days away from work, restricted duty, or loss of consciousness. Your Safety Officer will make the formal determination after you submit — you don't need to classify it now.
+                <strong>What makes an injury recordable?</strong> OSHA requires recording injuries that result in medical treatment beyond first aid, days away from work, restricted duty, or loss of consciousness. Your Safety Officer will make the formal determination after you submit â you don't need to classify it now.
               </div>
             )}
           </div>
         )}
 
-        {/* Severity — spec: plain-language 3-tier, OSHA classification NOT shown */}
+        {/* Severity â spec: plain-language 3-tier, OSHA classification NOT shown */}
         <div className="anim" style={{ marginBottom: 14 }}>
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>
             How serious was it?
@@ -252,7 +253,7 @@ export default function S2a2WhatHappened({
             ))}
           </div>
 
-          {/* Spec: OSHA classification is NOT shown — reporter uses plain language only */}
+          {/* Spec: OSHA classification is NOT shown â reporter uses plain language only */}
           <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 8, textAlign: "center" }}>
             Your Safety Officer will make the formal OSHA classification after submission.
           </div>
@@ -261,7 +262,7 @@ export default function S2a2WhatHappened({
 
       {/* Fixed bottom */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         padding: "14px 20px", background: C.white,
         borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
       }}>
@@ -278,7 +279,7 @@ export default function S2a2WhatHappened({
             cursor: canContinue ? "pointer" : "default",
             transition: "all .18s",
           }}
-        >Who was involved →</button>
+        >Who was involved â</button>
       </div>
     </div>
   );

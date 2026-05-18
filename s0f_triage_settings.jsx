@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -48,7 +50,7 @@ const SEED_QUESTIONS = [
   { id: 5, text: "Is there property damage, a spill, or a release?" },
 ];
 
-// ── Shared primitives ────────────────────────────────────────────────────────
+// ââ Shared primitives ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Toggle({ checked, onChange }) {
   return (
     <div
@@ -96,7 +98,7 @@ function SectionCard({ title, subtitle, children }) {
   );
 }
 
-// ── Access role summary pill ──────────────────────────────────────────────────
+// ââ Access role summary pill ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function AccessSummaryPill({ roles }) {
   const hasAll = roles.includes("all");
   const label  = hasAll
@@ -112,7 +114,7 @@ function AccessSummaryPill({ roles }) {
   );
 }
 
-// ── Per-site access control accordion ────────────────────────────────────────
+// ââ Per-site access control accordion ââââââââââââââââââââââââââââââââââââââââ
 function SiteAccessRow({ site, onToggleRole, onToggle }) {
   const lockedRoles = ["Company Admin", "Site Manager"];
 
@@ -133,13 +135,13 @@ function SiteAccessRow({ site, onToggleRole, onToggle }) {
       >
         <div>
           <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.ink }}>
-            📍 {site.name}
+            ð {site.name}
           </div>
           <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>{site.location}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <AccessSummaryPill roles={site.accessRoles} />
-          <span style={{ color: C.mist, fontSize: ".8rem" }}>{site.expanded ? "▲" : "▼"}</span>
+          <span style={{ color: C.mist, fontSize: ".8rem" }}>{site.expanded ? "â²" : "â¼"}</span>
         </div>
       </div>
 
@@ -192,7 +194,7 @@ function SiteAccessRow({ site, onToggleRole, onToggle }) {
   );
 }
 
-// ── Decision tree editor ──────────────────────────────────────────────────────
+// ââ Decision tree editor ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function QuestionEditor({ questions, onChange }) {
   const [newQ,   setNewQ]   = useState("");
   const [focused, setFocused] = useState(false);
@@ -226,9 +228,9 @@ function QuestionEditor({ questions, onChange }) {
           {/* Reorder */}
           <div style={{ display: "flex", flexDirection: "column", gap: 1, flexShrink: 0 }}>
             <button onClick={() => move(i, -1)} disabled={i === 0}
-              style={{ background: "none", border: "none", cursor: i === 0 ? "default" : "pointer", color: i === 0 ? "#D0DEDB" : C.mist, fontSize: ".65rem", lineHeight: 1, padding: "1px 3px" }}>▲</button>
+              style={{ background: "none", border: "none", cursor: i === 0 ? "default" : "pointer", color: i === 0 ? "#D0DEDB" : C.mist, fontSize: ".65rem", lineHeight: 1, padding: "1px 3px" }}>â²</button>
             <button onClick={() => move(i, 1)} disabled={i === questions.length - 1}
-              style={{ background: "none", border: "none", cursor: i === questions.length - 1 ? "default" : "pointer", color: i === questions.length - 1 ? "#D0DEDB" : C.mist, fontSize: ".65rem", lineHeight: 1, padding: "1px 3px" }}>▼</button>
+              style={{ background: "none", border: "none", cursor: i === questions.length - 1 ? "default" : "pointer", color: i === questions.length - 1 ? "#D0DEDB" : C.mist, fontSize: ".65rem", lineHeight: 1, padding: "1px 3px" }}>â¼</button>
           </div>
           {/* Question text */}
           <span style={{ flex: 1, fontSize: ".85rem", color: C.ink }}>{q.text}</span>
@@ -240,7 +242,7 @@ function QuestionEditor({ questions, onChange }) {
           }}
             onMouseEnter={e => e.target.style.color = C.red}
             onMouseLeave={e => e.target.style.color = C.mist}
-          >×</button>
+          >Ã</button>
         </div>
       ))}
 
@@ -252,7 +254,7 @@ function QuestionEditor({ questions, onChange }) {
           onKeyDown={e => e.key === "Enter" && handleAdd()}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Add a custom step or question…"
+          placeholder="Add a custom step or questionâ¦"
           style={{
             flex: 1, padding: "8px 12px",
             border: `1.5px solid ${focused ? C.sage : "#D0DEDB"}`,
@@ -272,7 +274,7 @@ function QuestionEditor({ questions, onChange }) {
   );
 }
 
-// ── Notification rules per outcome ────────────────────────────────────────────
+// ââ Notification rules per outcome ââââââââââââââââââââââââââââââââââââââââââââ
 function NotificationRulesEditor({ rules, onChange }) {
   const contacts = ["Site Manager", "ERC", "Safety Officer", "Company Admin"];
 
@@ -301,7 +303,7 @@ function NotificationRulesEditor({ rules, onChange }) {
                     onChange={() => onChange({ ...rules, [key]: !checked })}
                     style={{ display: "none" }}
                   />
-                  {checked ? "✓" : "○"} {contact}
+                  {checked ? "â" : "â"} {contact}
                 </label>
               );
             })}
@@ -312,7 +314,7 @@ function NotificationRulesEditor({ rules, onChange }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S0fTriageSettings({ onBack, onSave }) {
   const [enabled,      setEnabled]      = useState(true);
   const [providerName, setProviderName] = useState("Concentra Occupational Health");
@@ -327,6 +329,8 @@ export default function S0fTriageSettings({ onBack, onSave }) {
   function handleSave() {
     setSaved(true);
     setTimeout(() => { setSaved(false); onSave?.({ enabled, providerName, providerPhone, questions, notifRules, sites }); }, 1000);
+  onHome,
+
   }
 
   function toggleSiteExpand(id) {
@@ -377,7 +381,7 @@ export default function S0fTriageSettings({ onBack, onSave }) {
         <button onClick={onBack} style={{
           background: "none", border: "none", color: C.mint,
           fontSize: ".83rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-        }}>← Back</button>
+        }}>â Back</button>
       </div>
 
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "28px 20px" }}>
@@ -389,7 +393,7 @@ export default function S0fTriageSettings({ onBack, onSave }) {
           </p>
         </div>
 
-        {/* ── On/off toggle ── */}
+        {/* ââ On/off toggle ââ */}
         <div className="anim" style={{ animationDelay: "40ms" }}>
           <SectionCard title="Triage module" subtitle="Enable or disable the triage flow for your entire organization.">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
@@ -404,7 +408,7 @@ export default function S0fTriageSettings({ onBack, onSave }) {
           </SectionCard>
         </div>
 
-        {/* ── Provider ── */}
+        {/* ââ Provider ââ */}
         <div className="anim" style={{ animationDelay: "60ms" }}>
           <SectionCard title="Triage provider" subtitle="The number shown to staff when the triage call outcome is reached. Leave blank if you don't have a retainer provider.">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -437,27 +441,27 @@ export default function S0fTriageSettings({ onBack, onSave }) {
                 background: C.goldLt, borderLeft: `3px solid ${C.gold}`,
                 borderRadius: 7, fontSize: ".8rem", color: "#7A5A1A", lineHeight: 1.5,
               }}>
-                ⚠ No provider configured. OSHA guidance will still be shown — staff will be directed to seek assessment via occupational health or telehealth before outside care.
+                â  No provider configured. OSHA guidance will still be shown â staff will be directed to seek assessment via occupational health or telehealth before outside care.
               </div>
             )}
           </SectionCard>
         </div>
 
-        {/* ── Decision tree ── */}
+        {/* ââ Decision tree ââ */}
         <div className="anim" style={{ animationDelay: "80ms" }}>
-          <SectionCard title="Decision tree questions" subtitle="Add, remove, or reorder questions. Default set provided — customize for your sites.">
+          <SectionCard title="Decision tree questions" subtitle="Add, remove, or reorder questions. Default set provided â customize for your sites.">
             <QuestionEditor questions={questions} onChange={setQuestions} />
           </SectionCard>
         </div>
 
-        {/* ── Notification rules ── */}
+        {/* ââ Notification rules ââ */}
         <div className="anim" style={{ animationDelay: "100ms" }}>
           <SectionCard title="Notification rules" subtitle="Who gets alerted automatically based on outcome. Configurable per outcome.">
             <NotificationRulesEditor rules={notifRules} onChange={setNotifRules} />
           </SectionCard>
         </div>
 
-        {/* ── Access control per site ── */}
+        {/* ââ Access control per site ââ */}
         <div className="anim" style={{ animationDelay: "120ms" }}>
           <SectionCard
             title="Triage access control"
@@ -478,7 +482,7 @@ export default function S0fTriageSettings({ onBack, onSave }) {
 
       {/* Fixed action bar */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: C.white, borderTop: "1px solid #E2EBE6",
         padding: "14px 24px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -500,7 +504,7 @@ export default function S0fTriageSettings({ onBack, onSave }) {
             cursor: saved ? "default" : "pointer",
             transition: "all .18s",
           }}
-        >{saved ? "✓ Saved" : "Save settings"}</button>
+        >{saved ? "â Saved" : "Save settings"}</button>
       </div>
     </div>
   );

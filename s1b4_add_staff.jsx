@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ââ Design tokens ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
   mint: "#A8D5B5", foam: "#E8F5EC", ink: "#0F1F17",
@@ -27,7 +29,7 @@ const SEED_STAFF = [
   { id: 5, first: "Priya",  last: "Nair",      email: "priya.n@whistlepig.com",  site: "Brandenburg", dept: "Administration",           role: "Site Manager",              invited: true  },
 ];
 
-// ── Shared primitives ────────────────────────────────────────────────────────
+// ââ Shared primitives ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Stepper({ current }) {
   return (
     <div style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginBottom: 32, scrollbarWidth: "none" }}>
@@ -44,7 +46,7 @@ function Stepper({ current }) {
               boxShadow: state === "active" ? `0 0 0 4px ${C.mint}` : "none",
               transition: "all .2s",
             }}>
-              {state === "done" ? "✓" : i + 1}
+              {state === "done" ? "â" : i + 1}
             </div>
             <span style={{
               fontSize: ".75rem", fontWeight: state === "active" ? 700 : 500,
@@ -118,7 +120,7 @@ function Divider() {
 }
 
 function InlineError({ msg }) {
-  return msg ? <div style={{ fontSize: ".74rem", color: C.red, marginTop: 4 }}>⚠ {msg}</div> : null;
+  return msg ? <div style={{ fontSize: ".74rem", color: C.red, marginTop: 4 }}>â  {msg}</div> : null;
 }
 
 function Avatar({ first, last }) {
@@ -160,7 +162,7 @@ function SiteBadge({ site }) {
   );
 }
 
-// ── CSV dropzone ─────────────────────────────────────────────────────────────
+// ââ CSV dropzone âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function CsvDropzone({ onImport }) {
   const [dragging, setDragging] = useState(false);
   const [file, setFile]         = useState(null);
@@ -182,10 +184,10 @@ function CsvDropzone({ onImport }) {
     >
       <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
         onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
-      <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>👥</div>
+      <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>ð¥</div>
       {file ? (
         <>
-          <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.pine }}>✓ {file}</div>
+          <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.pine }}>â {file}</div>
           <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 3 }}>Click to choose different file</div>
         </>
       ) : (
@@ -209,7 +211,7 @@ function CsvDropzone({ onImport }) {
   );
 }
 
-// ── Add person form ──────────────────────────────────────────────────────────
+// ââ Add person form ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const EMPTY_FORM = { first: "", last: "", email: "", mobile: "", site: "", dept: "", role: ROLES[0] };
 
 function AddPersonForm({ sites, departments, onAdd }) {
@@ -250,7 +252,7 @@ function AddPersonForm({ sites, departments, onAdd }) {
           padding: "8px 12px", background: C.foam, borderLeft: `3px solid ${C.sage}`,
           borderRadius: 7, fontSize: ".83rem", color: C.pine, marginBottom: 14,
           animation: "slideIn .15s ease both",
-        }}>✓ Person added successfully</div>
+        }}>â Person added successfully</div>
       )}
 
       {/* Name row */}
@@ -312,7 +314,7 @@ function AddPersonForm({ sites, departments, onAdd }) {
   );
 }
 
-// ── Staff table ──────────────────────────────────────────────────────────────
+// ââ Staff table ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function StaffTable({ staff, onInvite, onRemove, filterSite }) {
   const filtered = filterSite
     ? staff.filter(s => s.site === filterSite)
@@ -334,7 +336,7 @@ function StaffTable({ staff, onInvite, onRemove, filterSite }) {
         border: "1.5px dashed #D0DEDB",
         color: C.mist, fontSize: ".85rem",
       }}>
-        {filterSite ? `No staff at ${filterSite} yet.` : "No staff added yet — use the form to get started."}
+        {filterSite ? `No staff at ${filterSite} yet.` : "No staff added yet â use the form to get started."}
       </div>
     );
   }
@@ -376,7 +378,7 @@ function StaffTable({ staff, onInvite, onRemove, filterSite }) {
               <td style={{ padding: "10px 12px", borderBottom: "1px solid #F0F4F2", verticalAlign: "middle", whiteSpace: "nowrap" }}>
                 {person.invited ? (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".75rem", color: C.sage }}>
-                    <span>✓</span> Sent
+                    <span>â</span> Sent
                   </span>
                 ) : (
                   <button
@@ -399,7 +401,7 @@ function StaffTable({ staff, onInvite, onRemove, filterSite }) {
                     cursor: "pointer", fontSize: ".95rem", padding: "2px 4px",
                     borderRadius: 4, transition: "color .15s",
                   }}
-                >×</button>
+                >Ã</button>
               </td>
             </tr>
           ))}
@@ -409,13 +411,15 @@ function StaffTable({ staff, onInvite, onRemove, filterSite }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S1b4AddStaff({
   sites       = ["Moriah", "Middlebury", "Shoreham", "Brandenburg"],
   departments = ["Production / Distilling", "Bottling & Packaging", "Warehouse", "Maintenance", "Quality Control", "Tasting Room / Hospitality", "Administration"],
   initialStaff = SEED_STAFF,
   onContinue,
   onBack,
+  onHome,
+
 }) {
   const [staff,      setStaff]      = useState(initialStaff.map(s => ({ ...s })));
   const [filterSite, setFilterSite] = useState("");
@@ -479,7 +483,7 @@ export default function S1b4AddStaff({
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 20px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={3} />
@@ -494,17 +498,17 @@ export default function S1b4AddStaff({
 
         <div className="split anim" style={{ animationDelay: "60ms" }}>
 
-          {/* ── Left: add form + CSV ── */}
+          {/* ââ Left: add form + CSV ââ */}
           <AddPersonForm sites={sites} departments={departments} onAdd={handleAdd} />
 
-          {/* ── Right: staff list ── */}
+          {/* ââ Right: staff list ââ */}
           <div>
             {/* Header row */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
               <div>
                 <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.ink }}>Added so far</h2>
                 <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>
-                  {staff.length} added · {invitedCount} invited · {uninvitedCount} pending
+                  {staff.length} added Â· {invitedCount} invited Â· {uninvitedCount} pending
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -518,7 +522,7 @@ export default function S1b4AddStaff({
                       cursor: "pointer", transition: "all .15s",
                     }}
                   >
-                    {bulkSent ? "✓ All invited" : `Send all invites (${uninvitedCount})`}
+                    {bulkSent ? "â All invited" : `Send all invites (${uninvitedCount})`}
                   </button>
                 )}
               </div>
@@ -568,7 +572,7 @@ export default function S1b4AddStaff({
                 background: C.chalk, borderRadius: 7,
                 fontSize: ".78rem", color: C.mist, textAlign: "center",
               }}>
-                Keep adding — or continue and{" "}
+                Keep adding â or continue and{" "}
                 <span
                   onClick={() => onContinue && onContinue({ staff })}
                   style={{ color: C.sage, fontWeight: 600, cursor: "pointer" }}
@@ -588,15 +592,15 @@ export default function S1b4AddStaff({
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
           animationDelay: "90ms",
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>✏️</span>
-          UX NOTE: Invites sent per-person OR bulk via "Send all invites." Users can skip inviting now — invites sent later from Org Chart.
+          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>âï¸</span>
+          UX NOTE: Invites sent per-person OR bulk via "Send all invites." Users can skip inviting now â invites sent later from Org Chart.
           "Add person" form auto-clears after each submission. CSV import tolerates varied column names with a column-mapper step.
         </div>
       </div>
 
-      {/* ── Fixed action bar ── */}
+      {/* ââ Fixed action bar ââ */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: C.white, borderTop: "1px solid #E2EBE6",
         padding: "14px 28px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -610,11 +614,11 @@ export default function S1b4AddStaff({
             border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
             fontSize: ".88rem", fontWeight: 600, cursor: "pointer", transition: "all .18s",
           }}
-        >← Back</button>
+        >â Back</button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: ".8rem", color: C.mist }}>
-            {staff.length === 0 ? "No staff added yet" : `${staff.length} added · ${uninvitedCount} invite${uninvitedCount !== 1 ? "s" : ""} pending`}
+            {staff.length === 0 ? "No staff added yet" : `${staff.length} added Â· ${uninvitedCount} invite${uninvitedCount !== 1 ? "s" : ""} pending`}
           </span>
           <button
             className="btn-ghost-hover"
@@ -635,7 +639,7 @@ export default function S1b4AddStaff({
               border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
               fontSize: ".88rem", fontWeight: 600, cursor: "pointer", transition: "all .18s",
             }}
-          >Continue to Training →</button>
+          >Continue to Training â</button>
         </div>
       </div>
     </div>

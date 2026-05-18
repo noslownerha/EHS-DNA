@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ââ Design tokens ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const C = {
   forest:  "#1C3A2A",
   pine:    "#2D5A3D",
@@ -31,9 +33,9 @@ const INDUSTRIES = [
   "Other",
 ];
 
-const SITE_COUNTS = ["1", "2–3", "4–6", "7–10", "10+"];
+const SITE_COUNTS = ["1", "2â3", "4â6", "7â10", "10+"];
 
-// ── Stepper ──────────────────────────────────────────────────────────────────
+// ââ Stepper ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const STEPS = ["Company", "Sites", "Departments", "Staff", "Training"];
 
 function Stepper({ current }) {
@@ -57,7 +59,7 @@ function Stepper({ current }) {
               boxShadow: state === "active" ? `0 0 0 4px ${C.mint}` : "none",
               transition: "all .2s",
             }}>
-              {state === "done" ? "✓" : i + 1}
+              {state === "done" ? "â" : i + 1}
             </div>
             {/* Label */}
             <span style={{
@@ -82,7 +84,7 @@ function Stepper({ current }) {
   );
 }
 
-// ── Shared field components ──────────────────────────────────────────────────
+// ââ Shared field components ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Label({ children }) {
   return (
     <div style={{
@@ -169,15 +171,15 @@ function SectionLabel({ children }) {
 
 function InlineError({ msg }) {
   return msg ? (
-    <div style={{ fontSize: ".75rem", color: C.red, marginTop: 4 }}>⚠ {msg}</div>
+    <div style={{ fontSize: ".75rem", color: C.red, marginTop: 4 }}>â  {msg}</div>
   ) : null;
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ââ Main component âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }) {
   const [companyName, setCompanyName] = useState(initialData.companyName ?? "WhistlePig Whiskey");
   const [industry,    setIndustry]    = useState(initialData.industry    ?? "Spirits / Distilling");
-  const [siteCount,   setSiteCount]   = useState(initialData.siteCount   ?? "4–6");
+  const [siteCount,   setSiteCount]   = useState(initialData.siteCount   ?? "4â6");
   const [contactName, setContactName] = useState(initialData.contactName ?? "Ahren Hartman");
   const [billingEmail,setBillingEmail]= useState(initialData.billingEmail ?? "ahren@whistlepigwhiskey.com");
   const [apEmail,     setApEmail]     = useState(initialData.apEmail     ?? "");
@@ -194,6 +196,8 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
     if (apEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(apEmail))
       e.apEmail = "Enter a valid email address.";
     return e;
+  onHome,
+
   }
 
   function handleContinue() {
@@ -237,7 +241,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
         @media (max-width: 520px) { .input-row { grid-template-columns: 1fr; } }
       `}</style>
 
-      {/* ── Top nav bar ── */}
+      {/* ââ Top nav bar ââ */}
       <div style={{
         height: 56, background: C.forest,
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -260,7 +264,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
         </div>
       </div>
 
-      {/* ── Page content ── */}
+      {/* ââ Page content ââ */}
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
@@ -276,7 +280,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
           </p>
         </div>
 
-        {/* ── Main form card ── */}
+        {/* ââ Main form card ââ */}
         <div
           className="anim"
           style={{
@@ -370,7 +374,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
           </FieldGroup>
         </div>
 
-        {/* ── Industry hint card ── */}
+        {/* ââ Industry hint card ââ */}
         {(industry === "Spirits / Distilling" || industry === "Craft Brewing") && (
           <div
             className="anim"
@@ -387,15 +391,15 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
               animationDelay: "0ms",
             }}
           >
-            <span style={{ marginTop: 1 }}>🌿</span>
+            <span style={{ marginTop: 1 }}>ð¿</span>
             <span>
-              <strong>{industry}</strong> selected — we'll suggest distillery department templates
+              <strong>{industry}</strong> selected â we'll suggest distillery department templates
               (Bottling, Warehouse, Barrel House, Production, Maintenance) on the next step.
             </span>
           </div>
         )}
 
-        {/* ── Annotation ── */}
+        {/* ââ Annotation ââ */}
         <div
           className="anim"
           style={{
@@ -410,15 +414,15 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
             animationDelay: "120ms",
           }}
         >
-          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>✏️</span>
+          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>âï¸</span>
           UX NOTE: Only 5 fields visible. AP email is the only one that might require thought.
           Industry selection pre-configures suggested department templates on the next screen.
         </div>
       </div>
 
-      {/* ── Fixed action bar ── */}
+      {/* ââ Fixed action bar ââ */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: C.white,
         borderTop: "1px solid #E2EBE6",
         padding: "14px 28px",
@@ -443,7 +447,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
                 cursor: "pointer", transition: "all .18s",
               }}
             >
-              ← Back
+              â Back
             </button>
           )}
           <button
@@ -472,9 +476,9 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
                   display: "inline-block",
                   animation: "spin .7s linear infinite",
                 }} />
-                Saving…
+                Savingâ¦
               </>
-            ) : "Continue to Sites →"}
+            ) : "Continue to Sites â"}
           </button>
         </div>
       </div>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -9,9 +11,9 @@ const C = {
   alarm: "#B91C1C", alarmLt: "#FEF2F2",
 };
 
-// ── Decision tree definition ──────────────────────────────────────────────────
+// ââ Decision tree definition ââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Each node: { id, question, yes, no }
-// Leaf node: { id, outcome } where outcome ∈ "911"|"triage"|"firstaid"|"secure"
+// Leaf node: { id, outcome } where outcome â "911"|"triage"|"firstaid"|"secure"
 //
 // Spec rule: uncertainty routes TOWARD triage, not away.
 // Spec rule: "Are you unsure whether basic first aid is enough?" not "Do they need more?"
@@ -56,7 +58,7 @@ const OUTCOME_LABELS = {
   "secure":   { label: "Secure the area",      color: C.slate },
 };
 
-// ── Progress dots ─────────────────────────────────────────────────────────────
+// ââ Progress dots âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function ProgressDots({ total, current }) {
   return (
     <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 }}>
@@ -76,7 +78,7 @@ function ProgressDots({ total, current }) {
   );
 }
 
-// ── Answer button ─────────────────────────────────────────────────────────────
+// ââ Answer button âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function AnswerBtn({ label, onClick, variant }) {
   const [pressed, setPressed] = useState(false);
   const isYes = variant === "yes";
@@ -105,16 +107,18 @@ function AnswerBtn({ label, onClick, variant }) {
       }}
     >
       <span>{label}</span>
-      <span style={{ fontSize: "1.1rem", opacity: .6 }}>{isYes ? "→" : "→"}</span>
+      <span style={{ fontSize: "1.1rem", opacity: .6 }}>{isYes ? "â" : "â"}</span>
     </button>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S0bDecisionTree({
   responder = "Responder",
   onOutcome,   // (outcome: "911"|"triage"|"firstaid"|"secure") => void
   onBack,
+  onHome,
+
 }) {
   // Stack of visited node IDs for back navigation within the tree
   const [nodeStack, setNodeStack] = useState([TREE]);
@@ -157,33 +161,13 @@ export default function S0bDecisionTree({
       `}</style>
 
       {/* Top bar */}
-      <div style={{
-        padding: "16px 20px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <button
-          onClick={handleBack}
-          style={{
-            background: "none", border: "none",
-            color: "rgba(255,255,255,.45)", fontSize: ".88rem",
-            cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-            display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
-          }}
-        >← Back</button>
-        <div style={{
-          fontSize: ".72rem", color: "rgba(255,255,255,.3)",
-          background: "rgba(255,255,255,.07)",
-          padding: "3px 10px", borderRadius: 20,
-        }}>
-          {responder}
-        </div>
-      </div>
+      <EHSHeader onHome={onHome} dark={true} />
 
       {/* Content */}
       <div style={{
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
-        padding: "0 24px 60px",
+        padding: "0 24px 80px",
         maxWidth: 440, margin: "0 auto", width: "100%",
       }}>
 
@@ -232,7 +216,7 @@ export default function S0bDecisionTree({
             fontSize: ".72rem", color: "rgba(255,255,255,.2)",
             textAlign: "center", lineHeight: 1.5,
           }}>
-            Answers are recorded · you can go back
+            Answers are recorded Â· you can go back
           </p>
         )}
       </div>
