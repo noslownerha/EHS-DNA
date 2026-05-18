@@ -373,7 +373,7 @@ export function S5cStaffMobileHome({
 
       {/* Bottom nav */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 58, left: 0, right: 0,
         background: "rgba(15,31,23,.95)", backdropFilter: "blur(12px)",
         borderTop: "1px solid rgba(255,255,255,.07)",
         display: "flex", padding: "10px 0 4px",
