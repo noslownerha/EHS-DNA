@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -13,7 +15,7 @@ const C = {
 const MODES = [
   {
     id: "quick",
-    emoji: "⚡",
+    emoji: "â¡",
     label: "Quick Finding",
     desc: "Log a single observation right now",
     color: C.gold,
@@ -21,7 +23,7 @@ const MODES = [
   },
   {
     id: "checklist",
-    emoji: "✅",
+    emoji: "â",
     label: "Run Checklist",
     desc: "Work through a structured inspection template",
     color: C.sage,
@@ -29,15 +31,15 @@ const MODES = [
   },
   {
     id: "gemba",
-    emoji: "🚶",
+    emoji: "ð¶",
     label: "Gemba Walk",
-    desc: "Unscheduled floor walkthrough — log as you go",
+    desc: "Unscheduled floor walkthrough â log as you go",
     color: C.pine,
     bg: C.foam,
   },
   {
     id: "scheduled",
-    emoji: "📅",
+    emoji: "ð",
     label: "Scheduled",
     desc: "A planned inspection assigned to you",
     color: C.slate,
@@ -53,8 +55,8 @@ const DUE_TODAY = [
 
 // Seed: recent findings for feedback loop
 const RECENT_FINDINGS = [
-  { id: 1, category: "Housekeeping",  severity: "minor",    desc: "Wet floor near line 2 — no signage",    site: "Moriah",     ago: "2h" },
-  { id: 2, category: "Equipment",     severity: "major",    desc: "Forklift horn not working — unit 4",    site: "Moriah",     ago: "Yesterday" },
+  { id: 1, category: "Housekeeping",  severity: "minor",    desc: "Wet floor near line 2 â no signage",    site: "Moriah",     ago: "2h" },
+  { id: 2, category: "Equipment",     severity: "major",    desc: "Forklift horn not working â unit 4",    site: "Moriah",     ago: "Yesterday" },
   { id: 3, category: "PPE",           severity: "noted",    desc: "Safety glasses left on conveyor belt",  site: "Middlebury", ago: "2d" },
 ];
 
@@ -79,6 +81,8 @@ export default function S3a1StartInspection({
   onMode,         // (mode: "quick"|"checklist"|"gemba"|"scheduled") => void
   onResume,       // (inspectionId) => void
   onViewFinding,  // (findingId) => void
+  onHome,
+
 }) {
   const [selectedMode, setSelectedMode] = useState(null);
 
@@ -100,14 +104,10 @@ export default function S3a1StartInspection({
       `}</style>
 
       {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name} · {user.site}</div>
-      </div>
+      <EHSHeader onHome={onHome} />
 
-      <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "18px 18px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         {/* Header */}
         <div className="anim" style={{ marginBottom: 22 }}>
@@ -115,7 +115,7 @@ export default function S3a1StartInspection({
           <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>What are you doing right now?</p>
         </div>
 
-        {/* Mode tiles — 2×2 grid */}
+        {/* Mode tiles â 2Ã2 grid */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 22 }}>
           {MODES.map(mode => (
             <div
@@ -140,11 +140,11 @@ export default function S3a1StartInspection({
           ))}
         </div>
 
-        {/* Due today — surface automatically per spec */}
+        {/* Due today â surface automatically per spec */}
         {DUE_TODAY.length > 0 && (
           <div className="anim" style={{ marginBottom: 20 }}>
             <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.orange, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>🗓</span> Due today
+              <span>ð</span> Due today
             </div>
             <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden" }}>
               {DUE_TODAY.map((item, i) => (
@@ -161,11 +161,11 @@ export default function S3a1StartInspection({
                 >
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.ink }}>{item.name}</div>
-                    <div style={{ fontSize: ".73rem", color: C.mist, marginTop: 2 }}>{item.template} · {item.site}</div>
+                    <div style={{ fontSize: ".73rem", color: C.mist, marginTop: 2 }}>{item.template} Â· {item.site}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: ".72rem", color: C.orange, fontWeight: 600 }}>Due today</span>
-                    <span style={{ color: C.mist, fontSize: ".8rem" }}>→</span>
+                    <span style={{ color: C.mist, fontSize: ".8rem" }}>â</span>
                   </div>
                 </div>
               ))}
@@ -173,7 +173,7 @@ export default function S3a1StartInspection({
           </div>
         )}
 
-        {/* Recent findings — immediate feedback loop */}
+        {/* Recent findings â immediate feedback loop */}
         <div className="anim">
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.mist, marginBottom: 8 }}>
             Recent findings
@@ -197,9 +197,9 @@ export default function S3a1StartInspection({
                     <span style={{ fontSize: ".72rem", color: C.mist }}>{f.category}</span>
                   </div>
                   <div style={{ fontSize: ".85rem", color: C.ink, lineHeight: 1.4 }}>{f.desc}</div>
-                  <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 3 }}>{f.site} · {f.ago}</div>
+                  <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 3 }}>{f.site} Â· {f.ago}</div>
                 </div>
-                <span style={{ color: C.mist, fontSize: ".8rem", flexShrink: 0, marginTop: 2 }}>→</span>
+                <span style={{ color: C.mist, fontSize: ".8rem", flexShrink: 0, marginTop: 2 }}>â</span>
               </div>
             ))}
           </div>
@@ -207,7 +207,7 @@ export default function S3a1StartInspection({
       </div>
 
       {/* Fixed bottom */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 68, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="continue-btn"
           onClick={handleContinue}
@@ -221,7 +221,7 @@ export default function S3a1StartInspection({
           }}
         >
           {selectedMode
-            ? `Start — ${MODES.find(m => m.id === selectedMode)?.label} →`
+            ? `Start â ${MODES.find(m => m.id === selectedMode)?.label} â`
             : "Select an inspection type"}
         </button>
       </div>

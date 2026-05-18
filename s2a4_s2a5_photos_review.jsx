@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -36,7 +38,7 @@ function MobileProgress({ step, total }) {
   );
 }
 
-// ── Photo thumb ───────────────────────────────────────────────────────────────
+// ââ Photo thumb âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function PhotoThumb({ photo, onRemove }) {
   return (
     <div style={{
@@ -50,7 +52,7 @@ function PhotoThumb({ photo, onRemove }) {
           position: "absolute", bottom: 3, left: 3,
           background: "rgba(0,0,0,.55)", borderRadius: 3,
           fontSize: ".55rem", color: C.white, padding: "1px 4px",
-        }}>📍</div>
+        }}>ð</div>
       )}
       <button onClick={() => onRemove(photo.id)} style={{
         position: "absolute", top: 3, right: 3,
@@ -58,14 +60,14 @@ function PhotoThumb({ photo, onRemove }) {
         background: "rgba(0,0,0,.6)", border: "none",
         color: C.white, fontSize: ".7rem", cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
-      }}>×</button>
+      }}>Ã</button>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S2a4 — Photos & Location
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S2a4 â Photos & Location
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S2a4PhotosLocation({ onContinue, onBack }) {
   const [photos,     setPhotos]    = useState([]);
   const [anonymous,  setAnonymous] = useState(false);
@@ -81,6 +83,8 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
       url: URL.createObjectURL(file),
       gps: gpsGranted,
       name: file.name,
+  onHome,
+
     }));
     setPhotos(p => [...p, ...newPhotos]);
     e.target.value = "";
@@ -111,15 +115,12 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
         .continue-btn:hover { background: ${C.pine} !important; }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} />
 
       <div style={{ padding: "14px 0 6px" }}><MobileProgress step={3} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Photos & location</h1>
           <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>Add photos and confirm the location. Both are optional but help with investigation.</p>
@@ -145,14 +146,14 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
                 cursor: "pointer", transition: "all .15s", gap: 4,
               }}
             >
-              <span style={{ fontSize: "1.3rem" }}>📷</span>
+              <span style={{ fontSize: "1.3rem" }}>ð·</span>
               <span style={{ fontSize: ".65rem", color: C.sage, fontWeight: 600 }}>Add</span>
             </div>
           </div>
 
           {photos.length > 0 && (
             <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 8 }}>
-              {photos.length} photo{photos.length > 1 ? "s" : ""} · {photos.filter(p => p.gps).length} GPS-tagged
+              {photos.length} photo{photos.length > 1 ? "s" : ""} Â· {photos.filter(p => p.gps).length} GPS-tagged
             </div>
           )}
         </div>
@@ -162,10 +163,10 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>Location</div>
           {gpsGranted ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 12px", background: C.foam, borderRadius: 8 }}>
-              <span>📍</span>
+              <span>ð</span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: ".85rem", color: C.pine }}>GPS location captured</div>
-                <div style={{ fontSize: ".72rem", color: C.mist }}>44.6823° N, 73.4529° W · auto-tagged on photos</div>
+                <div style={{ fontSize: ".72rem", color: C.mist }}>44.6823Â° N, 73.4529Â° W Â· auto-tagged on photos</div>
               </div>
             </div>
           ) : (
@@ -175,7 +176,7 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
               fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.slate,
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-              📍 Auto-tag GPS location
+              ð Auto-tag GPS location
             </button>
           )}
         </div>
@@ -196,7 +197,7 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
                 borderRadius: 6, fontFamily: "'DM Sans', sans-serif",
                 fontSize: ".78rem", fontWeight: 600, cursor: "pointer",
               }}
-            >{floorPlan ? "✓ Marked" : "Open map"}</button>
+            >{floorPlan ? "â Marked" : "Open map"}</button>
           </div>
         </div>
 
@@ -215,21 +216,21 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
         </div>
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 20px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 68, left: 0, right: 0, padding: "14px 20px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button className="continue-btn" onClick={() => onContinue?.({ photos, gpsGranted, anonymous })} style={{
           width: "100%", padding: "14px", background: C.sage, color: C.white,
           border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
           fontSize: ".95rem", fontWeight: 700, cursor: "pointer", transition: "all .18s",
-        }}>Review & submit →</button>
+        }}>Review & submit â</button>
       </div>
     </div>
   );
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S2a5 — Review & Submit
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S2a5 â Review & Submit
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 // Spec: locked recipients shown w/o checkbox; optional recipients shown with unchecked checkbox
 const LOCKED_RECIPIENTS = [
@@ -238,7 +239,7 @@ const LOCKED_RECIPIENTS = [
 const OPTIONAL_RECIPIENTS = [
   { id: "safety",  name: "Mia Chen",   role: "Safety Officer",  site: "Moriah" },
   { id: "erc",     name: "Priya Nair", role: "ERC",             site: "All sites" },
-  { id: "dept",    name: "—",          role: "Department Lead",  site: "Moriah" },
+  { id: "dept",    name: "â",          role: "Department Lead",  site: "Moriah" },
 ];
 
 export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
@@ -247,18 +248,20 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
 
   const {
     type       = "injury",
-    site       = "Moriah",
+    site = SITES[0].name,
     dept       = "Bottling & Packaging",
     datetime   = new Date().toISOString(),
     description= "Staff member slipped on wet floor near bottling line 2.",
     severity   = "significant",
     involved   = { type: "staff", person: { first: "Sarah", last: "Mitchell" } },
     photos     = [],
+  onHome,
+
   } = flowData;
 
   const involveName = involved?.type === "staff"
     ? `${involved.person?.first} ${involved.person?.last}`
-    : involved?.visitor?.name ?? "—";
+    : involved?.visitor?.name ?? "â";
 
   function toggleOptional(id) {
     setOptionalChecked(s => ({ ...s, [id]: !s[id] }));
@@ -297,14 +300,15 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
       `}</style>
 
       <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Back</button>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
         <div style={{ width: 40 }} />
       </div>
 
       <div style={{ padding: "14px 0 6px" }}><MobileProgress step={4} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Review & submit</h1>
@@ -337,21 +341,21 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
             Who will be notified
           </div>
 
-          {/* Spec: locked recipients — no checkbox */}
+          {/* Spec: locked recipients â no checkbox */}
           {LOCKED_RECIPIENTS.map((r, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #F0F4F2" }}>
               <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.sage, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ color: C.white, fontSize: ".65rem" }}>✓</span>
+                <span style={{ color: C.white, fontSize: ".65rem" }}>â</span>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.ink }}>{r.name}</div>
-                <div style={{ fontSize: ".72rem", color: C.mist }}>{r.role} · {r.site}</div>
+                <div style={{ fontSize: ".72rem", color: C.mist }}>{r.role} Â· {r.site}</div>
               </div>
               <span style={{ fontSize: ".68rem", color: C.mist, fontStyle: "italic" }}>Required</span>
             </div>
           ))}
 
-          {/* Spec: optional recipients — unchecked by default */}
+          {/* Spec: optional recipients â unchecked by default */}
           {OPTIONAL_RECIPIENTS.map(r => (
             <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #F0F4F2" }}>
               <input
@@ -360,15 +364,15 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
                 style={{ width: 18, height: 18, accentColor: C.sage, flexShrink: 0, cursor: "pointer" }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: ".85rem", color: C.ink }}>{r.name !== "—" ? r.name : r.role}</div>
-                <div style={{ fontSize: ".72rem", color: C.mist }}>{r.role} · {r.site}</div>
+                <div style={{ fontSize: ".85rem", color: C.ink }}>{r.name !== "â" ? r.name : r.role}</div>
+                <div style={{ fontSize: ".72rem", color: C.mist }}>{r.role} Â· {r.site}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 20px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 68, left: 0, right: 0, padding: "14px 20px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="submit-btn"
           onClick={handleSubmit}
@@ -387,9 +391,9 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
           {submitting ? (
             <>
               <span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,.4)", borderTopColor: C.white, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-              Submitting…
+              Submittingâ¦
             </>
-          ) : "Submit incident report →"}
+          ) : "Submit incident report â"}
         </button>
       </div>
     </div>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -9,15 +11,15 @@ const C = {
   alarm: "#B91C1C", alarmLt: "#FEF2F2",
 };
 
-// ── Outcome definitions ───────────────────────────────────────────────────────
-// Spec: CPR language is locked — cannot be changed to directive form.
+// ââ Outcome definitions âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Spec: CPR language is locked â cannot be changed to directive form.
 // Spec: OSHA guidance shown for triage even without provider configured.
 // Spec: No OSHA guidance on 911 screen (wrong moment).
 // Spec: First aid screen must include "call triage first" wording if worsens.
 
 const OUTCOMES = {
   "911": {
-    emoji: "🚨",
+    emoji: "ð¨",
     color: "#B91C1C",
     bgGrad: "linear-gradient(160deg, #7F1D1D 0%, #1C0A0A 100%)",
     heading: "Call 911 now",
@@ -25,58 +27,58 @@ const OUTCOMES = {
     primaryAction: { label: "Call 911", tel: "911" },
     steps: [
       "Call 911 and stay on the line",
-      "Stay with the person — do not leave them alone",
-      // Spec §5: CPR language is locked — non-directive
+      "Stay with the person â do not leave them alone",
+      // Spec Â§5: CPR language is locked â non-directive
       "If they have no pulse and you are both trained and feel comfortable doing so, begin CPR",
       "Clear the area of bystanders",
       "Meet emergency services at the entrance",
     ],
-    // Spec §3: post-911 OSHA note goes on "Add details" screen, not here
+    // Spec Â§3: post-911 OSHA note goes on "Add details" screen, not here
     oshaTip: null,
     addDetailsNote: "This incident will likely be OSHA recordable. Your Safety Officer will classify it once the report is submitted.",
     showTriageProvider: false,
   },
 
   "triage": {
-    emoji: "📞",
+    emoji: "ð",
     color: "#B45309",
     bgGrad: "linear-gradient(160deg, #78350F 0%, #1C1007 100%)",
     heading: "Call the triage line",
     subheading: "Get a clinical assessment before deciding on further care.",
     primaryAction: null, // filled from config
     steps: [
-      "Call the triage line — number shown below",
+      "Call the triage line â number shown below",
       "Describe what happened and current symptoms",
       "Follow the clinician's guidance",
       "Do not send the person to outside medical care before speaking with triage",
     ],
-    // Spec §1 and §5: OSHA guidance shown even when no provider configured
-    oshaTip: "Calling the triage line before outside medical care keeps the option open for first-aid-only classification, which is generally non-recordable under OSHA. This is informational — not a guarantee.",
+    // Spec Â§1 and Â§5: OSHA guidance shown even when no provider configured
+    oshaTip: "Calling the triage line before outside medical care keeps the option open for first-aid-only classification, which is generally non-recordable under OSHA. This is informational â not a guarantee.",
     addDetailsNote: null,
     showTriageProvider: true,
   },
 
   "firstaid": {
-    emoji: "🩹",
+    emoji: "ð©¹",
     color: C.pine,
     bgGrad: "linear-gradient(160deg, #1C3A2A 0%, #0A1510 100%)",
     heading: "Administer first aid",
     subheading: "Treat the injury on site. No outside medical care needed right now.",
     primaryAction: null,
     steps: [
-      "Use the first aid kit — location posted at each site entrance",
+      "Use the first aid kit â location posted at each site entrance",
       "Clean and dress any wounds",
       "Monitor the person for the next 30 minutes",
       "Keep them seated and comfortable",
     ],
-    // Spec §4: exact wording locked
+    // Spec Â§4: exact wording locked
     oshaTip: "If symptoms worsen or they want further evaluation, call the triage line first before going to outside medical care.",
     addDetailsNote: null,
     showTriageProvider: false,
   },
 
   "secure": {
-    emoji: "⚠️",
+    emoji: "â ï¸",
     color: C.slate,
     bgGrad: "linear-gradient(160deg, #2D3748 0%, #0D1117 100%)",
     heading: "Secure the area",
@@ -94,25 +96,14 @@ const OUTCOMES = {
   },
 };
 
-// ── Triage provider display ───────────────────────────────────────────────────
+// ââ Triage provider display âââââââââââââââââââââââââââââââââââââââââââââââââââ
 function TriageProviderCard({ provider }) {
   const [calling, setCalling] = useState(false);
 
   if (!provider) {
-    // Spec §1: OSHA guidance must still show even without provider configured
+    // Spec Â§1: OSHA guidance must still show even without provider configured
     return (
-      <div style={{
-        background: "rgba(255,255,255,.06)",
-        border: "1.5px solid rgba(255,255,255,.12)",
-        borderRadius: 12, padding: "16px 18px", marginBottom: 20,
-      }}>
-        <div style={{ fontSize: ".78rem", color: "rgba(255,255,255,.4)", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
-          Triage line
-        </div>
-        <div style={{ fontSize: ".9rem", color: "rgba(255,255,255,.55)", lineHeight: 1.5 }}>
-          No triage provider configured. Seek a clinical assessment via your own occupational health contact or a telehealth provider <strong style={{ color: "rgba(255,255,255,.75)" }}>before</strong> going to outside medical care.
-        </div>
-      </div>
+      <EHSHeader onHome={onHome} dark={true} />
     );
   }
 
@@ -142,21 +133,23 @@ function TriageProviderCard({ provider }) {
           transition: "all .15s",
         }}
       >
-        📞 {provider.phone}
+        ð {provider.phone}
       </a>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S0cImmediateAction({
   outcome = "triage",           // "911" | "triage" | "firstaid" | "secure"
   triageProvider = null,         // { name, phone } or null
   responder = "Responder",
-  site = "Moriah",
-  onNotificationsSent,          // () => void — advances to s0d
-  onAddDetails,                 // () => void — goes to incident report
+  site = SITES[0].name,
+  onNotificationsSent,          // () => void â advances to s0d
+  onAddDetails,                 // () => void â goes to incident report
   onBack,
+  onHome,
+
 }) {
   const config = OUTCOMES[outcome] ?? OUTCOMES["secure"];
   const [stepsDone, setStepsDone] = useState({});
@@ -195,18 +188,19 @@ export default function S0cImmediateAction({
         <button onClick={onBack} style={{
           background: "none", border: "none", color: "rgba(255,255,255,.4)",
           fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-        }}>← Back</button>
+        }}>â Back</button>
         <div style={{
           fontSize: ".72rem", color: "rgba(255,255,255,.3)",
           background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20,
-        }}>{responder} · {site}</div>
+        }}>{responder} Â· {site}</div>
       </div>
 
       {/* Scrollable content */}
       <div style={{
-        flex: 1, padding: "0 20px 100px",
+        flex: 1, padding: "0 20px 80px",
         maxWidth: 460, margin: "0 auto", width: "100%",
         overflowY: "auto",
+        paddingBottom: 80,
       }}>
 
         {/* Outcome header */}
@@ -241,7 +235,7 @@ export default function S0cImmediateAction({
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: "1.2rem", fontWeight: 700,
               }}
-            >🚨 Call 911</a>
+            >ð¨ Call 911</a>
           </div>
         )}
 
@@ -283,7 +277,7 @@ export default function S0cImmediateAction({
                 fontSize: ".7rem", color: C.white, fontWeight: 700,
                 transition: "all .15s",
               }}>
-                {stepsDone[i] ? "✓" : ""}
+                {stepsDone[i] ? "â" : ""}
               </div>
               <span style={{
                 fontSize: ".9rem", lineHeight: 1.5,
@@ -312,7 +306,7 @@ export default function S0cImmediateAction({
           </div>
         )}
 
-        {/* Post-911 recordability note (shown on "add details" link, per spec §3) */}
+        {/* Post-911 recordability note (shown on "add details" link, per spec Â§3) */}
         {outcome === "911" && config.addDetailsNote && (
           <div style={{
             background: "rgba(255,255,255,.05)",
@@ -328,7 +322,7 @@ export default function S0cImmediateAction({
 
       {/* Fixed bottom CTA */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         padding: "16px 20px",
         background: "rgba(15,31,23,.85)",
         backdropFilter: "blur(12px)",
@@ -348,7 +342,7 @@ export default function S0cImmediateAction({
             cursor: "pointer", transition: "all .15s",
           }}
         >
-          {allDone ? "Situation handled → see who was notified" : "Continue → who was notified"}
+          {allDone ? "Situation handled â see who was notified" : "Continue â who was notified"}
         </button>
         <button
           onClick={onAddDetails}

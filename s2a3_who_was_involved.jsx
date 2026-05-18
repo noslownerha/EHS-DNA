@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -62,7 +64,7 @@ function TextInput({ value, onChange, placeholder, type = "text" }) {
   );
 }
 
-// ── Staff lookup with typeahead ───────────────────────────────────────────────
+// ââ Staff lookup with typeahead âââââââââââââââââââââââââââââââââââââââââââââââ
 function StaffLookup({ onSelect, selected }) {
   const [query,   setQuery]   = useState(selected ? fullName(selected) : "");
   const [focused, setFocused] = useState(false);
@@ -82,7 +84,7 @@ function StaffLookup({ onSelect, selected }) {
         onChange={e => { setQuery(e.target.value); onSelect(null); }}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
-        placeholder="Type name or department…"
+        placeholder="Type name or departmentâ¦"
         style={{
           width: "100%", padding: "10px 12px",
           border: `1.5px solid ${focused ? C.sage : "#D0DEDB"}`,
@@ -114,7 +116,7 @@ function StaffLookup({ onSelect, selected }) {
             >
               <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.ink }}>{fullName(p)}</div>
               <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>
-                {p.dept} · {p.site} · {p.role}
+                {p.dept} Â· {p.site} Â· {p.role}
               </div>
             </div>
           ))}
@@ -123,26 +125,13 @@ function StaffLookup({ onSelect, selected }) {
 
       {/* Selected chip */}
       {selected && (
-        <div style={{
-          marginTop: 10, padding: "10px 14px",
-          background: C.foam, border: `1.5px solid ${C.mint}`,
-          borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.pine }}>{fullName(selected)}</div>
-            <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>
-              {selected.dept} · {selected.site}
-            </div>
-          </div>
-          <button onClick={() => { onSelect(null); setQuery(""); }}
-            style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: "1rem" }}>×</button>
-        </div>
+        <EHSHeader onHome={onHome} />
       )}
     </div>
   );
 }
 
-// ── Visitor / contractor form ─────────────────────────────────────────────────
+// ââ Visitor / contractor form âââââââââââââââââââââââââââââââââââââââââââââââââ
 // Spec: name required, all others optional. Stored in incident_visitors table.
 function VisitorForm({ data, onChange }) {
   return (
@@ -167,7 +156,7 @@ function VisitorForm({ data, onChange }) {
   );
 }
 
-// ── Telehealth prompt ─────────────────────────────────────────────────────────
+// ââ Telehealth prompt âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Spec: shown when injury + severity Minor or Significant. Suppressed for Serious or no provider.
 function TelehealthPrompt({ provider, onDismiss }) {
   if (!provider) return null;
@@ -180,13 +169,13 @@ function TelehealthPrompt({ provider, onDismiss }) {
       animation: "fadeUp .2s ease both",
     }}>
       <div style={{ fontWeight: 600, fontSize: ".85rem", color: "#7A5A1A", marginBottom: 6 }}>
-        📞 Consider calling triage first
+        ð Consider calling triage first
       </div>
       <p style={{ fontSize: ".82rem", color: "#9A7A3A", lineHeight: 1.5, marginBottom: 10 }}>
-        Before seeking outside medical care, a quick call to your triage provider can help determine the right level of care — and may affect OSHA recordability.
+        Before seeking outside medical care, a quick call to your triage provider can help determine the right level of care â and may affect OSHA recordability.
       </p>
       <div style={{ fontWeight: 700, color: "#7A5A1A", marginBottom: 10 }}>
-        {provider.name} · {provider.phone}
+        {provider.name} Â· {provider.phone}
       </div>
       {/* Spec: one-sentence inline note on recordability threshold */}
       <p style={{ fontSize: ".75rem", color: "#B8922A", fontStyle: "italic" }}>
@@ -196,18 +185,20 @@ function TelehealthPrompt({ provider, onDismiss }) {
         marginTop: 10, padding: "7px 14px", background: "none",
         color: "#7A5A1A", border: `1px solid #E8C87A`, borderRadius: 6,
         fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", cursor: "pointer",
-      }}>Understood, continue →</button>
+      }}>Understood, continue â</button>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S2a3WhoWasInvolved({
   severity        = "minor",       // from s2a2
   incidentType    = "injury",
   triageProvider  = { name: "Concentra", phone: "(800) 555-0147" },
   onContinue,
   onBack,
+  onHome,
+
 }) {
   const [mode,             setMode]          = useState("staff");   // "staff" | "visitor"
   const [selectedStaff,   setSelectedStaff]  = useState(null);
@@ -249,7 +240,7 @@ export default function S2a3WhoWasInvolved({
 
       {/* Top bar */}
       <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Back</button>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
         <div style={{ width: 40 }} />
       </div>
@@ -258,19 +249,20 @@ export default function S2a3WhoWasInvolved({
         <MobileProgress step={2} total={5} />
       </div>
 
-      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Who was involved?</h1>
           <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>The person injured or affected by this incident.</p>
         </div>
 
-        {/* Telehealth prompt — shown before form for applicable severities */}
+        {/* Telehealth prompt â shown before form for applicable severities */}
         {showPrompt && (
           <TelehealthPrompt provider={triageProvider} onDismiss={() => setShowTelehealth(false)} />
         )}
 
-        {/* Spec: toggle at top — staff lookup vs visitor/contractor */}
+        {/* Spec: toggle at top â staff lookup vs visitor/contractor */}
         <div className="anim" style={{
           display: "flex", background: C.white,
           border: "1.5px solid #E2EBE6", borderRadius: 9,
@@ -307,7 +299,7 @@ export default function S2a3WhoWasInvolved({
 
       {/* Fixed bottom */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         padding: "14px 20px", background: C.white,
         borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
       }}>
@@ -324,7 +316,7 @@ export default function S2a3WhoWasInvolved({
             cursor: canContinue ? "pointer" : "default",
             transition: "all .18s",
           }}
-        >Photos & location →</button>
+        >Photos & location â</button>
       </div>
     </div>
   );

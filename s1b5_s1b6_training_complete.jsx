@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ââ Design tokens ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
   mint: "#A8D5B5", foam: "#E8F5EC", ink: "#0F1F17",
@@ -12,13 +14,13 @@ const C = {
 const STEPS = ["Company", "Sites", "Departments", "Staff", "Training"];
 
 const SEED_MANUAL_GROUPS = [
-  { id: 1, name: "Forklift Certified",    emoji: "🚜", recurrence: "Annually",   members: 0 },
-  { id: 2, name: "Electric Pallet Jack",  emoji: "⚡", recurrence: "Annually",   members: 0 },
+  { id: 1, name: "Forklift Certified",    emoji: "ð", recurrence: "Annually",   members: 0 },
+  { id: 2, name: "Electric Pallet Jack",  emoji: "â¡", recurrence: "Annually",   members: 0 },
 ];
 
 const RECURRENCE_OPTIONS = ["One-time", "Annually", "Every 6 months", "Quarterly", "Monthly"];
 
-// ── Shared primitives ────────────────────────────────────────────────────────
+// ââ Shared primitives ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Stepper({ current }) {
   return (
     <div style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginBottom: 32, scrollbarWidth: "none" }}>
@@ -35,7 +37,7 @@ function Stepper({ current }) {
               boxShadow: state === "active" ? `0 0 0 4px ${C.mint}` : "none",
               transition: "all .2s",
             }}>
-              {state === "done" ? "✓" : i + 1}
+              {state === "done" ? "â" : i + 1}
             </div>
             <span style={{
               fontSize: ".75rem", fontWeight: state === "active" ? 700 : 500,
@@ -56,37 +58,14 @@ function Stepper({ current }) {
   );
 }
 
-// ── Auto-group row ───────────────────────────────────────────────────────────
+// ââ Auto-group row âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function AutoGroupRow({ dept }) {
   return (
-    <div style={{
-      padding: "12px 16px",
-      background: C.white,
-      border: "1.5px solid #E2EBE6",
-      borderRadius: 8,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      gap: 12,
-    }}>
-      <div>
-        <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.ink }}>
-          {dept.emoji} {dept.name}
-        </div>
-        <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>
-          Auto-group · 0 trainings assigned yet
-        </div>
-      </div>
-      <span style={{
-        display: "inline-flex", alignItems: "center",
-        padding: "2px 10px", borderRadius: 20,
-        fontSize: ".68rem", fontWeight: 600,
-        background: C.foam, color: C.pine,
-        flexShrink: 0,
-      }}>Auto</span>
-    </div>
+    <EHSHeader onHome={onHome} dark={true} />
   );
 }
 
-// ── Manual group row ─────────────────────────────────────────────────────────
+// ââ Manual group row âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function ManualGroupRow({ group, onRemove }) {
   return (
     <div style={{
@@ -103,7 +82,7 @@ function ManualGroupRow({ group, onRemove }) {
           {group.emoji} {group.name}
         </div>
         <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>
-          Manual · {group.members} member{group.members !== 1 ? "s" : ""} · recurs {group.recurrence.toLowerCase()}
+          Manual Â· {group.members} member{group.members !== 1 ? "s" : ""} Â· recurs {group.recurrence.toLowerCase()}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -123,18 +102,18 @@ function ManualGroupRow({ group, onRemove }) {
             cursor: "pointer", fontSize: ".95rem", padding: "2px 4px",
             borderRadius: 4, transition: "color .15s",
           }}
-        >×</button>
+        >Ã</button>
       </div>
     </div>
   );
 }
 
-// ── Add manual group inline form ─────────────────────────────────────────────
+// ââ Add manual group inline form âââââââââââââââââââââââââââââââââââââââââââââ
 function AddGroupForm({ onAdd, onClose }) {
-  const EMOJIS = ["🚜","⚡","🧯","🔑","👷","🏥","🔬","⚙️","🛡","📋"];
+  const EMOJIS = ["ð","â¡","ð§¯","ð","ð·","ð¥","ð¬","âï¸","ð¡","ð"];
   const [name,       setName]       = useState("");
   const [recurrence, setRecurrence] = useState("Annually");
-  const [emoji,      setEmoji]      = useState("🏷");
+  const [emoji,      setEmoji]      = useState("ð·");
   const [nameErr,    setNameErr]    = useState("");
   const [focused,    setFocused]    = useState(false);
 
@@ -188,7 +167,7 @@ function AddGroupForm({ onAdd, onClose }) {
             transition: "all .18s",
           }}
         />
-        {nameErr && <div style={{ fontSize: ".72rem", color: C.red, marginTop: 3 }}>⚠ {nameErr}</div>}
+        {nameErr && <div style={{ fontSize: ".72rem", color: C.red, marginTop: 3 }}>â  {nameErr}</div>}
       </div>
 
       <div style={{ marginBottom: 14 }}>
@@ -234,9 +213,9 @@ function AddGroupForm({ onAdd, onClose }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S1b5 — Training Groups
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S1b5 â Training Groups
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
   const [manualGroups, setManualGroups] = useState(SEED_MANUAL_GROUPS.map(g => ({ ...g })));
   const [adding,       setAdding]       = useState(false);
@@ -244,13 +223,13 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
 
   // Default dept list if none passed from flow
   const deptList = departments.length > 0 ? departments : [
-    { id: 1, emoji: "🏭", name: "Bottling & Packaging" },
-    { id: 2, emoji: "📦", name: "Warehouse" },
-    { id: 3, emoji: "⚗️", name: "Production / Distilling" },
-    { id: 4, emoji: "🔧", name: "Maintenance" },
-    { id: 5, emoji: "🔬", name: "Quality Control" },
-    { id: 6, emoji: "🥃", name: "Tasting Room / Hospitality" },
-    { id: 7, emoji: "🗂",  name: "Administration" },
+    { id: 1, emoji: "ð­", name: "Bottling & Packaging" },
+    { id: 2, emoji: "ð¦", name: "Warehouse" },
+    { id: 3, emoji: "âï¸", name: "Production / Distilling" },
+    { id: 4, emoji: "ð§", name: "Maintenance" },
+    { id: 5, emoji: "ð¬", name: "Quality Control" },
+    { id: 6, emoji: "ð¥", name: "Tasting Room / Hospitality" },
+    { id: 7, emoji: "ð",  name: "Administration" },
   ];
 
   const visibleDepts = deptList.slice(0, 4);
@@ -259,6 +238,8 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
   function handleAddGroup(group) {
     setManualGroups(g => [...g, { ...group, id: nextId.current++ }]);
     setAdding(false);
+  onHome,
+
   }
 
   function handleRemoveGroup(id) {
@@ -295,7 +276,7 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={4} />
@@ -316,20 +297,20 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
           fontSize: ".87rem", color: C.pine, lineHeight: 1.5,
           marginBottom: 16, animationDelay: "50ms",
         }}>
-          <span style={{ flexShrink: 0, marginTop: 1 }}>💡</span>
+          <span style={{ flexShrink: 0, marginTop: 1 }}>ð¡</span>
           <span>
-            <strong>Auto-groups</strong> are linked to departments — staff added to a dept are automatically enrolled.{" "}
+            <strong>Auto-groups</strong> are linked to departments â staff added to a dept are automatically enrolled.{" "}
             <strong>Manual groups</strong> let you assign specific training to individuals regardless of department.
           </span>
         </div>
 
         <div className="split anim" style={{ animationDelay: "70ms" }}>
 
-          {/* ── Left: auto-groups ── */}
+          {/* ââ Left: auto-groups ââ */}
           <div>
             <div style={{ marginBottom: 12 }}>
               <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.ink }}>Auto-groups</h2>
-              <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>One per department — manages itself</p>
+              <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>One per department â manages itself</p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {visibleDepts.map(dept => <AutoGroupRow key={dept.id} dept={dept} />)}
@@ -341,7 +322,7 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
             </div>
           </div>
 
-          {/* ── Right: manual groups ── */}
+          {/* ââ Right: manual groups ââ */}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div>
@@ -395,7 +376,7 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
               borderLeft: `3px solid ${C.gold}`, borderRadius: 8,
               fontSize: ".87rem", color: "#7A5A1A", lineHeight: 1.5,
             }}>
-              <span style={{ flexShrink: 0, marginTop: 1 }}>🎓</span>
+              <span style={{ flexShrink: 0, marginTop: 1 }}>ð</span>
               <span>You'll assign actual training content to these groups in the Training module. For now, just make sure the right groups exist.</span>
             </div>
           </div>
@@ -409,15 +390,15 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
           animationDelay: "90ms",
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>✏️</span>
-          UX NOTE: Intentionally lightweight — no training content to build yet. The point is confirming the group structure exists.
+          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>âï¸</span>
+          UX NOTE: Intentionally lightweight â no training content to build yet. The point is confirming the group structure exists.
           "You'll assign content later" messaging removes anxiety about leaving this incomplete.
         </div>
       </div>
 
       {/* Action bar */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: C.white, borderTop: "1px solid #E2EBE6",
         padding: "14px 28px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -431,7 +412,7 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
             border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
             fontSize: ".88rem", fontWeight: 600, cursor: "pointer", transition: "all .18s",
           }}
-        >← Back</button>
+        >â Back</button>
         <button
           className="btn-primary-hover"
           onClick={() => onContinue && onContinue({ manualGroups })}
@@ -440,16 +421,16 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
             border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
             fontSize: ".88rem", fontWeight: 600, cursor: "pointer", transition: "all .18s",
           }}
-        >Finish setup →</button>
+        >Finish setup â</button>
       </div>
     </div>
   );
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S1b6 — Setup Complete
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S1b6 â Setup Complete
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S1b6SetupComplete({
   companyName  = "WhistlePig Whiskey",
   industry     = "Spirits / Distilling",
@@ -461,6 +442,8 @@ export function S1b6SetupComplete({
   onStartInspection,
   onDashboard,
   onResumeStaff,
+  onHome,
+
 }) {
   const deptCount  = departments.length || 7;
   const staffCount = staff.length || 6;
@@ -476,7 +459,7 @@ export function S1b6SetupComplete({
     {
       state: "done",
       label: "Company profile",
-      detail: `${companyName} · ${industry}`,
+      detail: `${companyName} Â· ${industry}`,
     },
     {
       state: "done",
@@ -490,7 +473,7 @@ export function S1b6SetupComplete({
     },
     {
       state: "current",
-      label: `Staff — ${staffCount} of ~42 added`,
+      label: `Staff â ${staffCount} of ~42 added`,
       detail: "Finish adding staff or import via CSV",
       action: onResumeStaff,
       actionLabel: "Continue",
@@ -545,11 +528,11 @@ export function S1b6SetupComplete({
         </div>
       </div>
 
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 40px" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         {/* Hero */}
         <div className="anim" style={{ textAlign: "center", padding: "24px 0 32px", animationDelay: "0ms" }}>
-          <div className="emoji-pop" style={{ fontSize: "3rem", marginBottom: 12, display: "block" }}>🎉</div>
+          <div className="emoji-pop" style={{ fontSize: "3rem", marginBottom: 12, display: "block" }}>ð</div>
           <h1 style={{ fontSize: "1.65rem", fontWeight: 700, color: C.forest }}>
             {companyName} is set up!
           </h1>
@@ -603,7 +586,7 @@ export function S1b6SetupComplete({
                   background: item.state === "done" ? C.sage : item.state === "current" ? C.gold : "#E2EBE6",
                   color: item.state === "pending" ? C.mist : C.white,
                 }}>
-                  {item.state === "done" ? "✓" : item.state === "current" ? "→" : "○"}
+                  {item.state === "done" ? "â" : item.state === "current" ? "â" : "â"}
                 </div>
 
                 {/* Text */}
@@ -663,7 +646,7 @@ export function S1b6SetupComplete({
                 }}
               >
                 <span>{action.label}</span>
-                <span style={{ opacity: .7 }}>→</span>
+                <span style={{ opacity: .7 }}>â</span>
               </button>
             ))}
           </div>
@@ -676,8 +659,8 @@ export function S1b6SetupComplete({
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
           animationDelay: "200ms",
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>✏️</span>
-          UX NOTE: Setup is resumable — the progress checklist is always available from the admin menu.
+          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>âï¸</span>
+          UX NOTE: Setup is resumable â the progress checklist is always available from the admin menu.
           No "you must complete setup before using the app" gate. Users can start logging incidents immediately even with an incomplete staff list.
         </div>
       </div>
@@ -685,10 +668,12 @@ export function S1b6SetupComplete({
   );
 }
 
-// ── Default export: both screens via internal step state ─────────────────────
+// ââ Default export: both screens via internal step state âââââââââââââââââââââ
 export default function S1b5and6({
   departments, staff, sites, companyName, industry,
   onBack, onOrgChart, onLogIncident, onStartInspection, onDashboard, onResumeStaff,
+  onHome,
+
 }) {
   const [screen, setScreen] = useState("training"); // "training" | "complete"
   const [trainingData, setTrainingData] = useState(null);

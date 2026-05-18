@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -8,7 +10,7 @@ const C = {
   red: "#C0392B", redLt: "#FDECEA",
 };
 
-// ── Seed data ────────────────────────────────────────────────────────────────
+// ââ Seed data ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SEED_INCIDENTS = [
   { id: "INC-2024-0087", type: "injury",       site: "Moriah",      dept: "Bottling & Packaging",    severity: "significant", status: "open",   reporter: "Sarah M.", date: "2024-06-12", osha: "Pending",      caStatus: "overdue",   triageId: "TRG-2024-0041" },
   { id: "INC-2024-0086", type: "near_miss",    site: "Middlebury",  dept: "Production / Distilling", severity: "minor",       status: "open",   reporter: "Dana K.",  date: "2024-06-10", osha: "Non-recordable",caStatus: "on-track",  triageId: null },
@@ -23,7 +25,7 @@ const TYPE_LABELS = {
   environmental: "Environmental Release", vehicle: "Vehicle Incident", security: "Security Event",
 };
 const TYPE_EMOJI = {
-  injury: "🩹", near_miss: "⚠️", property: "🏗", environmental: "🌿", vehicle: "🚛", security: "🔒",
+  injury: "ð©¹", near_miss: "â ï¸", property: "ð", environmental: "ð¿", vehicle: "ð", security: "ð",
 };
 const SEV_COLORS = {
   minor: C.pine, significant: C.gold, serious: C.red,
@@ -49,32 +51,16 @@ function pill(label, bg, color) {
   );
 }
 
-// ── Desktop nav ──────────────────────────────────────────────────────────────
+// ââ Desktop nav ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
   return (
-    <div style={{
-      height: 56, background: C.forest,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      position: "sticky", top: 0, zIndex: 100,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>
-        Incidents
-      </div>
-    </div>
+    <EHSHeader onHome={onHome} />
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S2c — Incident List (Desktop)
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S2c â Incident List (Desktop)
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) {
   const [search,      setSearch]      = useState("");
   const [filterSite,  setFilterSite]  = useState("");
@@ -82,7 +68,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
   const [filterStatus,setFilterStatus]= useState("");
   const [sfocused,    setSfocused]    = useState(false);
 
-  // Spec §12.7: KPI tiles — value and label ONLY. Fixed height. No detail inside.
+  // Spec Â§12.7: KPI tiles â value and label ONLY. Fixed height. No detail inside.
   const kpis = [
     { value: SEED_INCIDENTS.filter(i => i.status === "open").length,    label: "Open",        color: C.sage  },
     { value: SEED_INCIDENTS.filter(i => i.caStatus === "overdue").length,label: "CAs Overdue", color: C.red   },
@@ -90,11 +76,11 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
     { value: SEED_INCIDENTS.filter(i => i.status === "closed").length,   label: "Closed",      color: C.slate },
   ];
 
-  // Spec §12.7: supporting context below tiles as concise bullets
+  // Spec Â§12.7: supporting context below tiles as concise bullets
   const overdueIds  = SEED_INCIDENTS.filter(i => i.caStatus === "overdue").length;
   const onTrackIds  = SEED_INCIDENTS.filter(i => i.caStatus === "on-track").length;
   const closedCAs   = SEED_INCIDENTS.filter(i => i.caStatus === "closed").length;
-  const caContext   = `${overdueIds} overdue · ${onTrackIds} on track · ${closedCAs} closed`;
+  const caContext   = `${overdueIds} overdue Â· ${onTrackIds} on track Â· ${closedCAs} closed`;
 
   const filtered = useMemo(() =>
     SEED_INCIDENTS.filter(i => {
@@ -105,6 +91,8 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
           !i.reporter.toLowerCase().includes(search.toLowerCase()) &&
           !i.dept.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
+  onHome,
+
     }),
     [search, filterSite, filterType, filterStatus]
   );
@@ -140,7 +128,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
         <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Incidents</h1>
-            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>All sites · {SEED_INCIDENTS.length} total</p>
+            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>All sites Â· {SEED_INCIDENTS.length} total</p>
           </div>
           <button className="new-btn" onClick={onNewIncident} style={{
             padding: "9px 20px", background: C.sage, color: C.white,
@@ -149,14 +137,14 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
           }}>+ Report incident</button>
         </div>
 
-        {/* Spec §12.7: KPI tiles — value and label only, fixed height */}
+        {/* Spec Â§12.7: KPI tiles â value and label only, fixed height */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 10 }}>
           {kpis.map((kpi, i) => (
             <div key={i} style={{
               background: C.white, borderRadius: 10,
               boxShadow: "0 2px 12px rgba(15,31,23,.07)",
               padding: "20px 22px",
-              height: 90,           // Spec: tiles fixed height — must not stretch
+              height: 90,           // Spec: tiles fixed height â must not stretch
               display: "flex", flexDirection: "column", justifyContent: "center",
               borderTop: `3px solid ${kpi.color}`,
             }}>
@@ -166,7 +154,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
           ))}
         </div>
 
-        {/* Spec §12.7: supporting context below tiles as concise bullets */}
+        {/* Spec Â§12.7: supporting context below tiles as concise bullets */}
         <div className="anim" style={{ fontSize: ".78rem", color: C.mist, marginBottom: 22, paddingLeft: 4 }}>
           CAs: {caContext}
         </div>
@@ -180,7 +168,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
-              placeholder="Search ID, reporter, department…"
+              placeholder="Search ID, reporter, departmentâ¦"
               style={{
                 padding: "8px 12px 8px 32px", width: 240,
                 border: `1.5px solid ${sfocused ? C.sage : "#D0DEDB"}`,
@@ -190,7 +178,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
                 transition: "all .18s",
               }}
             />
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: ".8rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: ".8rem", color: C.mist, pointerEvents: "none" }}>ð</span>
           </div>
 
           {[
@@ -264,7 +252,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2" }}>
                       {pill(inc.status === "open" ? "Open" : "Closed", inc.status === "open" ? C.foam : "#EEF1F0", inc.status === "open" ? C.pine : C.slate)}
                     </td>
-                    <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>→</td>
+                    <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>â</td>
                   </tr>
                 );
               })}
@@ -277,9 +265,9 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident }) 
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S2d — Incident Detail (Desktop)
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S2d â Incident Detail (Desktop)
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const SEED_DETAIL = {
   id: "INC-2024-0087",
@@ -307,13 +295,13 @@ const SEED_DETAIL = {
   ],
 };
 
-// Spec §12.8: OSHA classification editable by Safety Officer and Company Admin only
+// Spec Â§12.8: OSHA classification editable by Safety Officer and Company Admin only
 const USER_ROLE = "safety"; // "safety" | "admin" | "manager" | "staff"
 
 const OSHA_OPTIONS = [
-  "Pending", "Non-recordable", "Recordable – First aid only",
-  "Recordable – Medical treatment", "Recordable – Restricted work",
-  "Recordable – Days away from work", "Recordable – Fatality",
+  "Pending", "Non-recordable", "Recordable â First aid only",
+  "Recordable â Medical treatment", "Recordable â Restricted work",
+  "Recordable â Days away from work", "Recordable â Fatality",
 ];
 
 function EditableField({ label, value, onSave, multiline = false, canEdit = true }) {
@@ -373,7 +361,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport })
   const [showClose, setShowClose] = useState(false);
 
   const canEditOsha = USER_ROLE === "safety" || USER_ROLE === "admin";
-  // Spec §12.8: once closed, read-only for standard users; Company Admin can edit for error correction
+  // Spec Â§12.8: once closed, read-only for standard users; Company Admin can edit for error correction
   const canEdit = incident.status !== "closed" || USER_ROLE === "admin";
 
   function updateField(field, value) {
@@ -406,19 +394,19 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport })
         <div className="anim" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Incidents</button>
+              <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Incidents</button>
               <span style={{ color: "#D0DEDB" }}>/</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.sage, fontWeight: 600 }}>{incident.id}</span>
             </div>
             <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink }}>
-              {TYPE_EMOJI[incident.type]} {TYPE_LABELS[incident.type]} — {incident.site}
+              {TYPE_EMOJI[incident.type]} {TYPE_LABELS[incident.type]} â {incident.site}
             </h1>
             <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
               {pill(incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1), SEV_COLORS[incident.severity] + "18", SEV_COLORS[incident.severity])}
               {pill(incident.status === "open" ? "Open" : "Closed", incident.status === "open" ? C.foam : "#EEF1F0", incident.status === "open" ? C.pine : C.slate)}
               {incident.triageId && (
                 <span style={{ fontSize: ".75rem", color: C.sage, fontStyle: "italic" }}>
-                  🔗 Triage: {incident.triageId}
+                  ð Triage: {incident.triageId}
                 </span>
               )}
             </div>
@@ -482,7 +470,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport })
 
               <div style={{ height: 1, background: "#E8EFec", margin: "16px 0" }} />
 
-              {/* Spec §12.8: OSHA classification — editable by Safety Officer and Company Admin ONLY */}
+              {/* Spec Â§12.8: OSHA classification â editable by Safety Officer and Company Admin ONLY */}
               <div style={{ marginBottom: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: canEditOsha ? C.sage : C.mist }}>
@@ -549,7 +537,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport })
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Corrective actions</h2>
                 <span style={{ fontSize: ".72rem", color: C.mist }}>
-                  {caStatusSummary.overdue} overdue · {caStatusSummary.onTrack} on track · {caStatusSummary.closed} closed
+                  {caStatusSummary.overdue} overdue Â· {caStatusSummary.onTrack} on track Â· {caStatusSummary.closed} closed
                 </span>
               </div>
               {incident.cas.map(ca => {
@@ -564,7 +552,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport })
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       {pill(s.label, s.bg, s.color)}
                       <span style={{ fontSize: ".7rem", color: C.mist }}>Due {ca.due}</span>
-                      <span style={{ fontSize: ".7rem", color: C.mist }}>→ {ca.assignee}</span>
+                      <span style={{ fontSize: ".7rem", color: C.mist }}>â {ca.assignee}</span>
                     </div>
                   </div>
                 );
@@ -592,7 +580,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport })
                     background: item.done ? C.sage : "none",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    {item.done && <span style={{ color: C.white, fontSize: ".6rem" }}>✓</span>}
+                    {item.done && <span style={{ color: C.white, fontSize: ".6rem" }}>â</span>}
                   </div>
                   <span style={{ fontSize: ".85rem", color: item.done ? C.sage : C.ink, textDecoration: item.done ? "line-through" : "none" }}>
                     {item.text}

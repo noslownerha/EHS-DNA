@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -9,7 +11,7 @@ const C = {
   purple: "#6B3FA0", purpleLt: "#F3F0F9",
 };
 
-// ── Seed CBT data ─────────────────────────────────────────────────────────────
+// ââ Seed CBT data âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SEED_CBT = {
   id: 1,
   title: "Bottling Line Safety Orientation",
@@ -20,21 +22,21 @@ const SEED_CBT = {
       heading: "Welcome to Bottling Line Safety",
       body: "This module covers the key hazards and safety procedures for working on or near the bottling line. Completing this training is required before your first shift.",
       // Spec: company-specific example callouts built into every CBT slide
-      example: "At WhistlePig, the bottling line runs at up to 1,200 bottles per hour. Most injuries occur during start-up and changeover — this is when your focus matters most.",
+      example: "At WhistlePig, the bottling line runs at up to 1,200 bottles per hour. Most injuries occur during start-up and changeover â this is when your focus matters most.",
       image: null,
     },
     {
       id: 2, type: "content",
       heading: "PPE Requirements",
       body: "The following PPE is mandatory at all times on the bottling floor: safety glasses, slip-resistant footwear, and hearing protection when the line is running.",
-      example: "WhistlePig Moriah uses Pyramex SB6410D safety glasses — spares are in the red cabinet by the east entrance.",
+      example: "WhistlePig Moriah uses Pyramex SB6410D safety glasses â spares are in the red cabinet by the east entrance.",
       image: null,
     },
     {
       id: 3, type: "content",
       heading: "Lockout / Tagout (LOTO)",
       body: "Before performing any maintenance or clearing a jam, you must follow the LOTO procedure. Never reach into a moving machine. Energy must be isolated and verified before contact.",
-      example: "The LOTO station for Line 2 is located on the north wall panel. Each technician uses their personal padlock — do not use someone else's.",
+      example: "The LOTO station for Line 2 is located on the north wall panel. Each technician uses their personal padlock â do not use someone else's.",
       image: null,
     },
     {
@@ -73,13 +75,13 @@ const SEED_CBT = {
   ],
 };
 
-// ════════════════════════════════════════════════════════════════════════════
-// S4b — CBT Player (mobile)
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S4b â CBT Player (mobile)
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
   const [slideIndex,   setSlideIndex]   = useState(0);
-  const [answers,      setAnswers]      = useState({});   // slideId → selectedIndex
-  const [revealed,     setRevealed]     = useState({});   // slideId → bool
+  const [answers,      setAnswers]      = useState({});   // slideId â selectedIndex
+  const [revealed,     setRevealed]     = useState({});   // slideId â bool
   const [completed,    setCompleted]    = useState(false);
   const [score,        setScore]        = useState(null);
 
@@ -93,6 +95,8 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
   function handleAnswer(idx) {
     if (hasRevealed) return;
     setAnswers(a => ({ ...a, [slide.id]: idx }));
+  onHome,
+
   }
 
   function handleReveal() {
@@ -115,7 +119,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
   const canAdvance = !isCheck || hasRevealed;
   const pct        = Math.round(((slideIndex + 1) / total) * 100);
 
-  // ── Completion screen ──
+  // ââ Completion screen ââ
   if (completed) {
     const passed = score >= training.passThreshold;
     return (
@@ -124,7 +128,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
           @keyframes popIn { 0%{transform:scale(.8);opacity:0;} 60%{transform:scale(1.1);} 100%{transform:scale(1);opacity:1;} }
           * { box-sizing: border-box; margin: 0; padding: 0; }
         `}</style>
-        <div style={{ fontSize: "3rem", marginBottom: 16, animation: "popIn .4s ease both" }}>{passed ? "🎉" : "📚"}</div>
+        <div style={{ fontSize: "3rem", marginBottom: 16, animation: "popIn .4s ease both" }}>{passed ? "ð" : "ð"}</div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: C.white, textAlign: "center", marginBottom: 8 }}>
           {passed ? "Training complete!" : "Review required"}
         </h1>
@@ -163,21 +167,16 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
       `}</style>
 
       {/* Top bar with progress */}
-      <div style={{ background: C.forest, padding: "12px 18px 10px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Exit</button>
-          <div style={{ fontWeight: 600, fontSize: ".82rem", color: C.white, textAlign: "center", flex: 1, padding: "0 10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {training.title}
-          </div>
-          <div style={{ fontSize: ".78rem", color: C.mint, fontWeight: 600, flexShrink: 0 }}>{slideIndex + 1}/{total}</div>
-        </div>
+      <div style={{ background: C.forest, padding: "12px 18px 80px" }}>
+        <EHSHeader onHome={onHome} />
         <div style={{ height: 4, background: "rgba(255,255,255,.15)", borderRadius: 2, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${pct}%`, background: C.mint, borderRadius: 2, transition: "width .3s ease" }} />
         </div>
       </div>
 
       {/* Slide content */}
-      <div className="slide-anim" key={slide.id} style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
+      <div className="slide-anim" key={slide.id} style={{ flex: 1, padding: "18px 18px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         {/* Slide heading */}
         <div style={{
@@ -256,7 +255,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
                       fontSize: ".65rem", color: C.white, fontWeight: 700,
                       transition: "all .15s",
                     }}>
-                      {showResult && isCorrect ? "✓" : showResult && selected && !isCorrect ? "×" : ""}
+                      {showResult && isCorrect ? "â" : showResult && selected && !isCorrect ? "Ã" : ""}
                     </div>
                     <span style={{ fontSize: ".9rem", color, lineHeight: 1.4 }}>{opt}</span>
                   </div>
@@ -293,7 +292,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
       </div>
 
       {/* Next button */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 68, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="next-btn"
           onClick={handleNext}
@@ -306,7 +305,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
             cursor: canAdvance ? "pointer" : "default", transition: "all .18s",
           }}
         >
-          {isLast ? "Finish & submit" : "Next →"}
+          {isLast ? "Finish & submit" : "Next â"}
         </button>
       </div>
     </div>
@@ -314,11 +313,11 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S4c — In-Person Sign-Off (Trainer/Safety Officer mobile)
-// Spec §14.2: role-gated — Trainer, Safety Officer, Site Manager, Company Admin
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S4c â In-Person Sign-Off (Trainer/Safety Officer mobile)
+// Spec Â§14.2: role-gated â Trainer, Safety Officer, Site Manager, Company Admin
 // Department Lead explicitly excluded.
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const STAFF_LIST = [
   { id: 1,  first: "Sarah",  last: "Mitchell", dept: "Bottling & Packaging",    site: "Moriah"      },
   { id: 2,  first: "Jake",   last: "Larson",    dept: "Bottling & Packaging",    site: "Moriah"      },
@@ -341,6 +340,8 @@ export function S4cInPersonSignOff({
   trainer = { name: "Mia Chen", site: "Moriah" },
   onBack,
   onComplete,
+  onHome,
+
 }) {
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [selectedStaff,    setSelectedStaff]    = useState(null);
@@ -348,13 +349,13 @@ export function S4cInPersonSignOff({
   const [submitted,        setSubmitted]        = useState(false);
   const [notesFocused,     setNotesFocused]     = useState(false);
 
-  // Spec: role gate — Department Lead excluded
+  // Spec: role gate â Department Lead excluded
   const BLOCKED_ROLES = ["dept_lead"];
   if (BLOCKED_ROLES.includes(trainerRole)) {
     return (
       <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ textAlign: "center", maxWidth: 300 }}>
-          <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
+          <div style={{ fontSize: "2rem", marginBottom: 12 }}>ð</div>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>Access restricted</h2>
           <p style={{ fontSize: ".85rem", color: C.mist, lineHeight: 1.5 }}>
             In-person sign-off requires Trainer, Safety Officer, Site Manager, or Company Admin role. Department Lead is excluded from this action.
@@ -367,10 +368,10 @@ export function S4cInPersonSignOff({
   if (submitted) {
     return (
       <div style={{ minHeight: "100vh", background: C.forest, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 28 }}>
-        <div style={{ fontSize: "2.8rem", marginBottom: 14 }}>✅</div>
+        <div style={{ fontSize: "2.8rem", marginBottom: 14 }}>â</div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.white, textAlign: "center", marginBottom: 8 }}>Completion recorded</h1>
         <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)", textAlign: "center", marginBottom: 24 }}>
-          {selectedStaff?.first} {selectedStaff?.last} — {selectedTraining?.title}
+          {selectedStaff?.first} {selectedStaff?.last} â {selectedTraining?.title}
         </p>
         <p style={{ fontSize: ".75rem", color: "rgba(255,255,255,.35)", textAlign: "center", marginBottom: 28 }}>
           Signed off by {trainer.name}
@@ -379,7 +380,7 @@ export function S4cInPersonSignOff({
           padding: "12px 28px", background: C.mint, color: C.forest,
           border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
           fontSize: ".95rem", fontWeight: 700, cursor: "pointer",
-        }}>Sign off another →</button>
+        }}>Sign off another â</button>
       </div>
     );
   }
@@ -394,14 +395,15 @@ export function S4cInPersonSignOff({
       `}</style>
 
       <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Back</button>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint }}><span style={{ color: C.white }}>EHS</span>platform</div>
         <div style={{ width: 40 }} />
       </div>
 
-      <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "18px 18px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
         <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Sign off training</h1>
-        <p style={{ fontSize: ".82rem", color: C.mist, marginBottom: 20 }}>Individual in-person completion — signed off as {trainer.name}</p>
+        <p style={{ fontSize: ".82rem", color: C.mist, marginBottom: 20 }}>Individual in-person completion â signed off as {trainer.name}</p>
 
         {/* Training selection */}
         <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
@@ -416,7 +418,7 @@ export function S4cInPersonSignOff({
                 color: selectedTraining?.id === t.id ? C.pine : C.ink,
                 fontWeight: selectedTraining?.id === t.id ? 600 : 400,
                 transition: "all .15s",
-              }}>👥 {t.title}</div>
+              }}>ð¥ {t.title}</div>
             ))}
           </div>
         </div>
@@ -447,7 +449,7 @@ export function S4cInPersonSignOff({
                   <div style={{ fontSize: ".88rem", fontWeight: 600, color: selectedStaff?.id === p.id ? C.pine : C.ink }}>
                     {p.first} {p.last}
                   </div>
-                  <div style={{ fontSize: ".72rem", color: C.mist }}>{p.dept} · {p.site}</div>
+                  <div style={{ fontSize: ".72rem", color: C.mist }}>{p.dept} Â· {p.site}</div>
                 </div>
               </div>
             ))}
@@ -460,13 +462,13 @@ export function S4cInPersonSignOff({
           <textarea
             value={notes} onChange={e => setNotes(e.target.value)}
             onFocus={() => setNotesFocused(true)} onBlur={() => setNotesFocused(false)}
-            placeholder="Any notes about this completion…" rows={2}
+            placeholder="Any notes about this completionâ¦" rows={2}
             style={{ width: "100%", padding: "9px 11px", border: `1.5px solid ${notesFocused ? C.sage : "#D0DEDB"}`, borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, outline: "none", resize: "none", lineHeight: 1.5, transition: "all .18s" }}
           />
         </div>
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 68, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="submit-btn"
           onClick={() => { setSubmitted(true); onComplete?.({ training: selectedTraining, staff: selectedStaff, trainer: trainer.name, notes }); }}

@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens (matching wireframe exactly) ──────────────────────────────
+// ââ Design tokens (matching wireframe exactly) ââââââââââââââââââââââââââââââ
 const C = {
   forest:  "#1C3A2A",
   pine:    "#2D5A3D",
@@ -18,7 +20,7 @@ const C = {
   redLt:   "#FDECEA",
 };
 
-// ── Reusable micro-components ───────────────────────────────────────────────
+// ââ Reusable micro-components âââââââââââââââââââââââââââââââââââââââââââââââ
 function Label({ children }) {
   return (
     <div style={{
@@ -64,10 +66,10 @@ function Divider() {
   return <div style={{ height: 1, background: "#E8EFec", margin: "20px 0" }} />;
 }
 
-// ── Main component ──────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S1aLogin({ onSignIn, onStartSetup }) {
   const [email, setEmail] = useState("ahren@whistlepigwhiskey.com");
-  const [password, setPassword] = useState("••••••••••••");
+  const [password, setPassword] = useState("â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢");
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -80,10 +82,12 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
     if (!password.trim()) { setError("Please enter your password."); return; }
     setError("");
     setLoading(true);
-    // Simulate async auth — replace with real call
+    // Simulate async auth â replace with real call
     setTimeout(() => {
       setLoading(false);
       if (onSignIn) onSignIn({ email, keepSignedIn });
+  onHome,
+
     }, 900);
   }
 
@@ -134,7 +138,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
         .checkbox-label:hover { color: ${C.pine} !important; }
       `}</style>
 
-      {/* ── Logo ── */}
+      {/* ââ Logo ââ */}
       <div className="card-anim" style={{ textAlign: "center", marginBottom: 32, animationDelay: "0ms" }}>
         <div style={{
           fontFamily: "'DM Mono', monospace",
@@ -150,7 +154,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
         </p>
       </div>
 
-      {/* ── Card ── */}
+      {/* ââ Card ââ */}
       <div
         className="card-anim"
         style={{
@@ -189,7 +193,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
               color: C.red,
               marginBottom: 18,
             }}>
-              <span>⚠</span> {error}
+              <span>â </span> {error}
             </div>
           )}
 
@@ -206,7 +210,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
               marginBottom: 18,
               lineHeight: 1.5,
             }}>
-              <span style={{ marginTop: 1 }}>✓</span>
+              <span style={{ marginTop: 1 }}>â</span>
               <span>Reset link sent to <strong>{email}</strong>. Check your inbox.</span>
             </div>
           )}
@@ -223,7 +227,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
             />
           </div>
 
-          {/* Password field — hidden in forgot mode */}
+          {/* Password field â hidden in forgot mode */}
           {mode === "login" && (
             <div style={{ marginBottom: 18 }}>
               <Label>Password</Label>
@@ -315,9 +319,9 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
                     display: "inline-block",
                     animation: "spin .7s linear infinite",
                   }} />
-                  Signing in…
+                  Signing inâ¦
                 </>
-              ) : "Sign in →"}
+              ) : "Sign in â"}
             </button>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -338,7 +342,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
                   transition: "all .18s cubic-bezier(.4,0,.2,1)",
                 }}
               >
-                {loading ? "Sending…" : forgotSent ? "Link sent ✓" : "Send reset link →"}
+                {loading ? "Sendingâ¦" : forgotSent ? "Link sent â" : "Send reset link â"}
               </button>
               <button
                 onClick={() => { setMode("login"); setError(""); setForgotSent(false); }}
@@ -356,7 +360,7 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
                   transition: "all .18s",
                 }}
               >
-                ← Back to sign in
+                â Back to sign in
               </button>
             </div>
           )}
@@ -374,12 +378,12 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
                 textDecoration: "none", cursor: "pointer",
               }}
             >
-              Start your free setup →
+              Start your free setup â
             </span>
           </div>
         </div>
 
-        {/* ── Phase 2 SSO placeholder footer ── */}
+        {/* ââ Phase 2 SSO placeholder footer ââ */}
         <div style={{
           padding: "12px 28px",
           background: C.chalk,
@@ -388,11 +392,11 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
           fontSize: ".75rem",
           color: C.mist,
         }}>
-          SSO / Google Workspace sign-in — Phase 2
+          SSO / Google Workspace sign-in â Phase 2
         </div>
       </div>
 
-      {/* ── UX annotation (dev/wireframe mode) ── */}
+      {/* ââ UX annotation (dev/wireframe mode) ââ */}
       <div
         className="card-anim"
         style={{
@@ -411,8 +415,8 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
       >
         <span style={{
           position: "absolute", left: 10, top: 10, fontSize: ".85rem",
-        }}>✏️</span>
-        UX NOTE: First-time users land here from invite email — password already set via email flow. No separate "create account" screen needed. SSO button added here in Phase 2.
+        }}>âï¸</span>
+        UX NOTE: First-time users land here from invite email â password already set via email flow. No separate "create account" screen needed. SSO button added here in Phase 2.
       </div>
     </div>
   );

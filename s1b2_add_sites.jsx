@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ââ Design tokens ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const C = {
   forest:  "#1C3A2A",
   pine:    "#2D5A3D",
@@ -39,7 +41,7 @@ const INITIAL_SITES = [
   { id: 4, name: "Brandenburg",  location: "Brandenburg, KY",  status: "Active", tz: "America/Chicago (CT)"  },
 ];
 
-// ── Shared primitives ────────────────────────────────────────────────────────
+// ââ Shared primitives ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Stepper({ current }) {
   return (
     <div style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginBottom: 32, scrollbarWidth: "none" }}>
@@ -56,7 +58,7 @@ function Stepper({ current }) {
               boxShadow: state === "active" ? `0 0 0 4px ${C.mint}` : "none",
               transition: "all .2s",
             }}>
-              {state === "done" ? "✓" : i + 1}
+              {state === "done" ? "â" : i + 1}
             </div>
             <span style={{
               fontSize: ".75rem", fontWeight: state === "active" ? 700 : 500,
@@ -144,14 +146,14 @@ function Badge({ status }) {
 }
 
 function InlineError({ msg }) {
-  return msg ? <div style={{ fontSize: ".74rem", color: C.red, marginTop: 4 }}>⚠ {msg}</div> : null;
+  return msg ? <div style={{ fontSize: ".74rem", color: C.red, marginTop: 4 }}>â  {msg}</div> : null;
 }
 
 function Divider() {
   return <div style={{ height: 1, background: "#E8EFec", margin: "16px 0" }} />;
 }
 
-// ── Site list card ────────────────────────────────────────────────────────────
+// ââ Site list card ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function SiteCard({ site, index, onEdit, onRemove, editing }) {
   return (
     <div style={{
@@ -205,13 +207,13 @@ function SiteCard({ site, index, onEdit, onRemove, editing }) {
             cursor: "pointer", transition: "all .15s",
           }}
           title="Remove site"
-        >×</button>
+        >Ã</button>
       </div>
     </div>
   );
 }
 
-// ── CSV Dropzone ──────────────────────────────────────────────────────────────
+// ââ CSV Dropzone ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function CsvDropzone({ onImport }) {
   const [dragging, setDragging] = useState(false);
   const [imported, setImported] = useState(null);
@@ -246,10 +248,10 @@ function CsvDropzone({ onImport }) {
     >
       <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
         onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
-      <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>📋</div>
+      <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>ð</div>
       {imported ? (
         <div>
-          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>✓ {imported} ready to import</div>
+          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>â {imported} ready to import</div>
           <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 4 }}>Click to choose a different file</div>
         </div>
       ) : (
@@ -281,7 +283,7 @@ function CsvDropzone({ onImport }) {
   );
 }
 
-// ── Add / Edit form panel ─────────────────────────────────────────────────────
+// ââ Add / Edit form panel âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function SiteForm({ editingSite, onAdd, onUpdate, onCancel }) {
   const isEdit = !!editingSite;
   const [name,     setName]     = useState(editingSite?.name     ?? "");
@@ -333,10 +335,10 @@ function SiteForm({ editingSite, onAdd, onUpdate, onCancel }) {
       <div style={{ marginBottom: 14 }}>
         <Label>Address</Label>
         <TextInput value={location} onChange={e => { setLocation(e.target.value); setErrors(er => ({ ...er, location: "" })); }}
-          placeholder="Start typing — auto-completes" hasError={!!errors.location} />
+          placeholder="Start typing â auto-completes" hasError={!!errors.location} />
         <InlineError msg={errors.location} />
         <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 4 }}>
-          Google Places autocomplete — timezone fills automatically
+          Google Places autocomplete â timezone fills automatically
         </div>
       </div>
 
@@ -356,7 +358,7 @@ function SiteForm({ editingSite, onAdd, onUpdate, onCancel }) {
         <TextInput value={manager} onChange={e => setManager(e.target.value)}
           placeholder="Search staff by name or email" />
         <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 4 }}>
-          Optional — you can assign this after adding staff in Step 4.
+          Optional â you can assign this after adding staff in Step 4.
         </div>
       </div>
 
@@ -390,7 +392,7 @@ function SiteForm({ editingSite, onAdd, onUpdate, onCancel }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue, onBack }) {
   const [sites, setSites] = useState(initialSites);
   const [editingSite, setEditingSite] = useState(null); // null = "add new" mode
@@ -403,6 +405,8 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
     setAdded(newSite.name);
     setEditingSite(null);
     setTimeout(() => setAdded(null), 2500);
+  onHome,
+
   }
 
   function handleUpdate(updated) {
@@ -455,7 +459,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={1} />
@@ -476,13 +480,13 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
             borderRadius: 8, fontSize: ".85rem", color: C.pine,
             display: "flex", alignItems: "center", gap: 8,
           }}>
-            <span>✓</span> <strong>{added}</strong> added successfully.
+            <span>â</span> <strong>{added}</strong> added successfully.
           </div>
         )}
 
         <div className="split-grid anim" style={{ animationDelay: "80ms" }}>
 
-          {/* ── Left: site list + CSV import ── */}
+          {/* ââ Left: site list + CSV import ââ */}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <div>
@@ -512,7 +516,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
                   border: "1.5px dashed #D0DEDB",
                   color: C.mist, fontSize: ".85rem",
                 }}>
-                  No sites yet — add your first site using the form.
+                  No sites yet â add your first site using the form.
                 </div>
               ) : sites.map((site, i) => (
                 <div key={site.id} className="site-add-anim">
@@ -531,7 +535,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
             <CsvDropzone onImport={(filename) => console.log("Import:", filename)} />
           </div>
 
-          {/* ── Right: add/edit form ── */}
+          {/* ââ Right: add/edit form ââ */}
           <div>
             <SiteForm
               key={editingSite?.id ?? "new"}
@@ -551,16 +555,16 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
           animationDelay: "120ms",
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>✏️</span>
-          UX NOTE: Address field uses Google Places autocomplete — timezone fills automatically.
-          Site manager field is optional here — user can skip and assign later without blocking progress.
+          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>âï¸</span>
+          UX NOTE: Address field uses Google Places autocomplete â timezone fills automatically.
+          Site manager field is optional here â user can skip and assign later without blocking progress.
           Inactive sites shown in list but don't count toward billing.
         </div>
       </div>
 
-      {/* ── Fixed action bar ── */}
+      {/* ââ Fixed action bar ââ */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: C.white, borderTop: "1px solid #E2EBE6",
         padding: "14px 28px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -576,7 +580,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
             fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
             transition: "all .18s",
           }}
-        >← Back</button>
+        >â Back</button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ fontSize: ".8rem", color: C.mist }}>
@@ -597,7 +601,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
               transition: "all .18s",
             }}
           >
-            Continue to Departments →
+            Continue to Departments â
           </button>
         </div>
       </div>

@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -40,27 +42,11 @@ function pill(label, bg, color) {
 
 function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
   return (
-    <div style={{
-      height: 56, background: C.forest,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      position: "sticky", top: 0, zIndex: 100,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>
-        CA Tracker
-      </div>
-    </div>
+    <EHSHeader onHome={onHome} />
   );
 }
 
-// ── CA row ────────────────────────────────────────────────────────────────────
+// ââ CA row ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function CARow({ ca, onVerify, onViewIncident }) {
   const [verifying, setVerifying] = useState(false);
   const pri = PRIORITY_MAP[ca.priority] ?? PRIORITY_MAP.low;
@@ -75,7 +61,7 @@ function CARow({ ca, onVerify, onViewIncident }) {
       <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", verticalAlign: "middle" }}>
         <div style={{ fontSize: ".88rem", color: C.ink, lineHeight: 1.4 }}>{ca.desc}</div>
         {ca.escalated && (
-          <span style={{ fontSize: ".68rem", color: C.red, fontWeight: 600 }}>⬆ Escalated</span>
+          <span style={{ fontSize: ".68rem", color: C.red, fontWeight: 600 }}>â¬ Escalated</span>
         )}
       </td>
       <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", verticalAlign: "middle" }}>
@@ -102,7 +88,7 @@ function CARow({ ca, onVerify, onViewIncident }) {
       </td>
       <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", verticalAlign: "middle" }}>
         {ca.status === "closed" ? (
-          <span style={{ fontSize: ".78rem", color: C.sage, display: "flex", alignItems: "center", gap: 4 }}>✓ Verified</span>
+          <span style={{ fontSize: ".78rem", color: C.sage, display: "flex", alignItems: "center", gap: 4 }}>â Verified</span>
         ) : (
           <button
             onClick={handleVerify}
@@ -115,14 +101,14 @@ function CARow({ ca, onVerify, onViewIncident }) {
               cursor: verifying ? "default" : "pointer", whiteSpace: "nowrap",
               transition: "all .15s",
             }}
-          >{verifying ? "Saving…" : "Verify ✓"}</button>
+          >{verifying ? "Savingâ¦" : "Verify â"}</button>
         )}
       </td>
     </tr>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S2eCATracker({ companyName, onViewIncident }) {
   const [cas,          setCas]         = useState(SEED_CAS);
   const [activeTab,    setActiveTab]   = useState("overdue"); // "overdue" | "on-track" | "closed"
@@ -136,7 +122,7 @@ export default function S2eCATracker({ companyName, onViewIncident }) {
     setCas(cs => cs.map(c => c.id === id ? { ...c, status: "closed" } : c));
   }
 
-  // Spec §12.9: split overdue / on-track / closed
+  // Spec Â§12.9: split overdue / on-track / closed
   const tabs = [
     { id: "overdue",  label: "Overdue",  color: C.red  },
     { id: "on-track", label: "On track", color: C.pine },
@@ -189,15 +175,15 @@ export default function S2eCATracker({ companyName, onViewIncident }) {
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Corrective Action Tracker</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
-              All sites · {cas.length} total CAs
+              All sites Â· {cas.length} total CAs
               {escalatedCount > 0 && (
-                <span style={{ color: C.red, fontWeight: 600, marginLeft: 10 }}>⬆ {escalatedCount} escalated</span>
+                <span style={{ color: C.red, fontWeight: 600, marginLeft: 10 }}>â¬ {escalatedCount} escalated</span>
               )}
             </p>
           </div>
         </div>
 
-        {/* Tab bar — spec: split overdue / on-track / closed */}
+        {/* Tab bar â spec: split overdue / on-track / closed */}
         <div className="anim" style={{
           display: "flex", gap: 0,
           background: C.white, borderRadius: 10,
@@ -295,7 +281,7 @@ export default function S2eCATracker({ companyName, onViewIncident }) {
               borderTop: "1px solid #F5C6C2",
               fontSize: ".78rem", color: C.red,
             }}>
-              ⬆ {escalatedCount} overdue CA{escalatedCount > 1 ? "s" : ""} have been escalated to Site Manager. Escalation is automatic after 5 days overdue.
+              â¬ {escalatedCount} overdue CA{escalatedCount > 1 ? "s" : ""} have been escalated to Site Manager. Escalation is automatic after 5 days overdue.
             </div>
           )}
         </div>
@@ -307,8 +293,8 @@ export default function S2eCATracker({ companyName, onViewIncident }) {
           background: "#FFF8E7", border: "1px dashed #E8C87A",
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10 }}>✏️</span>
-          Spec §12.9: Split overdue / on-track / closed. One-tap verify closes a CA. Escalation status visible. Overdue items auto-escalate after 5 days with no activity.
+          <span style={{ position: "absolute", left: 10, top: 10 }}>âï¸</span>
+          Spec Â§12.9: Split overdue / on-track / closed. One-tap verify closes a CA. Escalation status visible. Overdue items auto-escalate after 5 days with no activity.
         </div>
       </div>
     </div>

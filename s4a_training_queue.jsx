@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -9,18 +11,18 @@ const C = {
   purple: "#6B3FA0", purpleLt: "#F3F0F9",
 };
 
-// Spec §14.1: status chips — current, expiring-soon, overdue, expired
+// Spec Â§14.1: status chips â current, expiring-soon, overdue, expired
 const STATUS = {
-  current:       { label: "Current",       bg: C.foam,     color: C.pine,   icon: "✓" },
-  expiring_soon: { label: "Expiring soon", bg: C.goldLt,   color: C.gold,   icon: "⏱" },
+  current:       { label: "Current",       bg: C.foam,     color: C.pine,   icon: "â" },
+  expiring_soon: { label: "Expiring soon", bg: C.goldLt,   color: C.gold,   icon: "â±" },
   overdue:       { label: "Overdue",       bg: C.redLt,    color: C.red,    icon: "!" },
-  expired:       { label: "Expired",       bg: "#EEF1F0",  color: C.slate,  icon: "×" },
-  not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple, icon: "→" },
+  expired:       { label: "Expired",       bg: "#EEF1F0",  color: C.slate,  icon: "Ã" },
+  not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple, icon: "â" },
 };
 
 const TYPE = {
-  cbt:       { label: "CBT",       emoji: "💻", color: C.purple },
-  in_person: { label: "In-person", emoji: "👥", color: C.pine   },
+  cbt:       { label: "CBT",       emoji: "ð»", color: C.purple },
+  in_person: { label: "In-person", emoji: "ð¥", color: C.pine   },
 };
 
 const SEED_QUEUE = [
@@ -59,6 +61,8 @@ export default function S4aTrainingQueue({
   user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging" },
   onOpen,
   onBack,
+  onHome,
+
 }) {
   const [filter, setFilter] = useState("all"); // "all" | "due" | "expiring"
 
@@ -84,19 +88,15 @@ export default function S4aTrainingQueue({
       `}</style>
 
       {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name}</div>
-      </div>
+      <EHSHeader onHome={onHome} />
 
-      <div style={{ flex: 1, padding: "16px 18px 80px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "16px 18px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         {/* Header */}
         <div className="anim" style={{ marginBottom: 18 }}>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.ink }}>My training</h1>
-          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>{user.dept} · {user.site}</p>
+          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>{user.dept} Â· {user.site}</p>
         </div>
 
         {/* Urgent banners */}
@@ -107,8 +107,8 @@ export default function S4aTrainingQueue({
             border: `1.5px solid #F5C6C2`, borderRadius: 9,
             marginBottom: 10, fontSize: ".85rem", color: C.red,
           }}>
-            <span style={{ fontSize: "1rem" }}>⚠</span>
-            <span><strong>{overdueCount} overdue</strong> — complete as soon as possible</span>
+            <span style={{ fontSize: "1rem" }}>â </span>
+            <span><strong>{overdueCount} overdue</strong> â complete as soon as possible</span>
           </div>
         )}
         {expiringSoonCount > 0 && (
@@ -118,8 +118,8 @@ export default function S4aTrainingQueue({
             border: `1.5px solid #F0D090`, borderRadius: 9,
             marginBottom: 14, fontSize: ".85rem", color: "#7A5A1A",
           }}>
-            <span>⏱</span>
-            <span><strong>{expiringSoonCount} expiring soon</strong> — renew within 30 days</span>
+            <span>â±</span>
+            <span><strong>{expiringSoonCount} expiring soon</strong> â renew within 30 days</span>
           </div>
         )}
 
@@ -178,7 +178,7 @@ export default function S4aTrainingQueue({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <StatusPill status={t.status} />
-                    <span style={{ fontSize: ".7rem", color: C.mist }}>{typeInfo.label} · {t.duration}</span>
+                    <span style={{ fontSize: ".7rem", color: C.mist }}>{typeInfo.label} Â· {t.duration}</span>
                   </div>
                   {t.due && (t.status === "overdue" || t.status === "not_started") && (
                     <div style={{ fontSize: ".7rem", color: t.status === "overdue" ? C.red : C.mist, marginTop: 3 }}>
@@ -197,7 +197,7 @@ export default function S4aTrainingQueue({
 
                 {/* Action arrow */}
                 {actionable && (
-                  <div style={{ flexShrink: 0, color: C.mist, fontSize: ".85rem" }}>→</div>
+                  <div style={{ flexShrink: 0, color: C.mist, fontSize: ".85rem" }}>â</div>
                 )}
               </div>
             );

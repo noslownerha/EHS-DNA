@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+// ââ Design tokens ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
   mint: "#A8D5B5", foam: "#E8F5EC", ink: "#0F1F17",
@@ -11,42 +13,42 @@ const C = {
 
 const STEPS = ["Company", "Sites", "Departments", "Staff", "Training"];
 
-// Industry → suggested dept templates
+// Industry â suggested dept templates
 const DEPT_TEMPLATES = {
   "Spirits / Distilling": [
-    { id: 1, name: "Production / Distilling",    emoji: "🏭", autoOnboard: true,  requireOrientation: true  },
-    { id: 2, name: "Bottling & Packaging",        emoji: "📦", autoOnboard: true,  requireOrientation: true  },
-    { id: 3, name: "Warehouse",                   emoji: "🏗",  autoOnboard: true,  requireOrientation: true  },
-    { id: 4, name: "Maintenance",                 emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
-    { id: 5, name: "Quality Control",             emoji: "🔬", autoOnboard: true,  requireOrientation: false },
-    { id: 6, name: "Tasting Room / Hospitality",  emoji: "🥃", autoOnboard: true,  requireOrientation: false },
-    { id: 7, name: "Administration",              emoji: "🗂",  autoOnboard: false, requireOrientation: false },
+    { id: 1, name: "Production / Distilling",    emoji: "ð­", autoOnboard: true,  requireOrientation: true  },
+    { id: 2, name: "Bottling & Packaging",        emoji: "ð¦", autoOnboard: true,  requireOrientation: true  },
+    { id: 3, name: "Warehouse",                   emoji: "ð",  autoOnboard: true,  requireOrientation: true  },
+    { id: 4, name: "Maintenance",                 emoji: "ð§", autoOnboard: true,  requireOrientation: true  },
+    { id: 5, name: "Quality Control",             emoji: "ð¬", autoOnboard: true,  requireOrientation: false },
+    { id: 6, name: "Tasting Room / Hospitality",  emoji: "ð¥", autoOnboard: true,  requireOrientation: false },
+    { id: 7, name: "Administration",              emoji: "ð",  autoOnboard: false, requireOrientation: false },
   ],
   "Craft Brewing": [
-    { id: 1, name: "Brewing Operations",  emoji: "🍺", autoOnboard: true,  requireOrientation: true  },
-    { id: 2, name: "Packaging",           emoji: "📦", autoOnboard: true,  requireOrientation: true  },
-    { id: 3, name: "Warehouse",           emoji: "🏗",  autoOnboard: true,  requireOrientation: true  },
-    { id: 4, name: "Quality & Lab",       emoji: "🔬", autoOnboard: true,  requireOrientation: false },
-    { id: 5, name: "Taproom",             emoji: "🍻", autoOnboard: true,  requireOrientation: false },
-    { id: 6, name: "Administration",      emoji: "🗂",  autoOnboard: false, requireOrientation: false },
+    { id: 1, name: "Brewing Operations",  emoji: "ðº", autoOnboard: true,  requireOrientation: true  },
+    { id: 2, name: "Packaging",           emoji: "ð¦", autoOnboard: true,  requireOrientation: true  },
+    { id: 3, name: "Warehouse",           emoji: "ð",  autoOnboard: true,  requireOrientation: true  },
+    { id: 4, name: "Quality & Lab",       emoji: "ð¬", autoOnboard: true,  requireOrientation: false },
+    { id: 5, name: "Taproom",             emoji: "ð»", autoOnboard: true,  requireOrientation: false },
+    { id: 6, name: "Administration",      emoji: "ð",  autoOnboard: false, requireOrientation: false },
   ],
   "Light Manufacturing": [
-    { id: 1, name: "Production",          emoji: "🏭", autoOnboard: true,  requireOrientation: true  },
-    { id: 2, name: "Assembly",            emoji: "🔩", autoOnboard: true,  requireOrientation: true  },
-    { id: 3, name: "Warehouse & Shipping",emoji: "📦", autoOnboard: true,  requireOrientation: true  },
-    { id: 4, name: "Maintenance",         emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
-    { id: 5, name: "Quality Control",     emoji: "🔬", autoOnboard: true,  requireOrientation: false },
-    { id: 6, name: "Administration",      emoji: "🗂",  autoOnboard: false, requireOrientation: false },
+    { id: 1, name: "Production",          emoji: "ð­", autoOnboard: true,  requireOrientation: true  },
+    { id: 2, name: "Assembly",            emoji: "ð©", autoOnboard: true,  requireOrientation: true  },
+    { id: 3, name: "Warehouse & Shipping",emoji: "ð¦", autoOnboard: true,  requireOrientation: true  },
+    { id: 4, name: "Maintenance",         emoji: "ð§", autoOnboard: true,  requireOrientation: true  },
+    { id: 5, name: "Quality Control",     emoji: "ð¬", autoOnboard: true,  requireOrientation: false },
+    { id: 6, name: "Administration",      emoji: "ð",  autoOnboard: false, requireOrientation: false },
   ],
 };
 const DEFAULT_TEMPLATE = [
-  { id: 1, name: "Operations",    emoji: "⚙️", autoOnboard: true,  requireOrientation: true  },
-  { id: 2, name: "Warehouse",     emoji: "🏗",  autoOnboard: true,  requireOrientation: true  },
-  { id: 3, name: "Maintenance",   emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
-  { id: 4, name: "Administration",emoji: "🗂",  autoOnboard: false, requireOrientation: false },
+  { id: 1, name: "Operations",    emoji: "âï¸", autoOnboard: true,  requireOrientation: true  },
+  { id: 2, name: "Warehouse",     emoji: "ð",  autoOnboard: true,  requireOrientation: true  },
+  { id: 3, name: "Maintenance",   emoji: "ð§", autoOnboard: true,  requireOrientation: true  },
+  { id: 4, name: "Administration",emoji: "ð",  autoOnboard: false, requireOrientation: false },
 ];
 
-// ── Shared primitives ────────────────────────────────────────────────────────
+// ââ Shared primitives ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Stepper({ current }) {
   return (
     <div style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginBottom: 32, scrollbarWidth: "none" }}>
@@ -63,7 +65,7 @@ function Stepper({ current }) {
               boxShadow: state === "active" ? `0 0 0 4px ${C.mint}` : "none",
               transition: "all .2s",
             }}>
-              {state === "done" ? "✓" : i + 1}
+              {state === "done" ? "â" : i + 1}
             </div>
             <span style={{
               fontSize: ".75rem", fontWeight: state === "active" ? 700 : 500,
@@ -93,7 +95,7 @@ function Label({ children }) {
   );
 }
 
-// ── Toggle switch ────────────────────────────────────────────────────────────
+// ââ Toggle switch ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Toggle({ checked, onChange }) {
   return (
     <div
@@ -119,20 +121,11 @@ function Toggle({ checked, onChange }) {
 
 function ToggleRow({ label, sublabel, checked, onChange }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "8px 0", gap: 12,
-    }}>
-      <div>
-        <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.ink }}>{label}</div>
-        <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>{sublabel}</div>
-      </div>
-      <Toggle checked={checked} onChange={onChange} />
-    </div>
+    <EHSHeader onHome={onHome} dark={true} />
   );
 }
 
-// ── Department pill ──────────────────────────────────────────────────────────
+// ââ Department pill ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function DeptPill({ dept, selected, onSelect, onRemove }) {
   return (
     <div
@@ -163,12 +156,12 @@ function DeptPill({ dept, selected, onSelect, onRemove }) {
           transition: "color .15s",
         }}
         title="Remove"
-      >✕</span>
+      >â</span>
     </div>
   );
 }
 
-// ── Inline "Add department" input ────────────────────────────────────────────
+// ââ Inline "Add department" input ââââââââââââââââââââââââââââââââââââââââââââ
 function AddDeptInput({ onAdd }) {
   const [open, setOpen]   = useState(false);
   const [value, setValue] = useState("");
@@ -217,7 +210,7 @@ function AddDeptInput({ onAdd }) {
         value={value}
         onChange={e => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Department name…"
+        placeholder="Department nameâ¦"
         style={{
           padding: "5px 10px",
           border: `1.5px solid ${C.sage}`,
@@ -244,12 +237,12 @@ function AddDeptInput({ onAdd }) {
           padding: "5px 8px", background: "none",
           color: C.mist, border: "none", cursor: "pointer", fontSize: ".85rem",
         }}
-      >×</button>
+      >Ã</button>
     </div>
   );
 }
 
-// ── Dept settings panel ──────────────────────────────────────────────────────
+// ââ Dept settings panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function DeptSettings({ dept, onChange }) {
   const [lead, setLead] = useState(dept.lead ?? "");
   const [focused, setFocused] = useState(false);
@@ -314,7 +307,7 @@ function DeptSettings({ dept, onChange }) {
   );
 }
 
-// ── Idle dept card (not selected) ────────────────────────────────────────────
+// ââ Idle dept card (not selected) ââââââââââââââââââââââââââââââââââââââââââââ
 function DeptIdleCard({ dept, onSelect }) {
   return (
     <div
@@ -335,7 +328,7 @@ function DeptIdleCard({ dept, onSelect }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S1b3Departments({ industry = "Spirits / Distilling", onContinue, onBack }) {
   const template = DEPT_TEMPLATES[industry] ?? DEFAULT_TEMPLATE;
   const [depts, setDepts]         = useState(template.map(d => ({ ...d })));
@@ -347,10 +340,12 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
   function handleRemove(id) {
     setDepts(ds => ds.filter(d => d.id !== id));
     if (selectedId === id) setSelectedId(null);
+  onHome,
+
   }
 
   function handleAdd(name) {
-    const emojis = ["⚙️","🏢","🚛","📋","🔑","👷","🌿"];
+    const emojis = ["âï¸","ð¢","ð","ð","ð","ð·","ð¿"];
     const newDept = {
       id: nextId.current++,
       name,
@@ -403,7 +398,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={2} />
@@ -413,7 +408,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
           <h1 style={{ fontSize: "1.5rem", fontWeight: 600, color: C.ink }}>Set up departments</h1>
           <p style={{ fontSize: ".9rem", color: C.slate, marginTop: 4, lineHeight: 1.5 }}>
             We've suggested departments based on your industry. Edit, remove, or add your own.
-            These apply to all sites — you can customize per-site later.
+            These apply to all sites â you can customize per-site later.
           </p>
         </div>
 
@@ -427,11 +422,11 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
           fontSize: ".87rem", color: C.pine, lineHeight: 1.5,
           marginBottom: 16, animationDelay: "50ms",
         }}>
-          <span style={{ marginTop: 1, flexShrink: 0 }}>💡</span>
+          <span style={{ marginTop: 1, flexShrink: 0 }}>ð¡</span>
           <span>Each department automatically gets a <strong>training group</strong>. Staff added to a department are auto-enrolled in that group's training.</span>
         </div>
 
-        {/* ── Pill card ── */}
+        {/* ââ Pill card ââ */}
         <div className="anim" style={{
           background: C.white, borderRadius: 10,
           boxShadow: "0 2px 16px rgba(15,31,23,.08)",
@@ -444,7 +439,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
                 Suggested for {industry}
               </h2>
               <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>
-                Based on your industry selection — {depts.length} department{depts.length !== 1 ? "s" : ""}
+                Based on your industry selection â {depts.length} department{depts.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -473,7 +468,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
           )}
         </div>
 
-        {/* ── Settings card ── */}
+        {/* ââ Settings card ââ */}
         <div className="anim" style={{
           background: C.white, borderRadius: 10,
           boxShadow: "0 2px 16px rgba(15,31,23,.08)",
@@ -484,7 +479,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
             <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.ink }}>Department settings</h2>
             <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>
               {selectedId
-                ? "Configure training rules — or skip and continue. You can always edit these later."
+                ? "Configure training rules â or skip and continue. You can always edit these later."
                 : "Click any department pill above to configure it."}
             </p>
           </div>
@@ -548,15 +543,15 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
           borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
           animationDelay: "110ms",
         }}>
-          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>✏️</span>
-          UX NOTE: Industry-suggested departments mean most users just review and click Continue — zero friction for the common case.
-          Clicking "✕" removes instantly (no confirm). "Add department" appears inline. Department settings panel is secondary — most users skip here and configure later.
+          <span style={{ position: "absolute", left: 10, top: 10, fontSize: ".85rem" }}>âï¸</span>
+          UX NOTE: Industry-suggested departments mean most users just review and click Continue â zero friction for the common case.
+          Clicking "â" removes instantly (no confirm). "Add department" appears inline. Department settings panel is secondary â most users skip here and configure later.
         </div>
       </div>
 
-      {/* ── Fixed action bar ── */}
+      {/* ââ Fixed action bar ââ */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: C.white, borderTop: "1px solid #E2EBE6",
         padding: "14px 28px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -571,7 +566,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
             fontFamily: "'DM Sans', sans-serif",
             fontSize: ".88rem", fontWeight: 600, cursor: "pointer", transition: "all .18s",
           }}
-        >← Back</button>
+        >â Back</button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ fontSize: ".8rem", color: C.mist }}>
@@ -592,7 +587,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
               transition: "all .18s",
             }}
           >
-            Continue to Staff →
+            Continue to Staff â
           </button>
         </div>
       </div>

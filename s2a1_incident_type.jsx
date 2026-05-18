@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { INCIDENT_TYPES } from "./constants.js";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -24,6 +25,8 @@ function Progress({ step, total }) {
 export default function S2a1IncidentType({
   user = { name: "Alex Torres", site: "Riverside" },
   onContinue, onBack, onTriage,
+  onHome,
+
 }) {
   const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const [selectedType, setSelectedType] = useState(null);
@@ -41,19 +44,16 @@ export default function S2a1IncidentType({
         select, input { appearance: none; color-scheme: light; }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", flexShrink: 0 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint }}><span style={{ color: C.white }}>EHS</span> DNA</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} />
 
       <div style={{ padding: "10px 0 6px", flexShrink: 0 }}><Progress step={0} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "12px 18px 0", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, padding: "12px 18px 0", overflowY: "auto",
+        paddingBottom: 80, display: "flex", flexDirection: "column", gap: 12 }}>
 
         <div>
           <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink }}>Report an incident</h1>
-          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>The immediate situation is handled — what happened?</p>
+          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>The immediate situation is handled â what happened?</p>
         </div>
 
         {/* Bucket 3: triage shortcut above incident type grid */}
@@ -64,16 +64,16 @@ export default function S2a1IncidentType({
             display: "flex", alignItems: "center", gap: 10,
             fontFamily: "'DM Sans', sans-serif", transition: "background .15s",
           }}>
-            <span style={{ fontSize: "1rem" }}>🚨</span>
+            <span style={{ fontSize: "1rem" }}>ð¨</span>
             <div style={{ textAlign: "left", flex: 1 }}>
               <div style={{ fontSize: ".83rem", fontWeight: 700, color: C.red }}>Something still happening right now?</div>
-              <div style={{ fontSize: ".7rem", color: C.mist }}>Get live guidance instead → Triage</div>
+              <div style={{ fontSize: ".7rem", color: C.mist }}>Get live guidance instead â Triage</div>
             </div>
-            <span style={{ color: C.red }}>→</span>
+            <span style={{ color: C.red }}>â</span>
           </button>
         )}
 
-        {/* Bucket 3: 2x2 grid — 4 types only */}
+        {/* Bucket 3: 2x2 grid â 4 types only */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
           {INCIDENT_TYPES.map(t => (
             <div key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
@@ -89,7 +89,7 @@ export default function S2a1IncidentType({
           ))}
         </div>
 
-        {/* Site + datetime — no department (Bucket 3) */}
+        {/* Site + datetime â no department (Bucket 3) */}
         <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "14px" }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>Site</div>
@@ -100,7 +100,7 @@ export default function S2a1IncidentType({
           <div>
             <div style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>Date & time</div>
             <input type="datetime-local" value={datetime} onChange={e => setDatetime(e.target.value)} style={{ width: "100%", padding: "9px 10px", border: "1.5px solid #D0DEDB", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, outline: "none" }} />
-            <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 4 }}>Defaults to now — edit if reporting after the fact</div>
+            <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 4 }}>Defaults to now â edit if reporting after the fact</div>
           </div>
         </div>
 
@@ -108,7 +108,7 @@ export default function S2a1IncidentType({
       </div>
 
       {/* Bottom CTA */}
-      <div style={{ padding: "12px 18px 14px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)", flexShrink: 0 }}>
+      <div style={{ padding: "12px 18px 80px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)", flexShrink: 0 }}>
         <button className="continue-btn" onClick={() => selectedType && onContinue?.({ type: selectedType, site, datetime })} disabled={!selectedType} style={{
           width: "100%", padding: "14px",
           background: selectedType ? C.sage : "#B0C8BA",
@@ -116,7 +116,7 @@ export default function S2a1IncidentType({
           fontFamily: "'DM Sans', sans-serif", fontSize: ".95rem", fontWeight: 700,
           cursor: selectedType ? "pointer" : "default", transition: "all .18s",
         }}>
-          {selectedType ? `Continue — ${INCIDENT_TYPES.find(t => t.id === selectedType)?.label} →` : "Select an incident type to continue"}
+          {selectedType ? `Continue â ${INCIDENT_TYPES.find(t => t.id === selectedType)?.label} â` : "Select an incident type to continue"}
         </button>
       </div>
     </div>

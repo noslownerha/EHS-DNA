@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -9,7 +11,7 @@ const C = {
   purple: "#6B3FA0", purpleLt: "#F3F0F9",
 };
 
-// Spec §14.2: permitted roles — Trainer, Safety Officer, Site Manager, Company Admin
+// Spec Â§14.2: permitted roles â Trainer, Safety Officer, Site Manager, Company Admin
 // Department Lead is explicitly excluded.
 const PERMITTED_ROLES = ["trainer", "safety", "site_manager", "admin"];
 
@@ -59,12 +61,14 @@ function Avatar({ first, last, selected }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S4dGroupSessionLog({
   userRole    = "trainer",
   userName    = "Mia Chen",
   onConfirm,
   onClose,
+  onHome,
+
 }) {
   const [training,     setTraining]     = useState(null);
   const [sessionDate,  setSessionDate]  = useState(todayStr());
@@ -83,7 +87,7 @@ export default function S4dGroupSessionLog({
   if (!PERMITTED_ROLES.includes(userRole)) {
     return (
       <div style={{ padding: 32, textAlign: "center", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
+        <div style={{ fontSize: "2rem", marginBottom: 12 }}>ð</div>
         <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 6 }}>Access restricted</div>
         <div style={{ fontSize: ".85rem", color: C.mist }}>Group session logging requires Trainer, Safety Officer, Site Manager, or Company Admin role.</div>
       </div>
@@ -156,12 +160,12 @@ export default function S4dGroupSessionLog({
     return (
       <div style={{ padding: "32px 28px", textAlign: "center", fontFamily: "'DM Sans', sans-serif" }}>
         <style>{ `@keyframes popIn { 0%{transform:scale(.8);opacity:0;} 60%{transform:scale(1.1);} 100%{transform:scale(1);opacity:1;} }` }</style>
-        <div style={{ fontSize: "2.8rem", marginBottom: 12, animation: "popIn .35s ease both" }}>✅</div>
+        <div style={{ fontSize: "2.8rem", marginBottom: 12, animation: "popIn .35s ease both" }}>â</div>
         <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 6 }}>Session logged</h2>
         <p style={{ fontSize: ".85rem", color: C.mist, marginBottom: 8 }}>
           {selected.size} completion{selected.size > 1 ? "s" : ""} written for <strong>{training?.title}</strong>
         </p>
-        <p style={{ fontSize: ".78rem", color: C.mist }}>Session date: {sessionDate} · Trainer: {trainerName}</p>
+        <p style={{ fontSize: ".78rem", color: C.mist }}>Session date: {sessionDate} Â· Trainer: {trainerName}</p>
         <p style={{ fontSize: ".72rem", color: C.mist, marginTop: 4 }}>All completions share a session ID for audit traceability.</p>
         <button onClick={onClose} style={{
           marginTop: 20, padding: "10px 24px", background: C.sage, color: C.white,
@@ -173,7 +177,8 @@ export default function S4dGroupSessionLog({
   }
 
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", maxHeight: "90vh", overflowY: "auto" }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", maxHeight: "90vh", overflowY: "auto",
+        paddingBottom: 80 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -184,10 +189,10 @@ export default function S4dGroupSessionLog({
       `}</style>
 
       {/* Header */}
-      <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #E2EBE6" }}>
+      <div style={{ padding: "18px 22px 80px", borderBottom: "1px solid #E2EBE6" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>Log group session</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: "1.1rem" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: "1.1rem" }}>Ã</button>
         </div>
         <p style={{ fontSize: ".8rem", color: C.mist, marginTop: 3 }}>
           Mark multiple staff as complete in one action. All completions share a session ID.
@@ -201,7 +206,7 @@ export default function S4dGroupSessionLog({
           <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Training</div>
           <select value={training?.id ?? ""} onChange={e => setTraining(TRAINING_LIBRARY.find(t => t.id === Number(e.target.value)) ?? null)}
             style={{ ...selectStyle, width: "100%" }}>
-            <option value="">Select training…</option>
+            <option value="">Select trainingâ¦</option>
             {TRAINING_LIBRARY.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
           </select>
         </div>
@@ -255,7 +260,8 @@ export default function S4dGroupSessionLog({
           </div>
 
           {/* Staff grouped by training group */}
-          <div style={{ border: "1.5px solid #E2EBE6", borderRadius: 9, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+          <div style={{ border: "1.5px solid #E2EBE6", borderRadius: 9, overflow: "hidden", maxHeight: 320, overflowY: "auto",
+        paddingBottom: 80 }}>
             {Object.entries(groupedByGroup).map(([groupName, members], gi) => {
               const allGroupSelected = members.every(s => selected.has(s.id));
               return (
@@ -298,7 +304,7 @@ export default function S4dGroupSessionLog({
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: ".65rem", color: C.white, transition: "all .15s",
                       }}>
-                        {selected.has(s.id) ? "✓" : ""}
+                        {selected.has(s.id) ? "â" : ""}
                       </div>
                     </div>
                   ))}
@@ -313,7 +319,7 @@ export default function S4dGroupSessionLog({
           <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Notes (optional)</div>
           <textarea value={notes} onChange={e => setNotes(e.target.value)}
             onFocus={() => setNotesFocused(true)} onBlur={() => setNotesFocused(false)}
-            placeholder="e.g. Q2 all-hands safety meeting — Moriah site" rows={2}
+            placeholder="e.g. Q2 all-hands safety meeting â Moriah site" rows={2}
             style={{ width: "100%", padding: "9px 11px", border: `1.5px solid ${notesFocused ? C.sage : "#D0DEDB"}`, borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, outline: "none", resize: "none", lineHeight: 1.5, transition: "all .18s" }}
           />
         </div>
@@ -332,7 +338,7 @@ export default function S4dGroupSessionLog({
           }}
         >
           {canConfirm
-            ? `Log ${selected.size} completion${selected.size !== 1 ? "s" : ""} →`
+            ? `Log ${selected.size} completion${selected.size !== 1 ? "s" : ""} â`
             : "Select training and at least one attendee"}
         </button>
       </div>

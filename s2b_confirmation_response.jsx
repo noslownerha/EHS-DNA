@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -8,7 +10,7 @@ const C = {
   red: "#C0392B", redLt: "#FDECEA",
 };
 
-// Spec §12.6 Part 2: auto-generated CAs from ca_templates based on type + severity
+// Spec Â§12.6 Part 2: auto-generated CAs from ca_templates based on type + severity
 function generateCAs(incidentType, severity) {
   const base = [];
   if (incidentType === "injury") {
@@ -39,11 +41,11 @@ function generateCAs(incidentType, severity) {
   }));
 }
 
-// Spec §12.6 Part 3: customer-configurable response checklist steps
+// Spec Â§12.6 Part 3: customer-configurable response checklist steps
 const DEFAULT_CHECKLIST = [
   "Complete first aid log",
   "Notify shift supervisor",
-  "Preserve scene — don't move anything until photos are done",
+  "Preserve scene â don't move anything until photos are done",
   "Secure the area if hazard still present",
   "Check in with the injured person within 24 hours",
 ];
@@ -62,7 +64,7 @@ function PriorityBadge({ priority }) {
   );
 }
 
-// ── CA editor row ─────────────────────────────────────────────────────────────
+// ââ CA editor row âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function CARow({ ca, onUpdate, onRemove }) {
   const [editing, setEditing]   = useState(false);
   const [desc,    setDesc]      = useState(ca.description);
@@ -105,17 +107,7 @@ function CARow({ ca, onUpdate, onRemove }) {
         </div>
       ) : (
         <div>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
-            <div style={{ fontSize: ".88rem", color: C.ink, lineHeight: 1.4, flex: 1 }}>{ca.description}</div>
-            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              <button onClick={() => setEditing(true)}
-                style={{ background: "none", border: "none", color: C.mist, fontSize: ".72rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: "2px 4px" }}>
-                Edit
-              </button>
-              <button onClick={() => onRemove(ca.id)}
-                style={{ background: "none", border: "none", color: C.mist, fontSize: ".95rem", cursor: "pointer", padding: "2px 4px" }}>×</button>
-            </div>
-          </div>
+          <EHSHeader onHome={onHome} dark={true} />
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <PriorityBadge priority={ca.priority} />
             <span style={{ fontSize: ".72rem", color: C.mist }}>Assign: {ca.assignee}</span>
@@ -128,7 +120,7 @@ function CARow({ ca, onUpdate, onRemove }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function S2bConfirmationResponse({
   incidentId   = "INC-2024-0087",
   incidentType = "injury",
@@ -137,6 +129,8 @@ export default function S2bConfirmationResponse({
   timestamp    = new Date(),
   onDone,
   onViewIncident,
+  onHome,
+
 }) {
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
   const [checklist, setChecklist]= useState(DEFAULT_CHECKLIST.map((s, i) => ({ id: i, text: s, done: false })));
@@ -153,7 +147,7 @@ export default function S2bConfirmationResponse({
     const ca = {
       id: nextId.current++,
       description: newCA.trim(),
-      assignee: "—", dueDate: "TBD",
+      assignee: "â", dueDate: "TBD",
       priority: "medium", auto: false,
     };
     setCas(cs => [...cs, ca]);
@@ -193,15 +187,16 @@ export default function S2bConfirmationResponse({
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
       </div>
 
-      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
-        {/* ── Part 1: Confirmation ── */}
+        {/* ââ Part 1: Confirmation ââ */}
         <div className="anim a0" style={{
           background: C.white, borderRadius: 10,
           boxShadow: "0 1px 8px rgba(15,31,23,.06)",
           padding: "20px 18px", marginBottom: 14, textAlign: "center",
         }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>✅</div>
+          <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>â</div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.pine, marginBottom: 6 }}>
             Incident reported
           </h1>
@@ -216,13 +211,13 @@ export default function S2bConfirmationResponse({
             <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Notified</div>
             {notified.map((n, i) => (
               <div key={i} style={{ display: "flex", gap: 6, fontSize: ".82rem", color: C.pine, marginBottom: 2 }}>
-                <span>✓</span> {n}
+                <span>â</span> {n}
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── Part 2: Corrective actions ── */}
+        {/* ââ Part 2: Corrective actions ââ */}
         <div className="anim a1" style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
             <div>
@@ -245,7 +240,7 @@ export default function S2bConfirmationResponse({
               onKeyDown={e => e.key === "Enter" && addCA()}
               onFocus={() => setCaFocused(true)}
               onBlur={() => setCaFocused(false)}
-              placeholder="Add a corrective action…"
+              placeholder="Add a corrective actionâ¦"
               style={{
                 flex: 1, padding: "9px 12px",
                 border: `1.5px solid ${caFocused ? C.sage : "#D0DEDB"}`,
@@ -273,15 +268,15 @@ export default function S2bConfirmationResponse({
               fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
               transition: "all .2s",
             }}
-          >{confirmed ? "✓ Corrective actions confirmed" : `Confirm ${cas.length} corrective action${cas.length !== 1 ? "s" : ""}`}</button>
+          >{confirmed ? "â Corrective actions confirmed" : `Confirm ${cas.length} corrective action${cas.length !== 1 ? "s" : ""}`}</button>
         </div>
 
-        {/* ── Part 3: Response checklist ── */}
+        {/* ââ Part 3: Response checklist ââ */}
         <div className="anim a2" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden", marginBottom: 14 }}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid #F0F4F2" }}>
             <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.ink }}>Immediate response checklist</h2>
             <p style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>
-              Check off steps as you go. Saved as draft — you don't need to finish before leaving.
+              Check off steps as you go. Saved as draft â you don't need to finish before leaving.
             </p>
           </div>
 
@@ -305,7 +300,7 @@ export default function S2bConfirmationResponse({
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all .15s",
               }}>
-                {item.done && <span style={{ color: C.white, fontSize: ".72rem", fontWeight: 700 }}>✓</span>}
+                {item.done && <span style={{ color: C.white, fontSize: ".72rem", fontWeight: 700 }}>â</span>}
               </div>
               <span style={{
                 fontSize: ".87rem", color: item.done ? C.sage : C.ink,
@@ -316,7 +311,7 @@ export default function S2bConfirmationResponse({
           ))}
 
           <div style={{ padding: "10px 16px", background: C.chalk, fontSize: ".72rem", color: C.mist, textAlign: "center" }}>
-            {checklist.filter(c => c.done).length}/{checklist.length} completed · progress auto-saved
+            {checklist.filter(c => c.done).length}/{checklist.length} completed Â· progress auto-saved
           </div>
         </div>
 
@@ -332,7 +327,7 @@ export default function S2bConfirmationResponse({
             border: `1.5px solid ${C.mint}`, borderRadius: 9,
             fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", fontWeight: 600,
             cursor: "pointer",
-          }}>View report →</button>
+          }}>View report â</button>
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND, SITES } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -19,16 +21,7 @@ const SITES = [
 
 function DesktopNav({ companyName = "WhistlePig Whiskey", label }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <span style={{ color: "rgba(255,255,255,.2)" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>{label}</div>
-    </div>
+    <EHSHeader onHome={onHome} />
   );
 }
 
@@ -58,9 +51,9 @@ function DaysBadge({ days }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S5b — Company Admin Dashboard (desktop)
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S5b â Company Admin Dashboard (desktop)
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", onNavigate }) {
   // Company-wide aggregates
   const totalStaff      = SITES.reduce((n, s) => n + s.staff, 0);
@@ -84,6 +77,8 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
     textTransform: "uppercase", color: C.mist,
     borderBottom: "1px solid #E2EBE6", background: C.chalk,
     whiteSpace: "nowrap",
+  onHome,
+
   };
 
   return (
@@ -106,7 +101,7 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>{companyName}</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
-              {SITES.length} sites · {totalStaff} staff · all-time best: {bestDays} days since recordable
+              {SITES.length} sites Â· {totalStaff} staff Â· all-time best: {bestDays} days since recordable
             </p>
           </div>
           <button className="nav-btn" onClick={() => onNavigate?.("report")} style={{
@@ -114,7 +109,7 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
             border: `1.5px solid ${C.mint}`, borderRadius: 7,
             fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
             cursor: "pointer", transition: "all .15s",
-          }}>Reports →</button>
+          }}>Reports â</button>
         </div>
 
         {/* KPI tiles */}
@@ -136,7 +131,7 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
         {/* Supporting context */}
         <div className="anim" style={{ fontSize: ".78rem", color: C.mist, marginBottom: 22, paddingLeft: 4 }}>
           Avg training compliance: <strong style={{ color: avgCompliance >= 80 ? C.pine : C.gold }}>{avgCompliance}%</strong>
-          &nbsp;· {belowThreshold} site{belowThreshold !== 1 ? "s" : ""} below 80% threshold
+          &nbsp;Â· {belowThreshold} site{belowThreshold !== 1 ? "s" : ""} below 80% threshold
         </div>
 
         {/* Per-site summary table */}
@@ -157,8 +152,8 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
               {SITES.map((site, i) => (
                 <tr key={site.name} className="site-row" onClick={() => onNavigate?.("site", site.name)}>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                    <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.ink }}>📍 {site.name}</div>
-                    <div style={{ fontSize: ".72rem", color: C.mist }}>{site.location} · {site.staff} staff</div>
+                    <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.ink }}>ð {site.name}</div>
+                    <div style={{ fontSize: ".72rem", color: C.mist }}>{site.location} Â· {site.staff} staff</div>
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     <DaysBadge days={site.daysSince} />
@@ -166,25 +161,25 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     {site.openIncidents > 0
                       ? <span style={{ fontWeight: 700, color: C.red, fontSize: ".88rem" }}>{site.openIncidents}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
+                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>â</span>
                     }
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     {site.openCAs > 0
                       ? <span style={{ fontWeight: 700, color: C.orange, fontSize: ".88rem" }}>{site.openCAs}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
+                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>â</span>
                     }
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     {site.criticalFindings > 0
                       ? <span style={{ fontWeight: 700, color: C.red, fontSize: ".88rem" }}>{site.criticalFindings}</span>
-                      : <span style={{ fontSize: ".82rem" }}>✓ <span style={{ color: C.mist }}>None</span></span>
+                      : <span style={{ fontSize: ".82rem" }}>â <span style={{ color: C.mist }}>None</span></span>
                     }
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", minWidth: 140 }}>
                     <ComplianceBar pct={site.compliance} compact />
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>→</td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>â</td>
                 </tr>
               ))}
             </tbody>
@@ -196,25 +191,25 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
-// S5c — Staff Mobile Home Screen
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S5c â Staff Mobile Home Screen
 // Spec: prominent "Something happened" button, own training queue, recent activity
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S5cStaffMobileHome({
   user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging", role: "staff" },
   triageEnabled = true,   // driven by company triage config
-  onTriage,               // () => void — launches Flow 0
-  onReportIncident,       // () => void — launches Flow 2
-  onTraining,             // () => void — launches s4a queue
+  onTriage,               // () => void â launches Flow 0
+  onReportIncident,       // () => void â launches Flow 2
+  onTraining,             // () => void â launches s4a queue
   onViewIncident,         // (id) => void
 }) {
   const overdueTrainings = 2;
   const expiringSoon     = 1;
 
   const recentActivity = [
-    { id: 1, type: "training",  desc: "Hazard Communication — expiring Jul 5",   icon: "📚", color: C.gold,   time: "Action needed" },
-    { id: 2, type: "incident",  desc: "INC-2024-0087 submitted",                 icon: "📋", color: C.slate,  time: "Jun 12"        },
-    { id: 3, type: "ca",        desc: "CA assigned: Review PPE for your role",   icon: "✅", color: C.orange, time: "Jun 11"        },
+    { id: 1, type: "training",  desc: "Hazard Communication â expiring Jul 5",   icon: "ð", color: C.gold,   time: "Action needed" },
+    { id: 2, type: "incident",  desc: "INC-2024-0087 submitted",                 icon: "ð", color: C.slate,  time: "Jun 12"        },
+    { id: 3, type: "ca",        desc: "CA assigned: Review PPE for your role",   icon: "â", color: C.orange, time: "Jun 11"        },
   ];
 
   return (
@@ -241,7 +236,7 @@ export function S5cStaffMobileHome({
             <span style={{ color: "rgba(255,255,255,.6)" }}>EHS</span>platform
           </div>
           <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)", marginTop: 2 }}>
-            {user.name} · {user.site}
+            {user.name} Â· {user.site}
           </div>
         </div>
         {(overdueTrainings > 0 || expiringSoon > 0) && (
@@ -255,7 +250,8 @@ export function S5cStaffMobileHome({
         )}
       </div>
 
-      <div style={{ flex: 1, padding: "4px 18px 80px", overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "4px 18px 80px", overflowY: "auto",
+        paddingBottom: 80 }}>
 
         {/* Spec: prominent "Something happened" button on mobile home screen */}
         {triageEnabled && (
@@ -273,11 +269,11 @@ export function S5cStaffMobileHome({
                 display: "flex", alignItems: "center", justifyContent: "space-between",
               }}
             >
-              <span>🚨 Something happened</span>
-              <span style={{ fontSize: ".9rem", opacity: .7 }}>→</span>
+              <span>ð¨ Something happened</span>
+              <span style={{ fontSize: ".9rem", opacity: .7 }}>â</span>
             </button>
             <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.28)", textAlign: "center", marginTop: 6 }}>
-              For right now — guided triage in 60 seconds
+              For right now â guided triage in 60 seconds
             </div>
           </div>
         )}
@@ -291,7 +287,7 @@ export function S5cStaffMobileHome({
             borderRadius: 10, textAlign: "left",
             cursor: "pointer", transition: "background .15s",
           }}>
-            <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>📋</div>
+            <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>ð</div>
             <div style={{ fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.8)" }}>Report incident</div>
             <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 2 }}>After the fact</div>
           </button>
@@ -312,7 +308,7 @@ export function S5cStaffMobileHome({
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>{overdueTrainings}</div>
             )}
-            <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>📚</div>
+            <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>ð</div>
             <div style={{ fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.8)" }}>My training</div>
             <div style={{ fontSize: ".7rem", color: overdueTrainings > 0 ? C.gold : "rgba(255,255,255,.35)", marginTop: 2 }}>
               {overdueTrainings > 0 ? `${overdueTrainings} overdue` : "Up to date"}
@@ -329,7 +325,7 @@ export function S5cStaffMobileHome({
             borderRadius: 9, cursor: "pointer",
             display: "flex", alignItems: "center", gap: 10,
           }} onClick={onTraining}>
-            <span style={{ fontSize: "1rem" }}>⏱</span>
+            <span style={{ fontSize: "1rem" }}>â±</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.gold }}>
                 {overdueTrainings} training{overdueTrainings > 1 ? "s" : ""} overdue
@@ -338,7 +334,7 @@ export function S5cStaffMobileHome({
                 Tap to view your training queue
               </div>
             </div>
-            <span style={{ color: C.gold, fontSize: ".85rem" }}>→</span>
+            <span style={{ color: C.gold, fontSize: ".85rem" }}>â</span>
           </div>
         )}
 
@@ -364,7 +360,7 @@ export function S5cStaffMobileHome({
                   <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.8)", lineHeight: 1.3 }}>{item.desc}</div>
                   <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.3)", marginTop: 2 }}>{item.time}</div>
                 </div>
-                <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>→</span>
+                <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>â</span>
               </div>
             ))}
           </div>
@@ -373,16 +369,16 @@ export function S5cStaffMobileHome({
 
       {/* Bottom nav */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 68, left: 0, right: 0,
         background: "rgba(15,31,23,.95)", backdropFilter: "blur(12px)",
         borderTop: "1px solid rgba(255,255,255,.07)",
         display: "flex", padding: "10px 0 4px",
       }}>
         {[
-          { icon: "🏠", label: "Home",     active: true  },
-          { icon: "📋", label: "Incidents", active: false },
-          { icon: "📚", label: "Training",  active: false },
-          { icon: "👤", label: "Profile",   active: false },
+          { icon: "ð ", label: "Home",     active: true  },
+          { icon: "ð", label: "Incidents", active: false },
+          { icon: "ð", label: "Training",  active: false },
+          { icon: "ð¤", label: "Profile",   active: false },
         ].map((tab, i) => (
           <button key={i} style={{
             flex: 1, background: "none", border: "none", cursor: "pointer",
