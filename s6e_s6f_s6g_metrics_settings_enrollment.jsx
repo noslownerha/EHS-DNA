@@ -308,7 +308,7 @@ export function S6fCSSettings() {
       </div>
 
       {/* Save bar */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.dark, borderTop: "1px solid rgba(255,255,255,.07)", padding: "12px 24px", display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, background: C.dark, borderTop: "1px solid rgba(255,255,255,.07)", padding: "12px 24px", display: "flex", justifyContent: "flex-end" }}>
         <button className="save-btn" onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 1500); }} style={{
           padding: "9px 22px", background: saved ? C.teal + "88" : C.teal,
           color: C.white, border: "none", borderRadius: 7,
