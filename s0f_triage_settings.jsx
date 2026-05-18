@@ -478,7 +478,7 @@ export default function S0fTriageSettings({ onBack, onSave }) {
 
       {/* Fixed action bar */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 58, left: 0, right: 0,
         background: C.white, borderTop: "1px solid #E2EBE6",
         padding: "14px 24px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
