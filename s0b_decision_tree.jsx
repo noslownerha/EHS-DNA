@@ -117,8 +117,8 @@ export default function S0bDecisionTree({
   responder = "Responder",
   onOutcome,   // (outcome: "911"|"triage"|"firstaid"|"secure") => void
   onBack,
-  onHome,
 
+  onHome,
 }) {
   // Stack of visited node IDs for back navigation within the tree
   const [nodeStack, setNodeStack] = useState([TREE]);

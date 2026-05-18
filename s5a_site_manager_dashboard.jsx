@@ -54,7 +54,7 @@ function SectionCard({ title, subtitle, children, action }) {
         </div>
         {action}
       </div>
-      <div style={{ padding: "12px 18px 80px" }}>{children}</div>
+      <div style={{ padding: "12px 18px 16px" }}>{children}</div>
     </div>
   );
 }
@@ -63,8 +63,8 @@ export default function S5aSiteManagerDashboard({
   companyName = "WhistlePig Whiskey",
   manager     = { name: "Dana Kowalski", site: "Moriah" },
   onNavigate, // (destination: string) => void
-  onHome,
 
+  onHome,
 }) {
   const [reminderSent, setReminderSent] = useState(false);
 

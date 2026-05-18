@@ -447,8 +447,8 @@ export default function S1cOrgChart({
   initialOrg  = SEED_ORG,
   onAddStaff,
   onAddSite,
-  onHome,
 
+  onHome,
 }) {
   const [org,            setOrg]           = useState(initialOrg.map(s => ({ ...s, departments: s.departments.map(d => ({ ...d, staff: [...d.staff] })) })));
   const [search,         setSearch]         = useState("");

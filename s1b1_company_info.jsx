@@ -176,7 +176,9 @@ function InlineError({ msg }) {
 }
 
 // ââ Main component âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }) {
+export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack 
+  onHome,
+}) {
   const [companyName, setCompanyName] = useState(initialData.companyName ?? "WhistlePig Whiskey");
   const [industry,    setIndustry]    = useState(initialData.industry    ?? "Spirits / Distilling");
   const [siteCount,   setSiteCount]   = useState(initialData.siteCount   ?? "4â6");
@@ -196,8 +198,6 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
     if (apEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(apEmail))
       e.apEmail = "Enter a valid email address.";
     return e;
-  onHome,
-
   }
 
   function handleContinue() {

@@ -393,7 +393,9 @@ function SiteForm({ editingSite, onAdd, onUpdate, onCancel }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue, onBack }) {
+export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue, onBack 
+  onHome,
+}) {
   const [sites, setSites] = useState(initialSites);
   const [editingSite, setEditingSite] = useState(null); // null = "add new" mode
   const [added, setAdded] = useState(null); // flash confirmation
@@ -405,8 +407,6 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
     setAdded(newSite.name);
     setEditingSite(null);
     setTimeout(() => setAdded(null), 2500);
-  onHome,
-
   }
 
   function handleUpdate(updated) {
@@ -459,7 +459,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={1} />

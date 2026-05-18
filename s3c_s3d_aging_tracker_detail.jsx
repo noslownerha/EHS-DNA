@@ -71,7 +71,9 @@ function AgeBar({ days, maxDays = 14, severity }) {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S3c â Aging Tracker (Desktop)
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S3cAgingTracker({ companyName, onViewFinding }) {
+export function S3cAgingTracker({ companyName, onViewFinding 
+  onHome,
+}) {
   const [filterSite,    setFilterSite]    = useState("");
   const [filterSev,     setFilterSev]     = useState("");
   const [filterAssignee,setFilterAssignee]= useState("");
@@ -106,8 +108,6 @@ export function S3cAgingTracker({ companyName, onViewFinding }) {
       if (search && !f.desc.toLowerCase().includes(search.toLowerCase()) &&
           !f.category.toLowerCase().includes(search.toLowerCase()))      return false;
       return true;
-  onHome,
-
     }),
     [filterSite, filterSev, filterAssignee, search]
   );
@@ -283,7 +283,9 @@ const SEED_DETAIL = {
 
 const RESOLUTION_ACTIONS = ["Fixed on site", "Work order raised", "Interim control in place", "Deferred â awaiting parts", "Deferred â CapEx approval required", "Finding closed â no action needed"];
 
-export function S3dFindingDetail({ findingId, companyName, onBack }) {
+export function S3dFindingDetail({ findingId, companyName, onBack 
+  onHome,
+}) {
   const [finding,   setFinding]   = useState({ ...SEED_DETAIL, id: findingId ?? SEED_DETAIL.id });
   const [resAction, setResAction] = useState("");
   const [resNotes,  setResNotes]  = useState("");
@@ -298,8 +300,6 @@ export function S3dFindingDetail({ findingId, companyName, onBack }) {
     if (!resAction) return;
     setResolved(true);
     setFinding(f => ({ ...f, status: "resolved" }));
-  onHome,
-
   }
 
   function startEdit(field, val) { setEditing(field); setDraft(val); }

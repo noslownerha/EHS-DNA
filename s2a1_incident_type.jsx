@@ -25,8 +25,8 @@ function Progress({ step, total }) {
 export default function S2a1IncidentType({
   user = { name: "Alex Torres", site: "Riverside" },
   onContinue, onBack, onTriage,
-  onHome,
 
+  onHome,
 }) {
   const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const [selectedType, setSelectedType] = useState(null);
@@ -108,7 +108,7 @@ export default function S2a1IncidentType({
       </div>
 
       {/* Bottom CTA */}
-      <div style={{ padding: "12px 18px 80px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)", flexShrink: 0 }}>
+      <div style={{ padding: "12px 18px 14px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)", flexShrink: 0 }}>
         <button className="continue-btn" onClick={() => selectedType && onContinue?.({ type: selectedType, site, datetime })} disabled={!selectedType} style={{
           width: "100%", padding: "14px",
           background: selectedType ? C.sage : "#B0C8BA",

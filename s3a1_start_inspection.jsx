@@ -81,8 +81,8 @@ export default function S3a1StartInspection({
   onMode,         // (mode: "quick"|"checklist"|"gemba"|"scheduled") => void
   onResume,       // (inspectionId) => void
   onViewFinding,  // (findingId) => void
-  onHome,
 
+  onHome,
 }) {
   const [selectedMode, setSelectedMode] = useState(null);
 
@@ -106,7 +106,7 @@ export default function S3a1StartInspection({
       {/* Top bar */}
       <EHSHeader onHome={onHome} />
 
-      <div style={{ flex: 1, padding: "18px 18px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         {/* Header */}

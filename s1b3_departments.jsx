@@ -121,7 +121,7 @@ function Toggle({ checked, onChange }) {
 
 function ToggleRow({ label, sublabel, checked, onChange }) {
   return (
-    <EHSHeader onHome={onHome} dark={true} />
+    <EHSHeader onHome={onHome} />
   );
 }
 
@@ -329,7 +329,9 @@ function DeptIdleCard({ dept, onSelect }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1b3Departments({ industry = "Spirits / Distilling", onContinue, onBack }) {
+export default function S1b3Departments({ industry = "Spirits / Distilling", onContinue, onBack 
+  onHome,
+}) {
   const template = DEPT_TEMPLATES[industry] ?? DEFAULT_TEMPLATE;
   const [depts, setDepts]         = useState(template.map(d => ({ ...d })));
   const [selectedId, setSelectedId] = useState(null);
@@ -340,8 +342,6 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
   function handleRemove(id) {
     setDepts(ds => ds.filter(d => d.id !== id));
     if (selectedId === id) setSelectedId(null);
-  onHome,
-
   }
 
   function handleAdd(name) {
@@ -398,7 +398,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={2} />

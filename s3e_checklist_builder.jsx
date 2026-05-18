@@ -161,7 +161,9 @@ function SectionHeader({ name, count, onRename, onAdd }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S3eChecklistBuilder({ companyName, onBack }) {
+export default function S3eChecklistBuilder({ companyName, onBack 
+  onHome,
+}) {
   const [selectedTemplate, setSelectedTemplate] = useState(SEED_TEMPLATES[0]);
   const [items,    setItems]    = useState(SEED_ITEMS);
   const [sections, setSections] = useState([...new Set(SEED_ITEMS.map(i => i.section))]);
@@ -177,8 +179,6 @@ export default function S3eChecklistBuilder({ companyName, onBack }) {
   function addItem(section) {
     const newItem = { id: nextId.current++, section, text: "New checklist item", defaultSeverity: "Minor", autoAssign: "Site Manager" };
     setItems(its => [...its, newItem]);
-  onHome,
-
   }
 
   function moveItem(section, index, dir) {

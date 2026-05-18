@@ -62,8 +62,8 @@ export function S3a4SessionComplete({
   notified     = ["Dana Kowalski (Site Manager)"],
   onDone,
   onViewFinding,
-  onHome,
 
+  onHome,
 }) {
   const total    = sessionData.passCount + sessionData.failCount + sessionData.naCount;
   const score    = total > 0 ? Math.round((sessionData.passCount / (total - sessionData.naCount)) * 100) : 100;
@@ -84,7 +84,7 @@ export function S3a4SessionComplete({
       {/* Top bar */}
       <EHSHeader onHome={onHome} />
 
-      <div style={{ flex: 1, padding: "16px 18px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "16px 18px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         {/* Score card */}
@@ -181,8 +181,8 @@ export function S3bQuickFinding({
   user = { name: "Mia Chen" },
   onSubmit,
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const [step, setStep]           = useState("category"); // "category" | "details"
   const [category, setCategory]   = useState(null);
@@ -239,7 +239,7 @@ export function S3bQuickFinding({
         ))}
       </div>
 
-      <div style={{ flex: 1, padding: "14px 18px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "14px 18px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         {step === "category" ? (

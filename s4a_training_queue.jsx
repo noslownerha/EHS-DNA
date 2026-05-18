@@ -61,8 +61,8 @@ export default function S4aTrainingQueue({
   user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging" },
   onOpen,
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const [filter, setFilter] = useState("all"); // "all" | "due" | "expiring"
 

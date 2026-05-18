@@ -182,7 +182,7 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
 
         {showCapEx && (
           <div style={{ padding: "10px 12px", background: C.white, borderRadius: 8, border: "1px solid #E2EBE6" }}>
-            <EHSHeader onHome={onHome} dark={true} />
+            <EHSHeader onHome={onHome} />
             {capex && (
               <textarea
                 value={capexNotes}
@@ -277,8 +277,8 @@ export function S3a2ChecklistInProgress({
   site = SITES[0].name,
   onComplete,
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const [items,    setItems]    = useState(SEED_ITEMS);
   const [findings, setFindings] = useState([]);
@@ -348,7 +348,7 @@ export function S3a2ChecklistInProgress({
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: "14px 14px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "14px 14px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
         {sections.map(section => (
           <div key={section} style={{ marginBottom: 16 }}>
@@ -395,7 +395,9 @@ export function S3a2ChecklistInProgress({
 // S3a3 â Log Finding from Checklist (standalone full-screen version)
 // This is the same form but as a full screen when accessed outside a checklist
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
+export function S3a3LogFinding({ prefill = {}, onSubmit, onBack 
+  onHome,
+}) {
   const [photo,       setPhoto]     = useState(null);
   const [desc,        setDesc]      = useState(prefill.text ?? "");
   const [severity,    setSeverity]  = useState(prefill.severity ?? "minor");
@@ -422,7 +424,7 @@ export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
         <div style={{ width: 40 }} />
       </div>
 
-      <div style={{ flex: 1, padding: "16px 18px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "16px 18px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
         <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Log finding</h1>
         {prefill.section && <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 16 }}>{prefill.section} Â· pre-filled from checklist</p>}

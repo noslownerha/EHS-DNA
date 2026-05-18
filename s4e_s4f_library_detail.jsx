@@ -59,7 +59,9 @@ function pill(label, bg, color) {
 // S4e â Training Library (desktop)
 // Spec Â§14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining }) {
+export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining 
+  onHome,
+}) {
   const [filterType, setFilterType] = useState("");
   const [search,     setSearch]     = useState("");
   const [sfocused,   setSfocused]   = useState(false);
@@ -68,8 +70,6 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
     if (filterType && t.type !== filterType) return false;
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  onHome,
-
   });
 
   // Role gate for Log Group Session (hidden for dept_lead and below)
@@ -203,7 +203,9 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
 // S4f â Training Record Detail (desktop)
 // Spec Â§14.1: expiration derived from recurrence_months; status chips
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = "admin" }) {
+export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = "admin" 
+  onHome,
+}) {
   const training = SEED_LIBRARY.find(t => t.id === (trainingId ?? 1)) ?? SEED_LIBRARY[0];
   const [completions, setCompletions] = useState(SEED_COMPLETIONS);
 

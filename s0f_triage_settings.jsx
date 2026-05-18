@@ -315,7 +315,9 @@ function NotificationRulesEditor({ rules, onChange }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S0fTriageSettings({ onBack, onSave }) {
+export default function S0fTriageSettings({ onBack, onSave 
+  onHome,
+}) {
   const [enabled,      setEnabled]      = useState(true);
   const [providerName, setProviderName] = useState("Concentra Occupational Health");
   const [providerPhone,setProviderPhone]= useState("(800) 555-0147");
@@ -329,8 +331,6 @@ export default function S0fTriageSettings({ onBack, onSave }) {
   function handleSave() {
     setSaved(true);
     setTimeout(() => { setSaved(false); onSave?.({ enabled, providerName, providerPhone, questions, notifRules, sites }); }, 1000);
-  onHome,
-
   }
 
   function toggleSiteExpand(id) {

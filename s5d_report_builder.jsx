@@ -143,7 +143,7 @@ function BarChart({ data, showBls, showPrevYear, blsRate }) {
 // ââ Toggle switch âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Toggle({ checked, onChange, label, sublabel }) {
   return (
-    <EHSHeader onHome={onHome} dark={true} />
+    <EHSHeader onHome={onHome} />
   );
 }
 
@@ -163,7 +163,9 @@ function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", onBack }) {
+export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", onBack 
+  onHome,
+}) {
   // Spec Â§15.3: user selects (1) time frame type, (2) specific period
   const [frameType,   setFrameType]   = useState("monthly");    // "monthly" | "quarterly"
   const [period,      setPeriod]      = useState("Jun 2024");
@@ -192,8 +194,6 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
   function handleGenerate() {
     setGenerating(true);
     setTimeout(() => { setGenerating(false); setGenerated(true); }, 1000);
-  onHome,
-
   }
 
   const inputStyle = focused => ({

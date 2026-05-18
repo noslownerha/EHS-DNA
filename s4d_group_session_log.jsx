@@ -67,8 +67,8 @@ export default function S4dGroupSessionLog({
   userName    = "Mia Chen",
   onConfirm,
   onClose,
-  onHome,
 
+  onHome,
 }) {
   const [training,     setTraining]     = useState(null);
   const [sessionDate,  setSessionDate]  = useState(todayStr());
@@ -189,7 +189,7 @@ export default function S4dGroupSessionLog({
       `}</style>
 
       {/* Header */}
-      <div style={{ padding: "18px 22px 80px", borderBottom: "1px solid #E2EBE6" }}>
+      <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #E2EBE6" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>Log group session</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: "1.1rem" }}>Ã</button>

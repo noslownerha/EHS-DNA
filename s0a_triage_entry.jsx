@@ -13,8 +13,8 @@ export default function S0aTriageEntry({
   user = { name: "Alex Torres", site: "Riverside" },
   onStart,
   onReportInstead,
-  onHome,
 
+  onHome,
 }) {
   return (
     <div style={{
@@ -38,7 +38,7 @@ export default function S0aTriageEntry({
 
       <EHSHeader onHome={onHome} dark={true} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 80px" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 24px" }}>
 
         <div className="a1" style={{ marginBottom: 32, textAlign: "center" }}>
           <div style={{ fontSize: "3rem", marginBottom: 14 }}>ð¨</div>

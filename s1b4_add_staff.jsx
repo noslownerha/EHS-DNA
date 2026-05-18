@@ -418,8 +418,8 @@ export default function S1b4AddStaff({
   initialStaff = SEED_STAFF,
   onContinue,
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const [staff,      setStaff]      = useState(initialStaff.map(s => ({ ...s })));
   const [filterSite, setFilterSite] = useState("");
@@ -483,7 +483,7 @@ export default function S1b4AddStaff({
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 20px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={3} />

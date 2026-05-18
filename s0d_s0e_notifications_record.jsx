@@ -69,11 +69,11 @@ export function S0dNotificationsSent({
   contacts   = {
     "Site Manager":                        { name: "Dana Kowalski",  method: "SMS + app" },
     "Emergency Response Coordinator (ERC)":{ name: "Priya Nair",     method: "SMS + email" },
-  onHome,
-
   },
   onViewRecord,   // () => void â s0e
   onDone,         // () => void â home
+
+  onHome,
 }) {
   const notified     = NOTIFICATION_RULES[outcome] ?? [];
   const sev          = OUTCOME_SEVERITY[outcome] ?? OUTCOME_SEVERITY["secure"];
@@ -242,11 +242,11 @@ export function S0eTriageRecord({
     stepsCompleted: ["Called triage line", "Stayed with person"],
     notified:     ["Site Manager"],
     linkedReportId: null,
-  onHome,
-
   },
   onFileReport,   // () => void â Flow 2 pre-populated
   onDone,
+
+  onHome,
 }) {
   const sev     = OUTCOME_SEVERITY[record.outcome] ?? OUTCOME_SEVERITY["secure"];
   const timeStr = record.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -293,7 +293,7 @@ export function S0eTriageRecord({
       </div>
 
       <div style={{
-        flex: 1, padding: "4px 20px 80px",
+        flex: 1, padding: "4px 20px 100px",
         maxWidth: 460, margin: "0 auto", width: "100%",
       }}>
 

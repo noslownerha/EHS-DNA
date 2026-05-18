@@ -107,7 +107,7 @@ function CARow({ ca, onUpdate, onRemove }) {
         </div>
       ) : (
         <div>
-          <EHSHeader onHome={onHome} dark={true} />
+          <EHSHeader onHome={onHome} />
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <PriorityBadge priority={ca.priority} />
             <span style={{ fontSize: ".72rem", color: C.mist }}>Assign: {ca.assignee}</span>
@@ -129,8 +129,8 @@ export default function S2bConfirmationResponse({
   timestamp    = new Date(),
   onDone,
   onViewIncident,
-  onHome,
 
+  onHome,
 }) {
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
   const [checklist, setChecklist]= useState(DEFAULT_CHECKLIST.map((s, i) => ({ id: i, text: s, done: false })));

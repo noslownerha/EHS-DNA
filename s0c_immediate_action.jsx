@@ -148,8 +148,8 @@ export default function S0cImmediateAction({
   onNotificationsSent,          // () => void â advances to s0d
   onAddDetails,                 // () => void â goes to incident report
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const config = OUTCOMES[outcome] ?? OUTCOMES["secure"];
   const [stepsDone, setStepsDone] = useState({});

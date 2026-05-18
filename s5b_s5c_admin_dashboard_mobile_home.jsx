@@ -54,7 +54,9 @@ function DaysBadge({ days }) {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S5b â Company Admin Dashboard (desktop)
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", onNavigate }) {
+export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", onNavigate 
+  onHome,
+}) {
   // Company-wide aggregates
   const totalStaff      = SITES.reduce((n, s) => n + s.staff, 0);
   const totalIncidents  = SITES.reduce((n, s) => n + s.openIncidents, 0);
@@ -77,8 +79,6 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
     textTransform: "uppercase", color: C.mist,
     borderBottom: "1px solid #E2EBE6", background: C.chalk,
     whiteSpace: "nowrap",
-  onHome,
-
   };
 
   return (
@@ -202,6 +202,8 @@ export function S5cStaffMobileHome({
   onReportIncident,       // () => void â launches Flow 2
   onTraining,             // () => void â launches s4a queue
   onViewIncident,         // (id) => void
+
+  onHome,
 }) {
   const overdueTrainings = 2;
   const expiringSoon     = 1;

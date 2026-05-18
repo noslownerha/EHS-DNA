@@ -197,8 +197,8 @@ export default function S2a3WhoWasInvolved({
   triageProvider  = { name: "Concentra", phone: "(800) 555-0147" },
   onContinue,
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const [mode,             setMode]          = useState("staff");   // "staff" | "visitor"
   const [selectedStaff,   setSelectedStaff]  = useState(null);
@@ -249,7 +249,7 @@ export default function S2a3WhoWasInvolved({
         <MobileProgress step={2} total={5} />
       </div>
 
-      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>

@@ -67,7 +67,9 @@ function Divider() {
 }
 
 // ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export default function S1aLogin({ onSignIn, onStartSetup }) {
+export default function S1aLogin({ onSignIn, onStartSetup 
+  onHome,
+}) {
   const [email, setEmail] = useState("ahren@whistlepigwhiskey.com");
   const [password, setPassword] = useState("â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢");
   const [keepSignedIn, setKeepSignedIn] = useState(true);
@@ -86,8 +88,6 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
     setTimeout(() => {
       setLoading(false);
       if (onSignIn) onSignIn({ email, keepSignedIn });
-  onHome,
-
     }, 900);
   }
 

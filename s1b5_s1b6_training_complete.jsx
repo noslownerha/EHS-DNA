@@ -61,7 +61,7 @@ function Stepper({ current }) {
 // ââ Auto-group row âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function AutoGroupRow({ dept }) {
   return (
-    <EHSHeader onHome={onHome} dark={true} />
+    <EHSHeader onHome={onHome} />
   );
 }
 
@@ -216,7 +216,9 @@ function AddGroupForm({ onAdd, onClose }) {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S1b5 â Training Groups
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
+export function S1b5TrainingGroups({ departments = [], onContinue, onBack 
+  onHome,
+}) {
   const [manualGroups, setManualGroups] = useState(SEED_MANUAL_GROUPS.map(g => ({ ...g })));
   const [adding,       setAdding]       = useState(false);
   const nextId = useRef(SEED_MANUAL_GROUPS.length + 1);
@@ -238,8 +240,6 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
   function handleAddGroup(group) {
     setManualGroups(g => [...g, { ...group, id: nextId.current++ }]);
     setAdding(false);
-  onHome,
-
   }
 
   function handleRemoveGroup(id) {
@@ -276,7 +276,7 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
 
         <div className="anim" style={{ animationDelay: "0ms" }}>
           <Stepper current={4} />
@@ -442,8 +442,8 @@ export function S1b6SetupComplete({
   onStartInspection,
   onDashboard,
   onResumeStaff,
-  onHome,
 
+  onHome,
 }) {
   const deptCount  = departments.length || 7;
   const staffCount = staff.length || 6;
@@ -528,7 +528,7 @@ export function S1b6SetupComplete({
         </div>
       </div>
 
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 40px" }}>
 
         {/* Hero */}
         <div className="anim" style={{ textAlign: "center", padding: "24px 0 32px", animationDelay: "0ms" }}>
@@ -672,8 +672,8 @@ export function S1b6SetupComplete({
 export default function S1b5and6({
   departments, staff, sites, companyName, industry,
   onBack, onOrgChart, onLogIncident, onStartInspection, onDashboard, onResumeStaff,
-  onHome,
 
+  onHome,
 }) {
   const [screen, setScreen] = useState("training"); // "training" | "complete"
   const [trainingData, setTrainingData] = useState(null);

@@ -78,7 +78,9 @@ const SEED_CBT = {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S4b â CBT Player (mobile)
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
+export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack 
+  onHome,
+}) {
   const [slideIndex,   setSlideIndex]   = useState(0);
   const [answers,      setAnswers]      = useState({});   // slideId â selectedIndex
   const [revealed,     setRevealed]     = useState({});   // slideId â bool
@@ -95,8 +97,6 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
   function handleAnswer(idx) {
     if (hasRevealed) return;
     setAnswers(a => ({ ...a, [slide.id]: idx }));
-  onHome,
-
   }
 
   function handleReveal() {
@@ -167,7 +167,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
       `}</style>
 
       {/* Top bar with progress */}
-      <div style={{ background: C.forest, padding: "12px 18px 80px" }}>
+      <div style={{ background: C.forest, padding: "12px 18px 10px" }}>
         <EHSHeader onHome={onHome} />
         <div style={{ height: 4, background: "rgba(255,255,255,.15)", borderRadius: 2, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${pct}%`, background: C.mint, borderRadius: 2, transition: "width .3s ease" }} />
@@ -175,7 +175,7 @@ export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
       </div>
 
       {/* Slide content */}
-      <div className="slide-anim" key={slide.id} style={{ flex: 1, padding: "18px 18px 80px", overflowY: "auto",
+      <div className="slide-anim" key={slide.id} style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         {/* Slide heading */}
@@ -340,8 +340,8 @@ export function S4cInPersonSignOff({
   trainer = { name: "Mia Chen", site: "Moriah" },
   onBack,
   onComplete,
-  onHome,
 
+  onHome,
 }) {
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [selectedStaff,    setSelectedStaff]    = useState(null);
@@ -400,7 +400,7 @@ export function S4cInPersonSignOff({
         <div style={{ width: 40 }} />
       </div>
 
-      <div style={{ flex: 1, padding: "18px 18px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
         <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Sign off training</h1>
         <p style={{ fontSize: ".82rem", color: C.mist, marginBottom: 20 }}>Individual in-person completion â signed off as {trainer.name}</p>

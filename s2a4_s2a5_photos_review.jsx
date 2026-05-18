@@ -68,7 +68,9 @@ function PhotoThumb({ photo, onRemove }) {
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // S2a4 â Photos & Location
 // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-export function S2a4PhotosLocation({ onContinue, onBack }) {
+export function S2a4PhotosLocation({ onContinue, onBack 
+  onHome,
+}) {
   const [photos,     setPhotos]    = useState([]);
   const [anonymous,  setAnonymous] = useState(false);
   const [gpsGranted, setGps]       = useState(false);
@@ -83,8 +85,6 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
       url: URL.createObjectURL(file),
       gps: gpsGranted,
       name: file.name,
-  onHome,
-
     }));
     setPhotos(p => [...p, ...newPhotos]);
     e.target.value = "";
@@ -119,7 +119,7 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
 
       <div style={{ padding: "14px 0 6px" }}><MobileProgress step={3} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Photos & location</h1>
@@ -242,7 +242,9 @@ const OPTIONAL_RECIPIENTS = [
   { id: "dept",    name: "â",          role: "Department Lead",  site: "Moriah" },
 ];
 
-export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
+export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack 
+  onHome,
+}) {
   const [optionalChecked, setOptionalChecked] = useState({});
   const [submitting,      setSubmitting]       = useState(false);
 
@@ -255,8 +257,6 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
     severity   = "significant",
     involved   = { type: "staff", person: { first: "Sarah", last: "Mitchell" } },
     photos     = [],
-  onHome,
-
   } = flowData;
 
   const involveName = involved?.type === "staff"
@@ -307,7 +307,7 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
 
       <div style={{ padding: "14px 0 6px" }}><MobileProgress step={4} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>

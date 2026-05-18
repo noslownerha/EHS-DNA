@@ -95,8 +95,8 @@ export default function S2a2WhatHappened({
   incidentType = "injury",
   onContinue,
   onBack,
-  onHome,
 
+  onHome,
 }) {
   const [description, setDescription] = useState("");
   const [location,    setLocation]    = useState("");
@@ -134,7 +134,7 @@ export default function S2a2WhatHappened({
         <MobileProgress step={1} total={5} />
       </div>
 
-      <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto",
+      <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto",
         paddingBottom: 80 }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>
