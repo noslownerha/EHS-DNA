@@ -49,7 +49,7 @@ export default function S2a1IncidentType({
 
       <div style={{ padding: "10px 0 6px", flexShrink: 0 }}><Progress step={0} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "12px 18px 0", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, padding: "12px 18px 80px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
 
         <div>
           <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink }}>Report an incident</h1>
