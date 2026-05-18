@@ -261,7 +261,7 @@ export default function S2a2WhatHappened({
 
       {/* Fixed bottom */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", bottom: 58, left: 0, right: 0,
         padding: "14px 20px", background: C.white,
         borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
       }}>
