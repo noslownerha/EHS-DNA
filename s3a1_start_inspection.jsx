@@ -207,7 +207,7 @@ export default function S3a1StartInspection({
       </div>
 
       {/* Fixed bottom */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+      <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button
           className="continue-btn"
           onClick={handleContinue}
