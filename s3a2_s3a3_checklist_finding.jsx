@@ -10,10 +10,10 @@ const C = {
   navy: "#1F4E79", navyLt: "#D6E4F0",
 };
 
-// Severity scale — spec §13.1: Critical/Major/Minor/Noted (not Obs.)
+// Severity scale â spec Â§13.1: Critical/Major/Minor/Noted (not Obs.)
 const SEVERITIES = [
   { id: "critical", label: "Critical", color: C.red,    bg: C.redLt,    desc: "Immediate action required" },
-  { id: "major",    label: "Major",    color: C.orange, bg: C.orangeLt, desc: "Resolve within 1–3 days"   },
+  { id: "major",    label: "Major",    color: C.orange, bg: C.orangeLt, desc: "Resolve within 1â3 days"   },
   { id: "minor",    label: "Minor",    color: C.gold,   bg: C.goldLt,   desc: "Requires resolution"        },
   { id: "noted",    label: "Noted",    color: C.slate,  bg: "#EEF1F0",  desc: "Logged for awareness"       },
 ];
@@ -35,7 +35,7 @@ const SEED_ITEMS = [
 
 const ASSIGNEES = ["Site Manager", "Department Lead", "Maintenance", "Safety Officer", "Mia Chen", "Dana Kowalski"];
 
-// ── Due date shortcuts ────────────────────────────────────────────────────────
+// ââ Due date shortcuts ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const DUE_SHORTCUTS = [
   { label: "Today",    days: 0 },
   { label: "Tomorrow", days: 1 },
@@ -49,8 +49,8 @@ function dueDateFromShortcut(days) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-// ── Inline finding form (expands on Fail) ─────────────────────────────────────
-// Spec §s3a3: pre-filled from checklist fail; photo + assign only; due shortcuts;
+// ââ Inline finding form (expands on Fail) âââââââââââââââââââââââââââââââââââââ
+// Spec Â§s3a3: pre-filled from checklist fail; photo + assign only; due shortcuts;
 // CapEx toggle in collapsed Additional details; Log & Continue returns to checklist
 function InlineFindingForm({ item, onSubmit, onCancel }) {
   const [photo,       setPhoto]    = useState(null);
@@ -91,11 +91,11 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
           }}
         >
-          <span>📷</span> {photo ? `✓ ${photo}` : "Add photo (recommended)"}
+          <span>ð·</span> {photo ? `â ${photo}` : "Add photo (recommended)"}
         </button>
       </div>
 
-      {/* Description — pre-filled from item */}
+      {/* Description â pre-filled from item */}
       <div style={{ marginBottom: 12 }}>
         <textarea
           value={desc}
@@ -164,7 +164,7 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
         </div>
       </div>
 
-      {/* CapEx — spec §13.2: collapsed "Additional details" section */}
+      {/* CapEx â spec Â§13.2: collapsed "Additional details" section */}
       <div style={{ marginBottom: 14 }}>
         <button
           onClick={() => setShowCapEx(v => !v)}
@@ -174,7 +174,7 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
             color: C.mist, cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
           }}
         >
-          <span style={{ fontSize: ".7rem" }}>{showCapEx ? "▲" : "▼"}</span>
+          <span style={{ fontSize: ".7rem" }}>{showCapEx ? "â²" : "â¼"}</span>
           Additional details
         </button>
 
@@ -183,7 +183,7 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: capex ? 10 : 0 }}>
               <div>
                 <div style={{ fontSize: ".83rem", fontWeight: 600, color: C.ink }}>Requires capital spend (CapEx)</div>
-                {/* Spec §13.2: exact toggle subtext */}
+                {/* Spec Â§13.2: exact toggle subtext */}
                 <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2, lineHeight: 1.4 }}>
                   Excludes this finding from aging metrics while pending budget approval
                 </div>
@@ -239,7 +239,7 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
   );
 }
 
-// ── Checklist item row ────────────────────────────────────────────────────────
+// ââ Checklist item row ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function ChecklistItem({ item, onResult, findings }) {
   const hasFinding = findings.some(f => f.itemId === item.id);
 
@@ -277,8 +277,8 @@ function ChecklistItem({ item, onResult, findings }) {
 
         {/* Status indicators */}
         <div style={{ flexShrink: 0, marginTop: 2 }}>
-          {item.result === "pass" && <span style={{ fontSize: "1rem", color: C.sage }}>✓</span>}
-          {item.result === "na"   && <span style={{ fontSize: ".8rem", color: C.mist }}>—</span>}
+          {item.result === "pass" && <span style={{ fontSize: "1rem", color: C.sage }}>â</span>}
+          {item.result === "na"   && <span style={{ fontSize: ".8rem", color: C.mist }}>â</span>}
           {hasFinding             && <span style={{ fontSize: ".75rem", background: C.redLt, color: C.red, padding: "1px 6px", borderRadius: 10, fontWeight: 600 }}>Finding logged</span>}
         </div>
       </div>
@@ -286,9 +286,9 @@ function ChecklistItem({ item, onResult, findings }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S3a2 — Checklist in Progress
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S3a2 â Checklist in Progress
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S3a2ChecklistInProgress({
   templateName = "Bottling Line Safety Check",
   site         = "Moriah",
@@ -335,7 +335,7 @@ export function S3a2ChecklistInProgress({
       {/* Top bar */}
       <div style={{ background: C.forest, padding: "12px 18px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+          <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Back</button>
           <div style={{ fontSize: ".78rem", color: "rgba(255,255,255,.6)", textAlign: "center" }}>
             <div style={{ fontWeight: 600, color: C.white }}>{templateName}</div>
             <div>{site}</div>
@@ -358,7 +358,7 @@ export function S3a2ChecklistInProgress({
             <span key={i} style={{ fontSize: ".72rem", color: s.color, fontWeight: 600 }}>{s.label}</span>
           ))}
           {findings.length > 0 && (
-            <span style={{ fontSize: ".72rem", color: "#F5C6C2", fontWeight: 600 }}>· {findings.length} finding{findings.length > 1 ? "s" : ""} logged</span>
+            <span style={{ fontSize: ".72rem", color: "#F5C6C2", fontWeight: 600 }}>Â· {findings.length} finding{findings.length > 1 ? "s" : ""} logged</span>
           )}
         </div>
       </div>
@@ -372,7 +372,7 @@ export function S3a2ChecklistInProgress({
             {items.filter(i => i.section === section).map(item => (
               <div key={item.id}>
                 <ChecklistItem item={item} onResult={handleResult} findings={findings} />
-                {/* Spec: fail items expand inline — inspector never leaves the checklist */}
+                {/* Spec: fail items expand inline â inspector never leaves the checklist */}
                 {expandedFail === item.id && (
                   <InlineFindingForm
                     item={item}
@@ -398,17 +398,17 @@ export function S3a2ChecklistInProgress({
             cursor: "pointer", transition: "all .18s",
           }}
         >
-          {answered === total ? "Complete inspection →" : `Finish early (${total - answered} remaining) →`}
+          {answered === total ? "Complete inspection â" : `Finish early (${total - answered} remaining) â`}
         </button>
       </div>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// S3a3 — Log Finding from Checklist (standalone full-screen version)
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// S3a3 â Log Finding from Checklist (standalone full-screen version)
 // This is the same form but as a full screen when accessed outside a checklist
-// ════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
   const [photo,       setPhoto]     = useState(null);
   const [desc,        setDesc]      = useState(prefill.text ?? "");
@@ -431,14 +431,14 @@ export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
       `}</style>
 
       <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Back</button>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
         <div style={{ width: 40 }} />
       </div>
 
       <div style={{ flex: 1, padding: "16px 18px 100px", overflowY: "auto" }}>
         <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Log finding</h1>
-        {prefill.section && <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 16 }}>{prefill.section} · pre-filled from checklist</p>}
+        {prefill.section && <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 16 }}>{prefill.section} Â· pre-filled from checklist</p>}
 
         <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
           {/* Photo nudge */}
@@ -452,21 +452,21 @@ export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
             fontSize: ".9rem", color: photo ? C.pine : C.mist,
             cursor: "pointer", marginBottom: 14,
           }}>
-            📷 {photo ? `✓ ${photo}` : "Take or upload photo"}
+            ð· {photo ? `â ${photo}` : "Take or upload photo"}
           </button>
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Description</div>
             <textarea value={desc} onChange={e => setDesc(e.target.value)}
               onFocus={() => setDescF(true)} onBlur={() => setDescF(false)} rows={3}
-              placeholder="Describe the finding…"
+              placeholder="Describe the findingâ¦"
               style={{ width: "100%", padding: "9px 11px", border: `1.5px solid ${descFocused ? C.sage : "#D0DEDB"}`, borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, outline: "none", resize: "none", lineHeight: 1.5, transition: "all .18s" }}
             />
           </div>
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Severity</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))", gap: 6 }}>
               {SEVERITIES.map(s => (
                 <button key={s.id} onClick={() => setSeverity(s.id)} style={{
                   padding: "9px 4px",
@@ -515,7 +515,7 @@ export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
           {/* CapEx collapsed section */}
           <div>
             <button onClick={() => setShowCapEx(v => !v)} style={{ background: "none", border: "none", padding: "6px 0", fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", color: C.mist, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ fontSize: ".7rem" }}>{showCapEx ? "▲" : "▼"}</span> Additional details
+              <span style={{ fontSize: ".7rem" }}>{showCapEx ? "â²" : "â¼"}</span> Additional details
             </button>
             {showCapEx && (
               <div style={{ padding: "12px", background: C.chalk, borderRadius: 8, marginTop: 6 }}>
@@ -542,7 +542,7 @@ export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
       <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 18px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
         <button className="submit-btn" onClick={() => onSubmit?.({ desc, severity, assignee, dueDate: dueDateFromShortcut(dueShortcut), photo, capex, capexNotes })}
           style={{ width: "100%", padding: "14px", background: C.sage, color: C.white, border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif", fontSize: ".95rem", fontWeight: 700, cursor: "pointer", transition: "all .18s" }}>
-          Log finding →
+          Log finding â
         </button>
       </div>
     </div>
