@@ -21,15 +21,15 @@ const RECENT_INCIDENTS = [
 
 const OPEN_CAS = [
   { id: 1, desc: "Review incident with Sarah Mitchell",   assignee: "Dana K.",  due: "Jun 15", overdue: true  },
-  { id: 2, desc: "Conduct root cause analysis — Jun 12", assignee: "Mia C.",   due: "Jun 19", overdue: false },
+  { id: 2, desc: "Conduct root cause analysis â Jun 12", assignee: "Mia C.",   due: "Jun 19", overdue: false },
   { id: 3, desc: "Review vehicle inspection records",    assignee: "Dana K.",  due: "May 25", overdue: true  },
   { id: 4, desc: "Assess loading dock leveller repair",  assignee: "Dana K.",  due: "Jul 15", overdue: false },
 ];
 
 const OPEN_FINDINGS = [
   { id: 1, desc: "Guard missing on conveyor line 3",         severity: "critical", ageDays: 2  },
-  { id: 2, desc: "Blocked emergency exit — pallet at door",  severity: "major",    ageDays: 4  },
-  { id: 3, desc: "Forklift horn inoperable — unit 4",        severity: "critical", ageDays: 5  },
+  { id: 2, desc: "Blocked emergency exit â pallet at door",  severity: "major",    ageDays: 4  },
+  { id: 3, desc: "Forklift horn inoperable â unit 4",        severity: "critical", ageDays: 5  },
 ];
 
 const SEV_COLOR = {
@@ -47,7 +47,7 @@ function DesktopNav({ companyName = "WhistlePig Whiskey", siteName }) {
         <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
       </div>
       <div style={{ fontSize: ".75rem", color: C.mint, background: "rgba(255,255,255,.1)", padding: "3px 12px", borderRadius: 20 }}>
-        📍 {siteName}
+        ð {siteName}
       </div>
     </div>
   );
@@ -113,7 +113,7 @@ export default function S5aSiteManagerDashboard({
               {SITE.name} Dashboard
             </h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
-              {SITE.location} · {SITE.staffCount} staff · {SITE.deptCount} departments
+              {SITE.location} Â· {SITE.staffCount} staff Â· {SITE.deptCount} departments
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
@@ -122,11 +122,11 @@ export default function S5aSiteManagerDashboard({
               border: `1.5px solid ${C.mint}`, borderRadius: 7,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
               cursor: "pointer", transition: "all .15s",
-            }}>View reports →</button>
+            }}>View reports â</button>
           </div>
         </div>
 
-        {/* ── Days-since-recordable — spec: visible, motivational metric ── */}
+        {/* ââ Days-since-recordable â spec: visible, motivational metric ââ */}
         <div className="anim" style={{
           background: daysSinceRecordable >= 30 ? C.forest : C.goldLt,
           borderRadius: 10, padding: "20px 24px", marginBottom: 18,
@@ -150,15 +150,15 @@ export default function S5aSiteManagerDashboard({
             </div>
             <div style={{ fontSize: ".82rem", color: daysSinceRecordable >= 30 ? "rgba(255,255,255,.5)" : "#9A7A3A", lineHeight: 1.5 }}>
               {daysSinceRecordable >= 30
-                ? `Great work — ${SITE.name} has maintained a clean record for ${daysSinceRecordable} days.`
+                ? `Great work â ${SITE.name} has maintained a clean record for ${daysSinceRecordable} days.`
                 : "A recent recordable incident was logged. Continue focusing on safe practices."
               }
             </div>
           </div>
         </div>
 
-        {/* ── KPI tiles — spec: value and label only, fixed height ── */}
-        <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 8 }}>
+        {/* ââ KPI tiles â spec: value and label only, fixed height ââ */}
+        <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 8 }}>
           {kpis.map((kpi, i) => (
             <div key={i} style={{
               background: C.white, borderRadius: 10,
@@ -175,23 +175,23 @@ export default function S5aSiteManagerDashboard({
 
         {/* Supporting context row */}
         <div className="anim" style={{ fontSize: ".78rem", color: C.mist, marginBottom: 22, paddingLeft: 4, display: "flex", alignItems: "center", gap: 16 }}>
-          <span>{criticalFindings} critical findings · {overdueCACount} CAs overdue</span>
+          <span>{criticalFindings} critical findings Â· {overdueCACount} CAs overdue</span>
           {overdueCACount > 0 && (
             <button className="reminder-btn" onClick={() => { setReminderSent(true); setTimeout(() => setReminderSent(false), 2500); }}
               style={{ padding: "5px 12px", background: reminderSent ? C.sage + "88" : C.sage, color: C.white, border: "none", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".75rem", fontWeight: 600, cursor: "pointer", transition: "all .15s" }}>
-              {reminderSent ? "✓ Reminders sent" : `Send CA reminders (${overdueCACount})`}
+              {reminderSent ? "â Reminders sent" : `Send CA reminders (${overdueCACount})`}
             </button>
           )}
         </div>
 
         {/* Three-column lower grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
 
           {/* Recent incidents */}
           <SectionCard
             title="Recent incidents"
-            subtitle={`${SITE.name} · last 30 days`}
-            action={<button className="nav-btn" onClick={() => onNavigate?.("incidents")} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>View all →</button>}
+            subtitle={`${SITE.name} Â· last 30 days`}
+            action={<button className="nav-btn" onClick={() => onNavigate?.("incidents")} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>View all â</button>}
           >
             {RECENT_INCIDENTS.map((inc, i) => (
               <div key={inc.id} className="row-hover" style={{
@@ -207,7 +207,7 @@ export default function S5aSiteManagerDashboard({
                       color: inc.status === "open" ? C.pine : C.slate,
                     }}>{inc.status}</span>
                   </div>
-                  <div style={{ fontSize: ".75rem", color: C.mist }}>{inc.reporter} · {inc.date}</div>
+                  <div style={{ fontSize: ".75rem", color: C.mist }}>{inc.reporter} Â· {inc.date}</div>
                 </div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".68rem", color: C.mist, flexShrink: 0 }}>{inc.id}</div>
               </div>
@@ -217,8 +217,8 @@ export default function S5aSiteManagerDashboard({
           {/* Open CAs */}
           <SectionCard
             title="Open corrective actions"
-            subtitle={`${OPEN_CAS.length} total · ${overdueCACount} overdue`}
-            action={<button className="nav-btn" onClick={() => onNavigate?.("cas")} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>CA tracker →</button>}
+            subtitle={`${OPEN_CAS.length} total Â· ${overdueCACount} overdue`}
+            action={<button className="nav-btn" onClick={() => onNavigate?.("cas")} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>CA tracker â</button>}
           >
             {OPEN_CAS.map((ca, i) => (
               <div key={ca.id} className="row-hover" style={{
@@ -228,7 +228,7 @@ export default function S5aSiteManagerDashboard({
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: ".72rem", color: C.mist }}>{ca.assignee}</span>
                   <span style={{ fontSize: ".72rem", color: ca.overdue ? C.red : C.mist, fontWeight: ca.overdue ? 600 : 400 }}>
-                    {ca.overdue ? `⚠ Due ${ca.due}` : `Due ${ca.due}`}
+                    {ca.overdue ? `â  Due ${ca.due}` : `Due ${ca.due}`}
                   </span>
                 </div>
               </div>
@@ -238,8 +238,8 @@ export default function S5aSiteManagerDashboard({
           {/* Open findings */}
           <SectionCard
             title="Open findings"
-            subtitle={`${SITE.name} · ${criticalFindings} critical`}
-            action={<button className="nav-btn" onClick={() => onNavigate?.("findings")} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Aging tracker →</button>}
+            subtitle={`${SITE.name} Â· ${criticalFindings} critical`}
+            action={<button className="nav-btn" onClick={() => onNavigate?.("findings")} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Aging tracker â</button>}
           >
             {OPEN_FINDINGS.map((f, i) => (
               <div key={f.id} className="row-hover" style={{
@@ -261,7 +261,7 @@ export default function S5aSiteManagerDashboard({
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "16px 20px", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <h2 style={{ fontSize: ".92rem", fontWeight: 600, color: C.ink }}>Training compliance</h2>
-            <p style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>Moriah · 7 staff with overdue trainings</p>
+            <p style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>Moriah Â· 7 staff with overdue trainings</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ textAlign: "center" }}>
@@ -276,7 +276,7 @@ export default function S5aSiteManagerDashboard({
               border: `1.5px solid ${C.mint}`, borderRadius: 6,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600,
               cursor: "pointer", transition: "all .15s",
-            }}>View compliance →</button>
+            }}>View compliance â</button>
           </div>
         </div>
       </div>
