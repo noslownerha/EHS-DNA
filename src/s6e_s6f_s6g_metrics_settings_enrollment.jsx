@@ -23,14 +23,14 @@ function OpsNav({ title }) {
   );
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S6e â Platform Metrics
-// Spec Â§16.5:
+// ════════════════════════════════════════════════════════════════════════════
+// S6e — Platform Metrics
+// Spec §16.5:
 //   - Each tile has X button to hide it; hidden state persisted per owner
 //   - "Unhide all tiles" ghost button always visible at bottom
-//   - No per-tile unhide â unhide all is the only restoration path
+//   - No per-tile unhide — unhide all is the only restoration path
 //   - Benchmark cost fields editable inline by owner only, save on blur
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
 const ALL_TILES = [
   { id: "mrr",      label: "MRR",                value: "$8,540",    trend: "+$390 MoM", color: C.teal  },
   { id: "arr",      label: "ARR",                value: "$102,480",  trend: "+$4,680 YoY",color: C.teal },
@@ -43,10 +43,10 @@ const ALL_TILES = [
 ];
 
 export function S6ePlatformMetrics() {
-  // Spec Â§16.5: hidden state persisted per owner account
+  // Spec §16.5: hidden state persisted per owner account
   const [hiddenTiles,  setHiddenTiles]  = useState(new Set());
 
-  // Spec Â§16.5: editable benchmark cost fields, owner only, save on blur
+  // Spec §16.5: editable benchmark cost fields, owner only, save on blur
   const [buildCost,    setBuildCost]    = useState("185000");
   const [monthlyOpex,  setMonthlyOpex]  = useState("4200");
   const [buildFocused, setBuildFocused] = useState(false);
@@ -56,10 +56,10 @@ export function S6ePlatformMetrics() {
   const buildCostNum   = parseFloat(buildCost.replace(/[^0-9.]/g, "")) || 0;
   const monthlyOpexNum = parseFloat(monthlyOpex.replace(/[^0-9.]/g, "")) || 0;
   const buildRecovery  = buildCostNum > 0 ? Math.round((totalMRR / buildCostNum) * 100) : 0;
-  const profitableIn   = monthlyOpexNum > 0 ? Math.ceil((buildCostNum) / Math.max(totalMRR - monthlyOpexNum, 1)) : "â";
+  const profitableIn   = monthlyOpexNum > 0 ? Math.ceil((buildCostNum) / Math.max(totalMRR - monthlyOpexNum, 1)) : "—";
 
   function hideTile(id) { setHiddenTiles(h => new Set([...h, id])); }
-  // Spec Â§16.5: only restoration path is unhide all
+  // Spec §16.5: only restoration path is unhide all
   function unhideAll()  { setHiddenTiles(new Set()); }
 
   const visibleTiles = ALL_TILES.filter(t => !hiddenTiles.has(t.id));
@@ -92,11 +92,11 @@ export function S6ePlatformMetrics() {
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white }}>Platform Metrics</h1>
           <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)", marginTop: 3 }}>
-            Tile layout customisable â use X to hide tiles. Hidden state persists across sessions.
+            Tile layout customisable — use X to hide tiles. Hidden state persists across sessions.
           </p>
         </div>
 
-        {/* Metric tiles â spec Â§16.5: X button top-right, no detail inside tile */}
+        {/* Metric tiles — spec §16.5: X button top-right, no detail inside tile */}
         {visibleTiles.length > 0 ? (
           <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12, marginBottom: 8 }}>
             {visibleTiles.map(tile => (
@@ -108,14 +108,14 @@ export function S6ePlatformMetrics() {
                 borderRadius: 10, padding: "18px 18px 16px",
                 height: 90, display: "flex", flexDirection: "column", justifyContent: "center",
               }}>
-                {/* Spec Â§16.5: X button top-right, no confirmation */}
+                {/* Spec §16.5: X button top-right, no confirmation */}
                 <button className="hide-btn" onClick={() => hideTile(tile.id)} style={{
                   position: "absolute", top: 6, right: 8,
                   background: "none", border: "none",
                   color: "rgba(255,255,255,.2)", fontSize: ".8rem",
                   cursor: "pointer", padding: "2px 4px",
                   transition: "color .12s",
-                }} title="Hide tile">Ã</button>
+                }} title="Hide tile">×</button>
 
                 <div style={{ fontSize: "1.6rem", fontWeight: 800, color: tile.color, lineHeight: 1 }}>{tile.value}</div>
                 <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.5)", marginTop: 3, fontWeight: 500 }}>{tile.label}</div>
@@ -133,12 +133,12 @@ export function S6ePlatformMetrics() {
           {hiddenTiles.size > 0 && `${hiddenTiles.size} tile${hiddenTiles.size > 1 ? "s" : ""} hidden`}
         </div>
 
-        {/* Spec Â§16.5: editable benchmark cost fields â owner only */}
+        {/* Spec §16.5: editable benchmark cost fields — owner only */}
         <div className="anim" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
               <h2 style={{ fontSize: ".9rem", fontWeight: 600, color: C.white }}>Benchmark cost fields</h2>
-              <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,.3)", marginTop: 2 }}>Owner-only Â· editable inline Â· saves on blur Â· drives recovery calculations below</p>
+              <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,.3)", marginTop: 2 }}>Owner-only · editable inline · saves on blur · drives recovery calculations below</p>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
@@ -157,13 +157,13 @@ export function S6ePlatformMetrics() {
             <div>
               <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Build cost recovery</div>
               <div style={{ padding: "6px 10px", fontSize: ".9rem", color: buildRecovery >= 50 ? C.green : C.gold, fontWeight: 700, fontFamily: "'DM Mono', monospace" }}>
-                {buildRecovery}% Â· ~{profitableIn} months
+                {buildRecovery}% · ~{profitableIn} months
               </div>
             </div>
           </div>
         </div>
 
-        {/* Spec Â§16.5: "Unhide all tiles" â ghost style, always visible, only restoration path */}
+        {/* Spec §16.5: "Unhide all tiles" — ghost style, always visible, only restoration path */}
         {hiddenTiles.size > 0 && (
           <button className="unhide-btn" onClick={unhideAll} style={{
             padding: "9px 18px", background: "none",
@@ -178,10 +178,10 @@ export function S6ePlatformMetrics() {
 }
 
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S6f â CS Backend Settings
+// ════════════════════════════════════════════════════════════════════════════
+// S6f — CS Backend Settings
 // Rate card, module pricing, feature flags, routine invoice rules
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
 export function S6fCSSettings() {
   const [baseAnnual,   setBaseAnnual]   = useState("9600");
   const [perSite,      setPerSite]      = useState("180");
@@ -295,7 +295,7 @@ export function S6fCSSettings() {
               <div>
                 <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.7)" }}>{flag.label}</div>
                 {flag.note && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.25)", marginTop: 1 }}>{flag.note}</div>}
-                {flag.locked && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.2)", marginTop: 1 }}>Locked â cannot be disabled</div>}
+                {flag.locked && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.2)", marginTop: 1 }}>Locked — cannot be disabled</div>}
               </div>
               <div style={{ opacity: flag.locked ? 0.4 : 1, pointerEvents: flag.locked ? "none" : "auto" }}>
                 <div style={{ width: 36, height: 20, borderRadius: 20, background: flag.enabled ? C.teal : "rgba(255,255,255,.1)", position: "relative", cursor: "pointer", transition: "background .2s" }}>
@@ -315,7 +315,7 @@ export function S6fCSSettings() {
           fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", fontWeight: 600,
           cursor: saved ? "default" : "pointer", transition: "all .18s",
         }}>
-          {saved ? "â Saved" : "Save settings"}
+          {saved ? "✓ Saved" : "Save settings"}
         </button>
       </div>
     </div>
@@ -323,9 +323,9 @@ export function S6fCSSettings() {
 }
 
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S6g â Enrollment Queue (self-serve + sales-assisted)
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S6g — Enrollment Queue (self-serve + sales-assisted)
+// ════════════════════════════════════════════════════════════════════════════
 const ENROLLMENTS = [
   { id: 1, type: "self_serve",    name: "Adirondack Spirits",     contact: "Mike Tremblay",  email: "mike@adirondackspirits.com", plan: "Premium", sites: 2, submitted: "Jun 28, 2024", status: "active"  },
   { id: 2, type: "sales_assisted",name: "Finger Lakes Distilling", contact: "Amy Chen",       email: "amy@fingerlakes.com",        plan: "TBD",     sites: 3, submitted: "Jun 25, 2024", status: "pending" },
@@ -364,7 +364,7 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
           <div>
             <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white }}>Enrollment Queue</h1>
             <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)", marginTop: 3 }}>
-              {pendingCount} pending Â· self-serve (auto-activated) Â· sales-assisted (manual provisioning)
+              {pendingCount} pending · self-serve (auto-activated) · sales-assisted (manual provisioning)
             </p>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -428,7 +428,7 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
                         padding: "5px 12px", background: C.teal, color: C.white,
                         border: "none", borderRadius: 6, fontFamily: "'DM Sans', sans-serif",
                         fontSize: ".75rem", fontWeight: 600, cursor: "pointer", transition: "all .15s",
-                      }}>Provision â</button>
+                      }}>Provision →</button>
                     )}
                   </td>
                 </tr>

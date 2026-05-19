@@ -10,7 +10,7 @@ const C = {
   navy: "#1F4E79", navyLt: "#D6E4F0",
 };
 
-// Spec Â§13.1: Critical / Major / Minor / Noted (Noted replaces Obs.)
+// Spec §13.1: Critical / Major / Minor / Noted (Noted replaces Obs.)
 const SEVERITIES = [
   { id: "critical", label: "Critical", color: C.red,    bg: C.redLt    },
   { id: "major",    label: "Major",    color: C.orange, bg: C.orangeLt },
@@ -18,17 +18,17 @@ const SEVERITIES = [
   { id: "noted",    label: "Noted",    color: C.slate,  bg: "#EEF1F0"  },
 ];
 
-// Spec Â§13.4: "Positive Obs." renamed to "Positive Note"
+// Spec §13.4: "Positive Obs." renamed to "Positive Note"
 const CATEGORIES = [
-  { id: "ppe",            label: "PPE",              emoji: "ð¦º" },
-  { id: "housekeeping",   label: "Housekeeping",     emoji: "ð§¹" },
-  { id: "equipment",      label: "Equipment",        emoji: "âï¸" },
-  { id: "fire",           label: "Fire Safety",      emoji: "ð¥" },
-  { id: "ergonomics",     label: "Ergonomics",       emoji: "ðº" },
-  { id: "chemical",       label: "Chemical / MSDS",  emoji: "ð§ª" },
-  { id: "documentation",  label: "Documentation",    emoji: "ð" },
-  { id: "positive",       label: "Positive Note",    emoji: "â­" },  // Spec Â§13.4
-  { id: "other",          label: "Other",            emoji: "ð" },
+  { id: "ppe",            label: "PPE",              emoji: "🦺" },
+  { id: "housekeeping",   label: "Housekeeping",     emoji: "🧹" },
+  { id: "equipment",      label: "Equipment",        emoji: "⚙️" },
+  { id: "fire",           label: "Fire Safety",      emoji: "🔥" },
+  { id: "ergonomics",     label: "Ergonomics",       emoji: "💺" },
+  { id: "chemical",       label: "Chemical / MSDS",  emoji: "🧪" },
+  { id: "documentation",  label: "Documentation",    emoji: "📋" },
+  { id: "positive",       label: "Positive Note",    emoji: "⭐" },  // Spec §13.4
+  { id: "other",          label: "Other",            emoji: "📌" },
 ];
 
 const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Mia Chen"];
@@ -46,16 +46,16 @@ function dueDateFromShortcut(days) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S3a4 â Session Complete
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S3a4 — Session Complete
+// ════════════════════════════════════════════════════════════════════════════
 export function S3a4SessionComplete({
   templateName = "Bottling Line Safety Check",
   site         = "Moriah",
   sessionData  = { passCount: 8, failCount: 2, naCount: 1 },
   findings     = [
-    { id: 1, desc: "Wet floor near line 2 â no signage",      severity: "minor",    assignee: "Site Manager",  dueDate: "Jun 13" },
-    { id: 2, desc: "Safety glasses left on conveyor â unit 3", severity: "noted",    assignee: "Department Lead", dueDate: "Jun 14" },
+    { id: 1, desc: "Wet floor near line 2 — no signage",      severity: "minor",    assignee: "Site Manager",  dueDate: "Jun 13" },
+    { id: 2, desc: "Safety glasses left on conveyor — unit 3", severity: "noted",    assignee: "Department Lead", dueDate: "Jun 14" },
   ],
   notified     = ["Dana Kowalski (Site Manager)"],
   onDone,
@@ -89,10 +89,10 @@ export function S3a4SessionComplete({
         {/* Score card */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "22px 18px", marginBottom: 14, textAlign: "center" }}>
           <div style={{ fontSize: "2rem", marginBottom: 8, animation: "popIn .4s ease both" }}>
-            {score >= 90 ? "â" : score >= 70 ? "â ï¸" : "â"}
+            {score >= 90 ? "✅" : score >= 70 ? "⚠️" : "❌"}
           </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Inspection complete</h1>
-          <p style={{ fontSize: ".82rem", color: C.mist, marginBottom: 16 }}>{templateName} Â· {site}</p>
+          <p style={{ fontSize: ".82rem", color: C.mist, marginBottom: 16 }}>{templateName} · {site}</p>
 
           {/* Score */}
           <div style={{ fontSize: "2.8rem", fontWeight: 700, color: scoreColor, lineHeight: 1, marginBottom: 4 }}>{score}%</div>
@@ -119,7 +119,7 @@ export function S3a4SessionComplete({
             <div style={{ padding: "12px 16px", borderBottom: "1px solid #F0F4F2" }}>
               <h2 style={{ fontSize: ".92rem", fontWeight: 600, color: C.ink }}>Findings logged</h2>
               <p style={{ fontSize: ".73rem", color: C.mist, marginTop: 2 }}>
-                {findings.length} finding{findings.length > 1 ? "s" : ""} Â· assigned and due dates set
+                {findings.length} finding{findings.length > 1 ? "s" : ""} · assigned and due dates set
               </p>
             </div>
             {findings.map((f, i) => {
@@ -135,9 +135,9 @@ export function S3a4SessionComplete({
                       <span style={{ padding: "1px 8px", borderRadius: 20, fontSize: ".67rem", fontWeight: 600, background: sev.bg, color: sev.color }}>{sev.label}</span>
                     </div>
                     <div style={{ fontSize: ".85rem", color: C.ink, lineHeight: 1.3 }}>{f.desc}</div>
-                    <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>â {f.assignee} Â· Due {f.dueDate}</div>
+                    <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>→ {f.assignee} · Due {f.dueDate}</div>
                   </div>
-                  <span style={{ color: C.mist, fontSize: ".8rem", flexShrink: 0 }}>â</span>
+                  <span style={{ color: C.mist, fontSize: ".8rem", flexShrink: 0 }}>→</span>
                 </div>
               );
             })}
@@ -149,11 +149,11 @@ export function S3a4SessionComplete({
           <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Notifications sent</div>
           {notified.map((n, i) => (
             <div key={i} style={{ display: "flex", gap: 6, fontSize: ".85rem", color: C.pine, marginBottom: 3 }}>
-              <span>â</span> {n}
+              <span>✓</span> {n}
             </div>
           ))}
           {findings.length === 0 && (
-            <div style={{ fontSize: ".82rem", color: C.mist }}>No findings logged â no notifications sent.</div>
+            <div style={{ fontSize: ".82rem", color: C.mist }}>No findings logged — no notifications sent.</div>
           )}
         </div>
       </div>
@@ -170,9 +170,9 @@ export function S3a4SessionComplete({
 }
 
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S3b â Quick Finding (ad-hoc)
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S3b — Quick Finding (ad-hoc)
+// ════════════════════════════════════════════════════════════════════════════
 // Spec: category grid, photo-first nudge, description, severity, assign,
 // due shortcuts, CapEx toggle in collapsed Additional details. Under 60 seconds.
 export function S3bQuickFinding({
@@ -222,7 +222,7 @@ export function S3bQuickFinding({
       {/* Top bar */}
       <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
         <button onClick={step === "details" ? () => setStep("category") : onBack}
-          style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Back</button>
+          style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
           <span style={{ color: C.white }}>EHS</span>platform
         </div>
@@ -245,7 +245,7 @@ export function S3bQuickFinding({
               <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>What category is this?</p>
             </div>
 
-            {/* Category grid â spec: photo-first nudge implied by ordering */}
+            {/* Category grid — spec: photo-first nudge implied by ordering */}
             <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
               {CATEGORIES.map(cat => (
                 <div
@@ -279,7 +279,7 @@ export function S3bQuickFinding({
                 <span style={{ fontSize: "1.1rem" }}>{catObj?.emoji}</span>
                 <h1 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>{catObj?.label}</h1>
               </div>
-              <p style={{ fontSize: ".82rem", color: C.mist }}>Add details â target under 60 seconds</p>
+              <p style={{ fontSize: ".82rem", color: C.mist }}>Add details — target under 60 seconds</p>
             </div>
 
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
@@ -295,14 +295,14 @@ export function S3bQuickFinding({
                 fontSize: ".9rem", color: photo ? C.pine : C.mist,
                 cursor: "pointer", marginBottom: 14,
               }}>
-                ð· {photo ? `â Photo added` : "Add photo first"}
+                📷 {photo ? `✓ Photo added` : "Add photo first"}
               </button>
 
               {/* Description */}
               <div style={{ marginBottom: 12 }}>
                 <textarea value={desc} onChange={e => setDesc(e.target.value)}
                   onFocus={() => setDescF(true)} onBlur={() => setDescF(false)} rows={2}
-                  placeholder={`Describe the ${catObj?.label.toLowerCase()} findingâ¦`}
+                  placeholder={`Describe the ${catObj?.label.toLowerCase()} finding…`}
                   style={{ width: "100%", padding: "9px 11px", border: `1.5px solid ${descFocused ? C.sage : "#D0DEDB"}`, borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, outline: "none", resize: "none", lineHeight: 1.5, transition: "all .18s" }}
                 />
               </div>
@@ -354,7 +354,7 @@ export function S3bQuickFinding({
               {/* CapEx collapsed */}
               <div>
                 <button onClick={() => setShowCapEx(v => !v)} style={{ background: "none", border: "none", padding: "5px 0", fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", color: C.mist, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ fontSize: ".7rem" }}>{showCapEx ? "â²" : "â¼"}</span> Additional details
+                  <span style={{ fontSize: ".7rem" }}>{showCapEx ? "▲" : "▼"}</span> Additional details
                 </button>
                 {showCapEx && (
                   <div style={{ marginTop: 8, padding: "12px", background: C.chalk, borderRadius: 8 }}>
@@ -393,9 +393,9 @@ export function S3bQuickFinding({
             {submitting ? (
               <>
                 <span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,.4)", borderTopColor: C.white, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                Loggingâ¦
+                Logging…
               </>
-            ) : "Log finding â"}
+            ) : "Log finding →"}
           </button>
         </div>
       )}

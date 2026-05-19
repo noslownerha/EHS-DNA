@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-// ââ Ops backend colour palette (spec Â§5.4) âââââââââââââââââââââââââââââââââââ
+// ── Ops backend colour palette (spec §5.4) ───────────────────────────────────
 const C = {
   // Ops backend palette
   dark:   "#1A1A2E",
@@ -24,7 +24,7 @@ const C = {
   mint:   "#A8D5B5",
 };
 
-// ââ Seed data ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Seed data ────────────────────────────────────────────────────────────────
 const ACCOUNTS = [
   {
     id: 1, name: "WhistlePig Whiskey",    plan: "Premium", sites: 4, users: 42, mrr: 1840,
@@ -119,9 +119,9 @@ function OpsNav({ title }) {
   );
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S6a â Account List
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S6a — Account List
+// ════════════════════════════════════════════════════════════════════════════
 export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
   const [search,    setSearch]    = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -183,9 +183,9 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
           <div style={{ position: "relative", flex: 1, maxWidth: 280 }}>
             <input value={search} onChange={e => setSearch(e.target.value)}
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
-              placeholder="Search accountsâ¦"
+              placeholder="Search accounts…"
               style={{ width: "100%", padding: "8px 12px 8px 30px", background: "rgba(255,255,255,.06)", border: `1px solid ${sfocused ? C.teal : "rgba(255,255,255,.1)"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.white, outline: "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: "rgba(255,255,255,.25)", pointerEvents: "none" }}>ð</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: "rgba(255,255,255,.25)", pointerEvents: "none" }}>🔍</span>
           </div>
           <select className="filter-sel" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: "8px 28px 8px 10px", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", color: "rgba(255,255,255,.7)", cursor: "pointer", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,.3)'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}>
             <option value="">All statuses</option>
@@ -212,7 +212,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
                 <tr key={acct.id} className="acct-row" onClick={() => onViewAccount?.(acct.id)}>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.white }}>{acct.name}</div>
-                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>{acct.plan} Â· Enrolled {new Date(acct.enrolled).toLocaleDateString([], { month: "short", year: "numeric" })}</div>
+                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>{acct.plan} · Enrolled {new Date(acct.enrolled).toLocaleDateString([], { month: "short", year: "numeric" })}</div>
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <HealthBadge score={acct.healthScore} />
@@ -224,7 +224,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
                     ${acct.mrr.toLocaleString()}
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>
-                    {acct.sites} sites Â· {acct.users} users
+                    {acct.sites} sites · {acct.users} users
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -234,7 +234,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".8rem", color: "rgba(255,255,255,.35)" }}>
                     {acct.lastActive}
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>â</td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>→</td>
                 </tr>
               ))}
             </tbody>
@@ -246,16 +246,16 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
 }
 
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S6b â Account Detail
-// Spec Â§16.1: AI analysis panel removed from MVP
-// Spec Â§16.4: pricing override note editable inline, saves on blur
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S6b — Account Detail
+// Spec §16.1: AI analysis panel removed from MVP
+// Spec §16.4: pricing override note editable inline, saves on blur
+// ════════════════════════════════════════════════════════════════════════════
 export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMode }) {
   const acct = ACCOUNTS.find(a => a.id === (accountId ?? 1)) ?? ACCOUNTS[0];
 
   const [modules,        setModules]        = useState(new Set(acct.modules));
-  const [pricingNote,    setPricingNote]    = useState("Discounted 15% for annual prepay â renewal Apr 2025. Agreed with Ahren H. at contract signing.");
+  const [pricingNote,    setPricingNote]    = useState("Discounted 15% for annual prepay — renewal Apr 2025. Agreed with Ahren H. at contract signing.");
   const [noteEditing,    setNoteEditing]    = useState(false);
   const [noteFocused,    setNoteFocused]    = useState(false);
   const [overrideMRR,    setOverrideMRR]    = useState(null); // null = standard rate
@@ -290,14 +290,14 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
         .module-toggle:hover { border-color: ${C.teal} !important; }
       `}</style>
 
-      <OpsNav title={`Account Â· ${acct.name}`} />
+      <OpsNav title={`Account · ${acct.name}`} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 22px" }}>
 
         {/* Breadcrumb + header */}
         <div className="anim" style={{ marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(255,255,255,.3)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Accounts</button>
+            <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(255,255,255,.3)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Accounts</button>
             <span style={{ color: "rgba(255,255,255,.15)" }}>/</span>
             <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.5)" }}>{acct.name}</span>
           </div>
@@ -306,23 +306,23 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
               <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.white, marginBottom: 6 }}>{acct.name}</h1>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <StatusPill status={acct.status} />
-                <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)" }}>{acct.plan} Â· ${acct.mrr.toLocaleString()}/mo Â· {acct.sites} sites Â· {acct.users} users</span>
+                <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)" }}>{acct.plan} · ${acct.mrr.toLocaleString()}/mo · {acct.sites} sites · {acct.users} users</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-              {/* Shadow mode â spec: always read-only and always logged */}
+              {/* Shadow mode — spec: always read-only and always logged */}
               {!shadowConfirm ? (
                 <button className="shadow-btn" onClick={() => setShadowConfirm(true)} style={{
                   padding: "8px 14px", background: "rgba(231,76,60,.08)",
                   color: C.red, border: `1px solid rgba(231,76,60,.3)`,
                   borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
                   fontSize: ".82rem", fontWeight: 600, cursor: "pointer", transition: "all .15s",
-                }}>ð Shadow mode</button>
+                }}>👁 Shadow mode</button>
               ) : (
                 <div style={{ padding: "8px 14px", background: "rgba(231,76,60,.15)", border: `1px solid ${C.red}`, borderRadius: 7, fontSize: ".8rem", color: C.red, display: "flex", alignItems: "center", gap: 10 }}>
-                  <span>Read-only Â· session logged</span>
+                  <span>Read-only · session logged</span>
                   <button onClick={() => { setShadowConfirm(false); onShadowMode?.(acct.id); }} style={{ background: C.red, color: C.white, border: "none", borderRadius: 5, padding: "3px 10px", fontFamily: "'DM Sans', sans-serif", fontSize: ".75rem", fontWeight: 600, cursor: "pointer" }}>Enter</button>
-                  <button onClick={() => setShadowConfirm(false)} style={{ background: "none", border: "none", color: "rgba(231,76,60,.6)", cursor: "pointer", fontSize: ".85rem" }}>Ã</button>
+                  <button onClick={() => setShadowConfirm(false)} style={{ background: "none", border: "none", color: "rgba(231,76,60,.6)", cursor: "pointer", fontSize: ".85rem" }}>×</button>
                 </div>
               )}
             </div>
@@ -374,7 +374,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 22, height: 22, borderRadius: "50%", background: active ? s.bg : "rgba(255,255,255,.05)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }}>
-                          {active && <span style={{ fontSize: ".6rem", fontWeight: 700, color: s.color }}>â</span>}
+                          {active && <span style={{ fontSize: ".6rem", fontWeight: 700, color: s.color }}>✓</span>}
                         </div>
                         <div>
                           <div style={{ fontSize: ".85rem", fontWeight: active ? 600 : 400, color: active ? C.white : "rgba(255,255,255,.4)" }}>{mod.label}</div>
@@ -391,11 +391,11 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
               </div>
             </div>
 
-            {/* Spec Â§16.4: pricing override note â editable inline, saves on blur, internal only */}
+            {/* Spec §16.4: pricing override note — editable inline, saves on blur, internal only */}
             <div className="anim" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 10, padding: "18px 20px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <h2 style={{ fontSize: ".92rem", fontWeight: 600, color: C.white }}>Pricing override</h2>
-                <span style={{ fontSize: ".68rem", color: "rgba(255,255,255,.25)", fontStyle: "italic" }}>Internal only â not visible to customer</span>
+                <span style={{ fontSize: ".68rem", color: "rgba(255,255,255,.25)", fontStyle: "italic" }}>Internal only — not visible to customer</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                 <div>
@@ -409,7 +409,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                   <div style={{ fontSize: ".88rem", color: "rgba(255,255,255,.55)" }}>Sep 1, 2023</div>
                 </div>
               </div>
-              {/* Spec Â§16.4: editable note field, saves on blur */}
+              {/* Spec §16.4: editable note field, saves on blur */}
               <div>
                 <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Override note</div>
                 <textarea
@@ -428,7 +428,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                     transition: "all .18s",
                   }}
                 />
-                {noteFocused && <div style={{ fontSize: ".68rem", color: "rgba(255,255,255,.25)", marginTop: 3 }}>Saves on blur Â· internal only</div>}
+                {noteFocused && <div style={{ fontSize: ".68rem", color: "rgba(255,255,255,.25)", marginTop: 3 }}>Saves on blur · internal only</div>}
               </div>
             </div>
           </div>
@@ -457,7 +457,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
             <div className="anim" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 10, padding: "16px 18px", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <h2 style={{ fontSize: ".85rem", fontWeight: 600, color: C.white }}>Recent invoices</h2>
-                <button onClick={() => onViewInvoice?.("all")} style={{ background: "none", border: "none", color: C.teal, fontSize: ".75rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif' " }}>View all â</button>
+                <button onClick={() => onViewInvoice?.("all")} style={{ background: "none", border: "none", color: C.teal, fontSize: ".75rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif' " }}>View all →</button>
               </div>
               {[
                 { num: "2604-3847", amount: "$1,840", status: "paid",    date: "Apr 2024" },
@@ -477,10 +477,10 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
               ))}
             </div>
 
-            {/* Spec Â§16.1: AI analysis â deferred post-MVP */}
+            {/* Spec §16.1: AI analysis — deferred post-MVP */}
             <div className="anim" style={{ background: "rgba(255,255,255,.02)", border: "1px dashed rgba(255,255,255,.07)", borderRadius: 10, padding: "14px 16px" }}>
               <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.2)", fontStyle: "italic", lineHeight: 1.5 }}>
-                ð AI account analysis â deferred post-MVP (Â§16.1). Will surface module adoption insights, usage trends, and proactive recommendations once sufficient usage data exists.
+                📊 AI account analysis — deferred post-MVP (§16.1). Will surface module adoption insights, usage trends, and proactive recommendations once sufficient usage data exists.
               </div>
             </div>
           </div>

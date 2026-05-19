@@ -10,7 +10,7 @@ const C = {
 };
 
 const TYPE_COLOR = { cbt: C.purple, in_person: C.pine };
-const TYPE_EMOJI = { cbt: "ð»", in_person: "ð¥" };
+const TYPE_EMOJI = { cbt: "💻", in_person: "👥" };
 const TYPE_LABEL = { cbt: "CBT", in_person: "In-person" };
 
 const STATUS = {
@@ -60,10 +60,10 @@ function pill(label, bg, color) {
   return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: bg, color }}>{label}</span>;
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S4e â Training Library (desktop)
-// Spec Â§14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S4e — Training Library (desktop)
+// Spec §14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
+// ════════════════════════════════════════════════════════════════════════════
 export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining }) {
   const [filterType, setFilterType] = useState("");
   const [search,     setSearch]     = useState("");
@@ -104,21 +104,21 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
-        {/* Header â Spec Â§14.2: "Log Group Session" alongside "Create Training" as top-level actions */}
+        {/* Header — Spec §14.2: "Log Group Session" alongside "Create Training" as top-level actions */}
         <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Training Library</h1>
-            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>{SEED_LIBRARY.length} trainings Â· all sites</p>
+            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>{SEED_LIBRARY.length} trainings · all sites</p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            {/* Spec Â§14.2: Log Group Session is top-level secondary action â not buried in a record */}
+            {/* Spec §14.2: Log Group Session is top-level secondary action — not buried in a record */}
             {canLogSession && (
               <button className="session-btn" onClick={onLogGroupSession} style={{
                 padding: "9px 18px", background: C.white, color: C.pine,
                 border: `1.5px solid ${C.mint}`, borderRadius: 7,
                 fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", fontWeight: 600,
                 cursor: "pointer", transition: "all .15s",
-              }}>ð¥ Log group session</button>
+              }}>👥 Log group session</button>
             )}
             <button className="create-btn" onClick={onCreateTraining} style={{
               padding: "9px 18px", background: C.sage, color: C.white,
@@ -134,9 +134,9 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
           <div style={{ position: "relative" }}>
             <input value={search} onChange={e => setSearch(e.target.value)}
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
-              placeholder="Search trainingsâ¦"
+              placeholder="Search trainings…"
               style={{ padding: "8px 12px 8px 30px", width: 220, border: `1.5px solid ${sfocused ? C.sage : "#D0DEDB"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", boxShadow: sfocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>ð</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
           </div>
           <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{
             padding: "8px 28px 8px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7,
@@ -182,15 +182,15 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     <span style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>{t.completions}</span>
-                    {t.passThreshold && <span style={{ fontSize: ".7rem", color: C.mist, marginLeft: 4 }}>pass â¥{t.passThreshold}%</span>}
+                    {t.passThreshold && <span style={{ fontSize: ".7rem", color: C.mist, marginLeft: 4 }}>pass ≥{t.passThreshold}%</span>}
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     {t.overdue > 0
                       ? <span style={{ fontWeight: 600, color: C.red, fontSize: ".88rem" }}>{t.overdue}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>â</span>
+                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
                     }
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>â</td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>→</td>
                 </tr>
               ))}
             </tbody>
@@ -202,17 +202,17 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
 }
 
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// S4f â Training Record Detail (desktop)
-// Spec Â§14.1: expiration derived from recurrence_months; status chips
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════════════════════
+// S4f — Training Record Detail (desktop)
+// Spec §14.1: expiration derived from recurrence_months; status chips
+// ════════════════════════════════════════════════════════════════════════════
 export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = "admin" }) {
   const training = SEED_LIBRARY.find(t => t.id === (trainingId ?? 1)) ?? SEED_LIBRARY[0];
   const [completions, setCompletions] = useState(SEED_COMPLETIONS);
 
   const canLogSession = ["trainer", "safety", "site_manager", "admin"].includes(userRole);
 
-  // Derive status from completion data (spec Â§14.1)
+  // Derive status from completion data (spec §14.1)
   function getStatus(comp) {
     if (!comp.passed) return "overdue";
     if (!comp.expiresAt) return "current";
@@ -249,7 +249,7 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
         {/* Breadcrumb */}
         <div className="anim" style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>â Library</button>
+            <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Library</button>
             <span style={{ color: "#D0DEDB" }}>/</span>
             <span style={{ fontSize: ".82rem", color: C.ink }}>{training.title}</span>
           </div>
@@ -263,7 +263,7 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
                 </span>
                 {pill(`v${training.version}`, "#EEF1F0", C.slate)}
                 {pill(`Recurs every ${training.recurrence} months`, C.foam, C.pine)}
-                {training.passThreshold && pill(`Pass â¥${training.passThreshold}%`, C.purpleLt, C.purple)}
+                {training.passThreshold && pill(`Pass ≥${training.passThreshold}%`, C.purpleLt, C.purple)}
               </div>
             </div>
             {canLogSession && (
@@ -272,7 +272,7 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
                 border: `1.5px solid ${C.mint}`, borderRadius: 7,
                 fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
                 cursor: "pointer", transition: "all .15s", flexShrink: 0,
-              }}>ð¥ Log group session</button>
+              }}>👥 Log group session</button>
             )}
           </div>
         </div>
@@ -293,7 +293,7 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
               </div>
             ))}
           </div>
-          {/* Spec Â§14.1: expiration note */}
+          {/* Spec §14.1: expiration note */}
           <div style={{ marginTop: 14, padding: "10px 14px", background: C.foam, borderLeft: `3px solid ${C.sage}`, borderRadius: 7, fontSize: ".8rem", color: C.pine, lineHeight: 1.5 }}>
             Expiration is derived from the recurrence interval. When a completion is recorded, <code>expires_at</code> is set to <code>completed_at + {training.recurrence} months</code>. Trainings with no recurrence never expire.
           </div>
@@ -326,7 +326,7 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".82rem", color: C.slate, whiteSpace: "nowrap" }}>{comp.completedAt}</td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".82rem" }}>
                       {comp.score !== null
-                        ? <span style={{ color: comp.passed ? C.pine : C.red, fontWeight: 600 }}>{comp.score}% {comp.passed ? "â" : "â"}</span>
+                        ? <span style={{ color: comp.passed ? C.pine : C.red, fontWeight: 600 }}>{comp.score}% {comp.passed ? "✓" : "✗"}</span>
                         : <span style={{ color: C.mist }}>N/A</span>
                       }
                     </td>
@@ -334,12 +334,12 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
                       <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".8rem", color: comp.expiresAt ? C.slate : C.mist, whiteSpace: "nowrap" }}>
-                      {comp.expiresAt ?? "â"}
+                      {comp.expiresAt ?? "—"}
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".78rem", color: C.mist }}>
                       {comp.sessionId
                         ? <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".72rem", color: C.sage }}>{comp.sessionId}</span>
-                        : comp.trainerName ?? "â"
+                        : comp.trainerName ?? "—"
                       }
                     </td>
                   </tr>

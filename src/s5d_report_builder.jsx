@@ -10,8 +10,8 @@ const C = {
   navy: "#1F4E79", navyLt: "#D6E4F0",
 };
 
-// ââ Seed TRIR data ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// TRIR = (recordable incidents Ã 200,000) / total hours worked
+// ── Seed TRIR data ────────────────────────────────────────────────────────────
+// TRIR = (recordable incidents × 200,000) / total hours worked
 const MONTHLY_DATA = {
   "Jan 2024": { incidents: 0, hours: 14200, trir: 0.00,   prevYearTrir: 1.41, blsRate: 2.8 },
   "Feb 2024": { incidents: 1, hours: 13800, trir: 1.45,   prevYearTrir: 0.00, blsRate: 2.8 },
@@ -33,7 +33,7 @@ const SITES = ["All sites", "Moriah", "Middlebury", "Shoreham", "Brandenburg"];
 
 const SCHEDULED_CADENCES = ["Weekly", "Monthly", "Quarterly"];
 
-// ââ Bar chart primitive âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Bar chart primitive ───────────────────────────────────────────────────────
 function BarChart({ data, showBls, showPrevYear, blsRate }) {
   const labels   = Object.keys(data);
   const values   = labels.map(k => data[k].trir);
@@ -138,7 +138,7 @@ function BarChart({ data, showBls, showPrevYear, blsRate }) {
   );
 }
 
-// ââ Toggle switch âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Toggle switch ─────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange, label, sublabel }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0" }}>
@@ -172,9 +172,9 @@ function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
   );
 }
 
-// ââ Main component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Main component ────────────────────────────────────────────────────────────
 export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", onBack }) {
-  // Spec Â§15.3: user selects (1) time frame type, (2) specific period
+  // Spec §15.3: user selects (1) time frame type, (2) specific period
   const [frameType,   setFrameType]   = useState("monthly");    // "monthly" | "quarterly"
   const [period,      setPeriod]      = useState("Jun 2024");
   const [site,        setSite]        = useState("All sites");
@@ -184,14 +184,14 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
   const [generated,   setGenerated]   = useState(false);
   const [tab,         setTab]         = useState("trir");        // "trir" | "incidents" | "training"
 
-  // Spec Â§15.3: completed periods only â not future or in-progress
+  // Spec §15.3: completed periods only — not future or in-progress
   const monthlyPeriods   = Object.keys(MONTHLY_DATA);
   const quarterlyPeriods = Object.keys(QUARTERLY_DATA);
   const periods          = frameType === "monthly" ? monthlyPeriods : quarterlyPeriods;
 
   const chartData = frameType === "monthly" ? MONTHLY_DATA : QUARTERLY_DATA;
   const blsRate   = 2.8; // From site_bls_rates for current effective year
-  const blsEntered = true; // Simulated â if false, overlay unavailable and user prompted
+  const blsEntered = true; // Simulated — if false, overlay unavailable and user prompted
 
   // Scheduled report config
   const [scheduledCadence, setScheduledCadence] = useState("Monthly");
@@ -246,7 +246,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 20, marginBottom: 14 }}>
               <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Manual report</h2>
 
-              {/* Spec Â§15.3: (1) time frame type */}
+              {/* Spec §15.3: (1) time frame type */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Time frame type</div>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -264,7 +264,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                 </div>
               </div>
 
-              {/* Spec Â§15.3: (2) specific period â completed periods only */}
+              {/* Spec §15.3: (2) specific period — completed periods only */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>
                   Period <span style={{ fontWeight: 400, color: C.mist, textTransform: "none" }}>(completed only)</span>
@@ -298,9 +298,9 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                 {generating ? (
                   <>
                     <span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,.4)", borderTopColor: C.white, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                    Generatingâ¦
+                    Generating…
                   </>
-                ) : generated ? "â Report ready â re-generate" : "Generate report"}
+                ) : generated ? "✓ Report ready — re-generate" : "Generate report"}
               </button>
 
               {generated && (
@@ -311,7 +311,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
               )}
             </div>
 
-            {/* Benchmark overlays â spec Â§15.3: both off by default, toggleable independently */}
+            {/* Benchmark overlays — spec §15.3: both off by default, toggleable independently */}
             {generated && (
               <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 20, marginBottom: 14 }}>
                 <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 4 }}>Benchmark overlays</h2>
@@ -319,12 +319,12 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
 
                 <Toggle
                   label="BLS industry rate"
-                  sublabel={blsEntered ? `${blsRate} (Spirits / Distilling, 2024)` : "Not entered â add in site settings"}
+                  sublabel={blsEntered ? `${blsRate} (Spirits / Distilling, 2024)` : "Not entered — add in site settings"}
                   checked={showBls && blsEntered}
                   onChange={v => blsEntered ? setShowBls(v) : null}
                 />
                 {!blsEntered && (
-                  <div style={{ fontSize: ".72rem", color: C.gold, marginBottom: 4 }}>â  Enter BLS rate in site settings to enable this overlay.</div>
+                  <div style={{ fontSize: ".72rem", color: C.gold, marginBottom: 4 }}>⚠ Enter BLS rate in site settings to enable this overlay.</div>
                 )}
 
                 <div style={{ height: 1, background: "#E8EFec", margin: "8px 0" }} />
@@ -338,7 +338,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
               </div>
             )}
 
-            {/* Scheduled reports â spec Â§15.3: weekly/monthly/quarterly cadences */}
+            {/* Scheduled reports — spec §15.3: weekly/monthly/quarterly cadences */}
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 20 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Scheduled reports</h2>
@@ -386,7 +386,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                     color: C.white, border: "none", borderRadius: 7,
                     fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600, cursor: "pointer",
                   }}>
-                    {savedSchedule ? "â Schedule saved" : "Save schedule"}
+                    {savedSchedule ? "✓ Schedule saved" : "Save schedule"}
                   </button>
                 </div>
               )}
@@ -405,10 +405,10 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                   <div>
                     <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".75rem", color: C.mist, marginBottom: 4 }}>
-                      {frameType === "monthly" ? "Monthly Report" : "Quarterly Report"} Â· Generated {new Date().toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                      {frameType === "monthly" ? "Monthly Report" : "Quarterly Report"} · Generated {new Date().toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                     </div>
-                    <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>{period} Â· {site}</h2>
-                    <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>WhistlePig Whiskey Â· Spirits / Distilling</p>
+                    <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>{period} · {site}</h2>
+                    <p style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>WhistlePig Whiskey · Spirits / Distilling</p>
                   </div>
                 </div>
               </div>
@@ -437,7 +437,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                 <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 22px" }}>
                   <div style={{ marginBottom: 20 }}>
                     <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 4 }}>Total Recordable Incident Rate (TRIR)</h3>
-                    <p style={{ fontSize: ".75rem", color: C.mist }}>TRIR = (recordable incidents Ã 200,000) / total hours worked</p>
+                    <p style={{ fontSize: ".75rem", color: C.mist }}>TRIR = (recordable incidents × 200,000) / total hours worked</p>
                   </div>
 
                   <BarChart
@@ -450,7 +450,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                   {/* KPI summary below chart */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 22, paddingTop: 18, borderTop: "1px solid #E8EFec" }}>
                     {[
-                      { label: "Period TRIR",         value: chartData[period]?.trir.toFixed(2) ?? "â",  color: C.ink  },
+                      { label: "Period TRIR",         value: chartData[period]?.trir.toFixed(2) ?? "—",  color: C.ink  },
                       { label: "Recordable incidents",value: chartData[period]?.incidents ?? 0,           color: C.red  },
                       { label: "Total hours worked",  value: (chartData[period]?.hours ?? 0).toLocaleString(), color: C.slate },
                     ].map((stat, i) => (
@@ -464,7 +464,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
                   {/* BLS context note */}
                   {showBls && (
                     <div style={{ marginTop: 14, padding: "10px 14px", background: C.navyLt, borderLeft: `3px solid ${C.navy}`, borderRadius: 7, fontSize: ".78rem", color: C.navy, lineHeight: 1.5 }}>
-                      BLS industry TRIR for Spirits / Distilling (NAICS 3121): <strong>{blsRate}</strong> Â· Source: BLS SOII 2023 Â· Stored in site settings.
+                      BLS industry TRIR for Spirits / Distilling (NAICS 3121): <strong>{blsRate}</strong> · Source: BLS SOII 2023 · Stored in site settings.
                     </div>
                   )}
                 </div>
@@ -472,7 +472,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
 
               {tab === "findings" && (
                 <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 22px" }}>
-                  <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Findings Summary â {period}</h3>
+                  <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Findings Summary — {period}</h3>
                   {[
                     { label: "New findings logged",   value: 4, color: C.ink    },
                     { label: "Critical",              value: 1, color: C.red    },
@@ -490,7 +490,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
 
               {tab === "training" && (
                 <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 22px" }}>
-                  <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Training Compliance â {period}</h3>
+                  <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Training Compliance — {period}</h3>
                   {[
                     { label: "Overall compliance",       value: "74%",  color: C.gold  },
                     { label: "Staff with overdue training",value: 7,    color: C.red   },
@@ -512,7 +512,7 @@ export default function S5dReportBuilder({ companyName = "WhistlePig Whiskey", o
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               padding: "60px 32px", textAlign: "center",
             }}>
-              <div style={{ fontSize: "2rem", marginBottom: 12, opacity: .4 }}>ð</div>
+              <div style={{ fontSize: "2rem", marginBottom: 12, opacity: .4 }}>📊</div>
               <div style={{ fontSize: ".92rem", fontWeight: 600, color: C.ink, marginBottom: 6 }}>No report generated yet</div>
               <div style={{ fontSize: ".82rem", color: C.mist, lineHeight: 1.5 }}>
                 Select a time frame and period, then click Generate to preview your report.
