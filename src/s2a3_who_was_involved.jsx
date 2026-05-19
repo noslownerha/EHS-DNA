@@ -12,7 +12,7 @@ const C = {
 const STAFF_DIRECTORY = [
   { id: 1,  first: "Sarah",  last: "Mitchell", site: "Moriah",      dept: "Bottling & Packaging",   role: "Staff / Trainee"   },
   { id: 2,  first: "Marcus", last: "Webb",      site: "Moriah",      dept: "Warehouse",               role: "Staff / Trainee"   },
-  { id: 3,  first: "Tom",    last: "Rivera",    site: "Shoreham",    dept: "Maintenance",             role: "Staff / Trainee"   },
+  { id: 3,  first: "Tom",    last: "Rivera",    site: "Shoreham",    dept: "Facility Maintenance",             role: "Staff / Trainee"   },
   { id: 4,  first: "Dana",   last: "Kowalski",  site: "Middlebury",  dept: "Production / Distilling", role: "Site Manager"      },
   { id: 5,  first: "Priya",  last: "Nair",      site: "Brandenburg", dept: "Administration",          role: "Site Manager"      },
   { id: 6,  first: "Mia",    last: "Chen",      site: "Middlebury",  dept: "Quality Control",         role: "Inspector"         },

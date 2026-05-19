@@ -19,11 +19,11 @@ const SEV = {
 };
 
 const SEED_FINDINGS = [
-  { id: 1,  site: "Moriah",      dept: "Bottling & Packaging",    category: "PPE",         severity: "critical", desc: "Guard missing on conveyor line 3 â immediate fix required",      assignee: "Maintenance",    due: "2024-06-12", status: "open",   capex: false, ageDays: 2  },
-  { id: 2,  site: "Moriah",      dept: "Warehouse",               category: "Equipment",   severity: "critical", desc: "Forklift horn inoperable â unit 4",                             assignee: "Maintenance",    due: "2024-06-10", status: "open",   capex: false, ageDays: 5  },
+  { id: 1,  site: "Moriah",      dept: "Bottling & Packaging",    category: "PPE",         severity: "critical", desc: "Guard missing on conveyor line 3 â immediate fix required",      assignee: "Facility Maintenance",    due: "2024-06-12", status: "open",   capex: false, ageDays: 2  },
+  { id: 2,  site: "Moriah",      dept: "Warehouse",               category: "Equipment",   severity: "critical", desc: "Forklift horn inoperable â unit 4",                             assignee: "Facility Maintenance",    due: "2024-06-10", status: "open",   capex: false, ageDays: 5  },
   { id: 3,  site: "Middlebury",  dept: "Production / Distilling", category: "Chemical",    severity: "major",    desc: "SDS binder missing for ethanol station",                        assignee: "Safety Officer", due: "2024-06-14", status: "open",   capex: false, ageDays: 3  },
   { id: 4,  site: "Moriah",      dept: "Bottling & Packaging",    category: "Housekeeping",severity: "major",    desc: "Blocked emergency exit â pallet stacked against door",          assignee: "Site Manager",   due: "2024-06-11", status: "open",   capex: false, ageDays: 4  },
-  { id: 5,  site: "Shoreham",    dept: "Maintenance",             category: "Equipment",   severity: "minor",    desc: "Pressure gauge on boiler 2 needs calibration",                  assignee: "Maintenance",    due: "2024-06-20", status: "open",   capex: true,  ageDays: 7  },
+  { id: 5,  site: "Shoreham",    dept: "Facility Maintenance",             category: "Equipment",   severity: "minor",    desc: "Pressure gauge on boiler 2 needs calibration",                  assignee: "Facility Maintenance",    due: "2024-06-20", status: "open",   capex: true,  ageDays: 7  },
   { id: 6,  site: "Brandenburg", dept: "Warehouse",               category: "PPE",         severity: "minor",    desc: "Insufficient cut-resistant gloves at de-boxing station",        assignee: "Department Lead",due: "2024-06-22", status: "open",   capex: false, ageDays: 1  },
   { id: 7,  site: "Middlebury",  dept: "Bottling & Packaging",    category: "Fire Safety", severity: "noted",    desc: "Fire extinguisher inspection tag expired â low risk",           assignee: "Safety Officer", due: "2024-06-28", status: "open",   capex: false, ageDays: 0  },
   { id: 8,  site: "Moriah",      dept: "Warehouse",               category: "Equipment",   severity: "major",    desc: "Loading dock leveller hydraulic seal leak â CapEx repair",     assignee: "Site Manager",   due: "2024-07-15", status: "open",   capex: true,  ageDays: 12 },
@@ -272,14 +272,14 @@ const SEED_DETAIL = {
   severity: "critical",
   desc: "Guard missing on conveyor line 3 â immediate fix required",
   location: "Bottling line 3, north end",
-  assignee: "Maintenance", due: "2024-06-12", status: "open",
+  assignee: "Facility Maintenance", due: "2024-06-12", status: "open",
   ageDays: 2, capex: false, capexNotes: "",
   photos: 2, gps: true,
   loggedBy: "Mia Chen", loggedAt: "2024-06-12T10:15:00",
   escalationTimeline: [
     { date: "Jun 12", event: "Finding logged by Mia Chen" },
     { date: "Jun 12", event: "Site Manager notified (Critical severity)" },
-    { date: "Jun 14", event: "No activity â reminder sent to Maintenance" },
+    { date: "Jun 14", event: "No activity â reminder sent to Facility Maintenance" },
   ],
   linkedIncidentId: null,
 };

@@ -390,7 +390,7 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
             <span style={{ marginTop: 1 }}>🌿</span>
             <span>
               <strong>{industry}</strong> selected — we'll suggest distillery department templates
-              (Bottling, Warehouse, Barrel House, Production, Maintenance) on the next step.
+              (Bottling, Warehouse, Barrel House, Production, Facility Maintenance) on the next step.
             </span>
           </div>
         )}

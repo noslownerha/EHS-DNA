@@ -17,7 +17,7 @@ const DEPT_TEMPLATES = {
     { id: 1, name: "Production / Distilling",    emoji: "🏭", autoOnboard: true,  requireOrientation: true  },
     { id: 2, name: "Bottling & Packaging",        emoji: "📦", autoOnboard: true,  requireOrientation: true  },
     { id: 3, name: "Warehouse",                   emoji: "🏗",  autoOnboard: true,  requireOrientation: true  },
-    { id: 4, name: "Maintenance",                 emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
+    { id: 4, name: "Facility Maintenance",                 emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
     { id: 5, name: "Quality Control",             emoji: "🔬", autoOnboard: true,  requireOrientation: false },
     { id: 6, name: "Tasting Room / Hospitality",  emoji: "🥃", autoOnboard: true,  requireOrientation: false },
     { id: 7, name: "Administration",              emoji: "🗂",  autoOnboard: false, requireOrientation: false },
@@ -34,7 +34,7 @@ const DEPT_TEMPLATES = {
     { id: 1, name: "Production",          emoji: "🏭", autoOnboard: true,  requireOrientation: true  },
     { id: 2, name: "Assembly",            emoji: "🔩", autoOnboard: true,  requireOrientation: true  },
     { id: 3, name: "Warehouse & Shipping",emoji: "📦", autoOnboard: true,  requireOrientation: true  },
-    { id: 4, name: "Maintenance",         emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
+    { id: 4, name: "Facility Maintenance",         emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
     { id: 5, name: "Quality Control",     emoji: "🔬", autoOnboard: true,  requireOrientation: false },
     { id: 6, name: "Administration",      emoji: "🗂",  autoOnboard: false, requireOrientation: false },
   ],
@@ -42,7 +42,7 @@ const DEPT_TEMPLATES = {
 const DEFAULT_TEMPLATE = [
   { id: 1, name: "Operations",    emoji: "⚙️", autoOnboard: true,  requireOrientation: true  },
   { id: 2, name: "Warehouse",     emoji: "🏗",  autoOnboard: true,  requireOrientation: true  },
-  { id: 3, name: "Maintenance",   emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
+  { id: 3, name: "Facility Maintenance",   emoji: "🔧", autoOnboard: true,  requireOrientation: true  },
   { id: 4, name: "Administration",emoji: "🗂",  autoOnboard: false, requireOrientation: false },
 ];
 

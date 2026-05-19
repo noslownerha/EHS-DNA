@@ -44,7 +44,7 @@ function MobileFrame({ children }) {
   );
 }
 
-const COMPANY = "Summit Operations Co.";
+const COMPANY = "WhistlePig";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);

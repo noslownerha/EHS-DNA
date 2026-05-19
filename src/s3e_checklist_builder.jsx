@@ -12,14 +12,14 @@ const C = {
 // Spec §13.1: Critical / Major / Minor / Noted (default severity includes Noted)
 const SEVERITIES = ["Critical", "Major", "Minor", "Noted"];
 
-const ASSIGNEES = ["Site Manager", "Department Lead", "Maintenance", "Safety Officer", "Inspector"];
+const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Inspector"];
 
 const SEED_TEMPLATES = [
   { id: 1, name: "Bottling Line Safety Check",  site: "Moriah",      dept: "Bottling & Packaging",    items: 11, lastUsed: "Jun 12, 2024", schedule: "Daily"    },
   { id: 2, name: "Forklift Pre-Op Inspection",  site: "Moriah",      dept: "Warehouse",               items: 8,  lastUsed: "Jun 14, 2024", schedule: "Daily"    },
   { id: 3, name: "Chemical Storage Walkthrough",site: "Middlebury",  dept: "Production / Distilling", items: 14, lastUsed: "Jun 10, 2024", schedule: "Weekly"   },
   { id: 4, name: "Emergency Equipment Check",   site: "All sites",   dept: "All departments",         items: 6,  lastUsed: "Jun 07, 2024", schedule: "Monthly"  },
-  { id: 5, name: "Barrel House Inspection",     site: "Shoreham",    dept: "Maintenance",             items: 9,  lastUsed: "May 28, 2024", schedule: "Monthly"  },
+  { id: 5, name: "Barrel House Inspection",     site: "Shoreham",    dept: "Facility Maintenance",             items: 9,  lastUsed: "May 28, 2024", schedule: "Monthly"  },
 ];
 
 const SEED_ITEMS = [
@@ -28,8 +28,8 @@ const SEED_ITEMS = [
   { id: 3,  section: "PPE",         text: "Cut-resistant gloves available at de-boxing stations",    defaultSeverity: "Minor",  autoAssign: "Department Lead"},
   { id: 4,  section: "Housekeeping",text: "Floor clear of slip/trip hazards",                        defaultSeverity: "Major",  autoAssign: "Site Manager"   },
   { id: 5,  section: "Housekeeping",text: "Wet floor signs in place where applicable",               defaultSeverity: "Minor",  autoAssign: "Department Lead"},
-  { id: 6,  section: "Equipment",   text: "Conveyor guards in place and secured",                    defaultSeverity: "Critical",autoAssign:"Maintenance"    },
-  { id: 7,  section: "Equipment",   text: "Emergency stop buttons unobstructed and visible",         defaultSeverity: "Critical",autoAssign:"Maintenance"    },
+  { id: 6,  section: "Equipment",   text: "Conveyor guards in place and secured",                    defaultSeverity: "Critical",autoAssign:"Facility Maintenance"    },
+  { id: 7,  section: "Equipment",   text: "Emergency stop buttons unobstructed and visible",         defaultSeverity: "Critical",autoAssign:"Facility Maintenance"    },
   { id: 8,  section: "Fire Safety", text: "Fire extinguishers accessible and not blocked",           defaultSeverity: "Major",  autoAssign: "Safety Officer" },
   { id: 9,  section: "Fire Safety", text: "Emergency exit routes clearly marked and unobstructed",   defaultSeverity: "Critical",autoAssign:"Site Manager"   },
   { id: 10, section: "Housekeeping",text: "Waste bins not overflowing",                              defaultSeverity: "Noted",  autoAssign: "Department Lead"},

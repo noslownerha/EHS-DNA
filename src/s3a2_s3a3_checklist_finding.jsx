@@ -33,7 +33,7 @@ const SEED_ITEMS = [
   { id: 11, section: "Fire Safety", text: "Emergency exit routes clearly marked and unobstructed",   result: null },
 ];
 
-const ASSIGNEES = ["Site Manager", "Department Lead", "Maintenance", "Safety Officer", "Mia Chen", "Dana Kowalski"];
+const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Mia Chen", "Dana Kowalski"];
 
 // ââ Due date shortcuts ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const DUE_SHORTCUTS = [

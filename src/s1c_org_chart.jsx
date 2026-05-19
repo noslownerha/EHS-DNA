@@ -30,7 +30,7 @@ const SEED_ORG = [
         ],
       },
       {
-        id: 13, emoji: "ð§", name: "Maintenance", lead: null,
+        id: 13, emoji: "ð§", name: "Facility Maintenance", lead: null,
         staff: [
           { id: 106, first: "Tom",    last: "Rivera"   },
         ],

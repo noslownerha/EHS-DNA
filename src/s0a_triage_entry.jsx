@@ -8,7 +8,7 @@ const C = {
 };
 
 export default function S0aTriageEntry({
-  user = { name: "Alex Torres", site: "Riverside" },
+  user = { name: "Alex Torres", site: "Moriah" },
   onStart,
   onReportInstead,
 }) {

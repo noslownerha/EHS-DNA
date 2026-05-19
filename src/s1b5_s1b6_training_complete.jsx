@@ -247,7 +247,7 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
     { id: 1, emoji: "🏭", name: "Bottling & Packaging" },
     { id: 2, emoji: "📦", name: "Warehouse" },
     { id: 3, emoji: "⚗️", name: "Production / Distilling" },
-    { id: 4, emoji: "🔧", name: "Maintenance" },
+    { id: 4, emoji: "🔧", name: "Facility Maintenance" },
     { id: 5, emoji: "🔬", name: "Quality Control" },
     { id: 6, emoji: "🥃", name: "Tasting Room / Hospitality" },
     { id: 7, emoji: "🗂",  name: "Administration" },
@@ -467,7 +467,7 @@ export function S1b6SetupComplete({
   const siteList   = sites.slice(0, 3).join(", ") + (sites.length > 3 ? ` + ${sites.length - 3} more` : "");
   const deptPreview = departments.length > 0
     ? departments.slice(0, 3).map(d => d.name).join(", ") + (departments.length > 3 ? ` + ${departments.length - 3} more` : "")
-    : "Bottling, Warehouse, Production, Maintenance + 3 more";
+    : "Bottling, Warehouse, Production, Facility Maintenance + 3 more";
 
   // Compute progress: 3 done (company, sites, depts), staff partial, training pending
   const progress = Math.round(((3 + (staffCount > 0 ? 0.5 : 0)) / 5) * 100);

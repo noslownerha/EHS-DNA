@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 6 Glue Layer
+ * EHS DNA — Flow 6 Glue Layer
  * ──────────────────────────────────
  * CS & Billing Backend. Internal only — platform owner and CS team.
  *

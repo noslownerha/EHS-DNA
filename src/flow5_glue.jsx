@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 5 Glue Layer
+ * EHS DNA — Flow 5 Glue Layer
  * ──────────────────────────────────
  * Dashboard & Reporting.
  *

@@ -9,7 +9,7 @@ const C = {
   red: "#C0392B", redLt: "#FDECEA",
 };
 
-const SITES = ["Riverside", "Highland"];
+const SITES = ["Moriah", "Brandenburg"];
 
 function Progress({ step, total }) {
   return (
@@ -22,7 +22,7 @@ function Progress({ step, total }) {
 }
 
 export default function S2a1IncidentType({
-  user = { name: "Alex Torres", site: "Riverside" },
+  user = { name: "Alex Torres", site: "Moriah" },
   onContinue, onBack, onTriage,
 }) {
   const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);

@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 4 Glue Layer
+ * EHS DNA — Flow 4 Glue Layer
  * ──────────────────────────────────
  * Training Management.
  * Mobile: s4a (queue), s4b (CBT player), s4c (in-person sign-off)

@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 1 Glue Layer
+ * EHS DNA — Flow 1 Glue Layer
  * ─────────────────────────────────
  * Exports:
  *   FlowProvider   — wraps your app; holds all onboarding state

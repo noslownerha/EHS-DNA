@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 3 Glue Layer
+ * EHS DNA — Flow 3 Glue Layer
  * ──────────────────────────────────
  * Inspections & Findings. Mobile entry (s3a1–s3b), desktop views (s3c–s3e).
  *

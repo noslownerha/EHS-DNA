@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 2 Glue Layer
+ * EHS DNA — Flow 2 Glue Layer
  * ──────────────────────────────────
  * Incident reporting flow. Mobile entry (s2a1–s2b), desktop views (s2c–s2e).
  *

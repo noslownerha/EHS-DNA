@@ -19,7 +19,7 @@ const ALL_STAFF = [
   { id: 3,  first: "Beth",   last: "Torres",    dept: "Bottling & Packaging",    site: "Moriah",      group: "Bottling & Packaging" },
   { id: 4,  first: "Marcus", last: "Webb",      dept: "Warehouse",               site: "Moriah",      group: "Warehouse"             },
   { id: 5,  first: "Carlos", last: "R.",        dept: "Warehouse",               site: "Moriah",      group: "Warehouse"             },
-  { id: 6,  first: "Tom",    last: "Rivera",    dept: "Maintenance",             site: "Shoreham",    group: "Maintenance"           },
+  { id: 6,  first: "Tom",    last: "Rivera",    dept: "Facility Maintenance",             site: "Shoreham",    group: "Facility Maintenance"           },
   { id: 7,  first: "Dana",   last: "Kowalski",  dept: "Production / Distilling", site: "Middlebury",  group: "Production / Distilling"},
   { id: 8,  first: "Mia",    last: "Chen",      dept: "Quality Control",         site: "Middlebury",  group: "Quality Control"       },
   { id: 9,  first: "Lena",   last: "Park",      dept: "Production / Distilling", site: "Middlebury",  group: "Production / Distilling"},

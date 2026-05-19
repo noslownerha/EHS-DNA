@@ -31,7 +31,7 @@ const CATEGORIES = [
   { id: "other",          label: "Other",            emoji: "ð" },
 ];
 
-const ASSIGNEES = ["Site Manager", "Department Lead", "Maintenance", "Safety Officer", "Mia Chen"];
+const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Mia Chen"];
 
 const DUE_SHORTCUTS = [
   { label: "Today",    days: 0 },

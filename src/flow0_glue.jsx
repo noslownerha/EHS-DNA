@@ -1,5 +1,5 @@
 /**
- * EHS Platform — Flow 0 Glue Layer
+ * EHS DNA — Flow 0 Glue Layer
  * ──────────────────────────────────
  * Incident triage flow. Mobile-first. No login required.
  *
