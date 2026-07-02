@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { api, getToken } from "./api.js";
 import { ROLE_PERMS } from "./constants.js";
 import LandingPage                   from "./LandingPage.jsx";
-import AppShell, { EHSHeader }       from "./AppShell.jsx";
+import AppShell, { EHSHeader, AccountContext } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
 import StaffDashboard                from "./StaffDashboard.jsx";
 
@@ -179,8 +179,10 @@ export default function App() {
   }
 
   return (
+    <AccountContext.Provider value={{ user: currentUser, onLogout: handleLogout }}>
     <AppShell user={currentUser} activeTab={activeTab} onTab={handleTab}>
       {renderContent()}
     </AppShell>
+    </AccountContext.Provider>
   );
 }

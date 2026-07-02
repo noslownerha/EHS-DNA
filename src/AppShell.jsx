@@ -1,5 +1,9 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import { BRAND, ROLE_PERMS, TAB_CONFIG } from "./constants.js";
+import { api } from "./api.js";
+
+// Optional account context — when provided (by App), EHSHeader shows an account menu
+export const AccountContext = createContext(null);
 
 const RoleContext = createContext(null);
 export function useRole() {
@@ -31,13 +35,106 @@ export function EHSHeader({ onHome, title, rightContent, dark = false }) {
           {title}
         </div>
       )}
-      <div style={{ minWidth: 60, display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ minWidth: 60, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
         {rightContent ?? (
           <span style={{ fontSize: ".65rem", color: "rgba(255,255,255,.2)", fontFamily: "'DM Mono', monospace" }}>
             {BRAND.tagline.split(" ").slice(0, 4).join(" ")}…
           </span>
         )}
+        <AccountButton />
       </div>
+    </div>
+  );
+}
+
+// ── Account menu (avatar → change password / sign out) ────────────────────────
+function AccountButton() {
+  const account = useContext(AccountContext);
+  const [open, setOpen] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  if (!account?.user) return null;
+  const initial = (account.user.name ?? "?").trim().charAt(0).toUpperCase();
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen(o => !o)} title="Account" style={{
+        width: 28, height: 28, borderRadius: "50%",
+        background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+        color: "#fff", fontSize: ".78rem", fontWeight: 700, cursor: "pointer",
+        fontFamily: "'DM Sans', sans-serif", lineHeight: 1,
+      }}>{initial}</button>
+      {open && (
+        <div style={{
+          position: "absolute", right: 0, top: 36, zIndex: 300,
+          background: "#fff", borderRadius: 10, boxShadow: "0 8px 30px rgba(0,0,0,.25)",
+          minWidth: 190, overflow: "hidden", fontFamily: "'DM Sans', sans-serif",
+        }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #EEF2F0" }}>
+            <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#0F1F17" }}>{account.user.name}</div>
+            <div style={{ fontSize: ".72rem", color: "#8FA3A0" }}>{account.user.email ?? account.user.role}</div>
+          </div>
+          <button onClick={() => { setShowPw(true); setOpen(false); }} style={menuItemStyle}>Change password</button>
+          <button onClick={() => { setOpen(false); account.onLogout?.(); }} style={{ ...menuItemStyle, color: "#C0392B" }}>Sign out</button>
+        </div>
+      )}
+      {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
+    </div>
+  );
+}
+const menuItemStyle = {
+  display: "block", width: "100%", textAlign: "left", padding: "10px 14px",
+  background: "none", border: "none", cursor: "pointer",
+  fontSize: ".85rem", color: "#0F1F17", fontFamily: "'DM Sans', sans-serif",
+};
+
+function ChangePasswordModal({ onClose }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const input = {
+    width: "100%", padding: "10px 12px", border: "1.5px solid #D0DEDB",
+    borderRadius: 7, fontSize: ".88rem", fontFamily: "'DM Sans', sans-serif",
+    color: "#0F1F17", outline: "none", boxSizing: "border-box", marginBottom: 10,
+  };
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true); setMsg(null);
+    try {
+      await api.changePassword(current, next);
+      setMsg({ ok: true, text: "Password updated" });
+      setTimeout(onClose, 900);
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    } finally { setBusy(false); }
+  }
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(15,31,23,.45)",
+      zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <form onClick={e => e.stopPropagation()} onSubmit={submit} style={{
+        background: "#fff", borderRadius: 12, padding: 22, width: "100%", maxWidth: 360,
+        fontFamily: "'DM Sans', sans-serif", boxShadow: "0 20px 60px rgba(0,0,0,.3)",
+      }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#0F1F17", marginBottom: 14 }}>Change password</h3>
+        <input type="password" required placeholder="Current password" autoComplete="current-password"
+          value={current} onChange={e => setCurrent(e.target.value)} style={input} />
+        <input type="password" required minLength={8} placeholder="New password (8+ characters)" autoComplete="new-password"
+          value={next} onChange={e => setNext(e.target.value)} style={input} />
+        {msg && <div style={{ fontSize: ".8rem", marginBottom: 10, color: msg.ok ? "#4A8C5C" : "#C0392B" }}>{msg.text}</div>}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button type="submit" disabled={busy} style={{
+            flex: 1, padding: "10px 0", background: busy ? "#9BBBA6" : "#4A8C5C", color: "#fff",
+            border: "none", borderRadius: 7, fontSize: ".88rem", fontWeight: 700, cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+          }}>{busy ? "Saving…" : "Update"}</button>
+          <button type="button" onClick={onClose} style={{
+            padding: "10px 16px", background: "none", border: "1px solid #D0DEDB",
+            borderRadius: 7, fontSize: ".85rem", color: "#4A5568", cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+          }}>Cancel</button>
+        </div>
+      </form>
     </div>
   );
 }
