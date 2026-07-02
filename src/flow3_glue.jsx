@@ -19,6 +19,7 @@
 
 import { createContext, useContext, useReducer, useCallback } from "react";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 import S3a1StartInspection                            from "./s3a1_start_inspection";
 import { S3a2ChecklistInProgress, S3a3LogFinding }    from "./s3a2_s3a3_checklist_finding";
@@ -142,8 +143,32 @@ export function InspectionProvider({
   const navigate     = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);
   const back         = useCallback(() => dispatch({ type: "BACK" }), []);
   const startMode    = useCallback(mode => dispatch({ type: "START_MODE", mode }), []);
-  const completeSession = useCallback((items, findings) => dispatch({ type: "COMPLETE_SESSION", items, findings }), []);
-  const submitQuick  = useCallback(finding => dispatch({ type: "SUBMIT_QUICK_FINDING", finding }), []);
+  const completeSession = useCallback((items, findings) => {
+    dispatch({ type: "COMPLETE_SESSION", items, findings });
+    (async () => {
+      try {
+        const { id: inspectionId } = await api.createInspection({});
+        const responses = Object.fromEntries((items ?? []).map(it => [it.id, it.result ?? it.status ?? "na"]));
+        await api.updateInspection(inspectionId, { responses, complete: true });
+        for (const f of (findings ?? [])) {
+          await api.createFinding({
+            inspectionId,
+            severity: f?.severity ?? "low",
+            description: f?.description ?? f?.notes ?? f?.label ?? "Inspection finding",
+          });
+        }
+      } catch (err) { console.error("Inspection save failed:", err.message); }
+    })();
+  }, []);
+  const submitQuick  = useCallback(finding => {
+    dispatch({ type: "SUBMIT_QUICK_FINDING", finding });
+    const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === (finding?.site ?? ""));
+    api.createFinding({
+      siteId: siteRec?.id ?? null,
+      severity: finding?.severity ?? "low",
+      description: finding?.description ?? finding?.notes ?? "Quick finding",
+    }).catch(err => console.error("Finding save failed:", err.message));
+  }, []);
   const viewFinding  = useCallback(id => dispatch({ type: "VIEW_FINDING", id }), []);
   const resetSession = useCallback(() => dispatch({ type: "RESET_SESSION" }), []);
 
