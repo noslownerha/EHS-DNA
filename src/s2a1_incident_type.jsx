@@ -10,7 +10,7 @@ const C = {
   red: "#C0392B", redLt: "#FDECEA",
 };
 
-const SITES = ["Moriah", "Brandenburg"];
+import { SITES } from "./constants.js";
 
 function Progress({ step, total }) {
   return (
