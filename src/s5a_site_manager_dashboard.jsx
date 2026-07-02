@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -70,15 +71,24 @@ export default function S5aSiteManagerDashboard({
   onNavigate, // (destination: string) => void
 }) {
   const [reminderSent, setReminderSent] = useState(false);
+  const [siteStats, setSiteStats] = useState(null);
+  const [trainingOverdue, setTrainingOverdue] = useState(null);
+
+  useEffect(() => {
+    Promise.all([api.dashboardSummary(), api.dashboardCompliance()]).then(([sites, compliance]) => {
+      setSiteStats(sites.find(s => s.name === manager.site) ?? null);
+      setTrainingOverdue(compliance.filter(c => c.site === manager.site).reduce((n, c) => n + c.overdue, 0));
+    }).catch(err => console.error("Site dashboard load failed:", err.message));
+  }, [manager.site]);
 
   // Spec: days-since-recordable is a visible, motivational metric on site manager dashboards
-  const daysSinceRecordable = 47;
+  const daysSinceRecordable = siteStats?.daysSince ?? 0;
 
   const kpis = [
-    { label: "Open incidents",   value: 2,  color: C.red    },
-    { label: "Open CAs",         value: 4,  color: C.orange },
-    { label: "Open findings",    value: 6,  color: C.gold   },
-    { label: "Training overdue", value: 7,  color: C.purple },
+    { label: "Open incidents",   value: siteStats?.openIncidents ?? 0,       color: C.red    },
+    { label: "Open CAs",         value: siteStats?.openCAs ?? 0,             color: C.orange },
+    { label: "Open findings",    value: siteStats?.criticalFindings ?? 0,    color: C.gold   },
+    { label: "Training overdue", value: trainingOverdue ?? 0,                color: C.purple },
   ];
 
   const overdueCACount = OPEN_CAS.filter(c => c.overdue).length;
