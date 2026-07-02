@@ -285,7 +285,69 @@ app.post("/api/triage", auth, (req, res) => {
   res.json({ id: r.lastInsertRowid, ref });
 });
 
-// ── Static app (production) ──────────────────────────────────────────────────
+// ── Dashboard summary (per-site rollup for admin dashboards) ─────────────────
+app.get("/api/dashboard/summary", auth, (req, res) => {
+  const t = req.auth.tenant;
+  const sites = db.prepare("SELECT * FROM sites WHERE tenant_id = ? AND active = 1").all(t);
+  const summary = sites.map(site => {
+    const staff = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND site_id = ? AND active = 1").get(t, site.id).n;
+    const openIncidents = db.prepare("SELECT COUNT(*) n FROM incidents WHERE tenant_id = ? AND site_id = ? AND status != 'closed'").get(t, site.id).n;
+    const openCAs = db.prepare(`SELECT COUNT(*) n FROM corrective_actions c
+                                JOIN incidents i ON i.id = c.incident_id
+                                WHERE c.tenant_id = ? AND i.site_id = ? AND c.status NOT IN ('done','verified')`).get(t, site.id).n;
+    const criticalFindings = db.prepare("SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? AND status = 'open' AND severity IN ('high','critical')").get(t, site.id).n;
+    const lastIncident = db.prepare("SELECT MAX(created_at) d FROM incidents WHERE tenant_id = ? AND site_id = ?").get(t, site.id).d;
+    const daysSince = lastIncident ? Math.floor((Date.now() - new Date(lastIncident).getTime()) / 86400000) : 999;
+    // Compliance proxy: % of active site staff with a training completion logged in the last 12 months
+    const compliantStaff = db.prepare(`SELECT COUNT(DISTINCT u.id) n FROM users u
+                                       JOIN training_completions tc ON tc.user_id = u.id
+                                       WHERE u.tenant_id = ? AND u.site_id = ? AND u.active = 1
+                                       AND tc.completed_at > datetime('now', '-12 months')`).get(t, site.id).n;
+    const compliance = staff > 0 ? Math.round((compliantStaff / staff) * 100) : 100;
+    return { name: site.name, location: site.location, staff, daysSince, compliance,
+             openIncidents, openCAs, criticalFindings };
+  });
+  res.json(summary);
+});
+
+
+// ── Training compliance summary (per-staff rollup against required trainings) ─
+app.get("/api/dashboard/compliance", auth, (req, res) => {
+  const t = req.auth.tenant;
+  const users = db.prepare(`SELECT u.id, u.name, u.role, u.department_id, s.name AS site, d.name AS dept
+                            FROM users u LEFT JOIN sites s ON s.id = u.site_id
+                            LEFT JOIN departments d ON d.id = u.department_id
+                            WHERE u.tenant_id = ? AND u.active = 1`).all(t);
+  const trainings = db.prepare("SELECT * FROM trainings WHERE tenant_id = ? AND active = 1").all(t);
+  const completions = db.prepare("SELECT * FROM training_completions WHERE tenant_id = ?").all(t);
+
+  const result = users.map(u => {
+    const required = trainings.filter(tr => {
+      const roles = JSON.parse(tr.required_roles || "[]");
+      const depts = JSON.parse(tr.required_departments || "[]");
+      return (roles.length === 0 && depts.length === 0) || roles.includes(u.role) || depts.includes(u.department_id);
+    });
+    let current = 0, overdue = 0, expiring = 0;
+    const now = Date.now(), soon = now + 30 * 86400000;
+    required.forEach(tr => {
+      const comp = completions.filter(c => c.training_id === tr.id && c.user_id === u.id)
+        .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+      const notExpired = comp && (!comp.expires_at || new Date(comp.expires_at).getTime() > now);
+      if (notExpired) {
+        current++;
+        if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) expiring++;
+      } else {
+        overdue++;
+      }
+    });
+    const total = required.length;
+    return { id: u.id, name: u.name, site: u.site, dept: u.dept,
+             compliance: total > 0 ? Math.round((current / total) * 100) : 100,
+             overdue, expiring, current, total };
+  });
+  res.json(result);
+});
+
 const DIST = path.join(__dirname, "..", "dist");
 app.use(express.static(DIST));
 app.use((req, res) => {

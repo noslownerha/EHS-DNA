@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -89,11 +90,16 @@ function ComplianceBar({ pct, compact = false }) {
 // Spec §14.3: 4 KPI tiles (value + label only), "Send Reminders" BELOW tile row
 // ════════════════════════════════════════════════════════════════════════════
 export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
+  const [SEED_STAFF, setStaff] = useState([]);
   const [filterSite, setFilterSite] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [sfocused,   setSfocused]   = useState(false);
   const [search,     setSearch]     = useState("");
   const [reminderSent, setReminderSent] = useState(false);
+
+  useEffect(() => {
+    api.dashboardCompliance().then(setStaff).catch(err => console.error("Compliance load failed:", err.message));
+  }, []);
 
   const sites = [...new Set(SEED_STAFF.map(s => s.site))];
   const depts = [...new Set(SEED_STAFF.map(s => s.dept))];

@@ -77,6 +77,15 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const cfg2 = await fetch(`${B}/api/config`, { headers: H() }).then(j);
   ok("config edit", cfg2.tagline === "Test tagline");
 
+  const summary = await fetch(`${B}/api/dashboard/summary`, { headers: H() }).then(j);
+  ok("dashboard summary", Array.isArray(summary) && summary.length === 4 &&
+     summary.find(s => s.name === "Moriah").openIncidents === 1);
+
+  const compliance = await fetch(`${B}/api/dashboard/compliance`, { headers: H() }).then(j);
+  const staffRow = compliance.find(c => c.id === staff.id);
+  ok("compliance rollup", Array.isArray(compliance) && compliance.length === 2 &&
+     staffRow && staffRow.current === 1 && staffRow.total === 1 && staffRow.compliance === 100);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

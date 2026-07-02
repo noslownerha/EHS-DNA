@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -57,14 +58,20 @@ function DaysBadge({ days }) {
 // S5b — Company Admin Dashboard (desktop)
 // ════════════════════════════════════════════════════════════════════════════
 export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNavigate, onHome }) {
+  const [SITES, setSites] = useState([]);
+  useEffect(() => {
+    api.dashboardSummary().then(setSites).catch(err => console.error("Dashboard summary failed:", err.message));
+  }, []);
+  const safeSites = SITES.length ? SITES : [{ name: "—", location: "", staff: 0, daysSince: 0, compliance: 0, openIncidents: 0, openCAs: 0, criticalFindings: 0 }];
+
   // Company-wide aggregates
   const totalStaff      = SITES.reduce((n, s) => n + s.staff, 0);
   const totalIncidents  = SITES.reduce((n, s) => n + s.openIncidents, 0);
   const totalCAs        = SITES.reduce((n, s) => n + s.openCAs, 0);
   const totalCritical   = SITES.reduce((n, s) => n + s.criticalFindings, 0);
-  const avgCompliance   = Math.round(SITES.reduce((n, s) => n + s.compliance, 0) / SITES.length);
+  const avgCompliance   = SITES.length ? Math.round(SITES.reduce((n, s) => n + s.compliance, 0) / SITES.length) : 0;
   const belowThreshold  = SITES.filter(s => s.compliance < 80).length;
-  const bestDays        = Math.max(...SITES.map(s => s.daysSince));
+  const bestDays        = SITES.length ? Math.max(...SITES.map(s => s.daysSince)) : 0;
 
   const kpis = [
     { label: "Open incidents",      value: totalIncidents, color: C.red    },

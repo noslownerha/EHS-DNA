@@ -60,6 +60,10 @@ export const api = {
   createDepartment: (d) => req("/departments", { method: "POST", body: d }),
   updateDepartment: (id, patch) => req(`/departments/${id}`, { method: "PUT", body: patch }),
 
+  // dashboard
+  dashboardSummary: () => req("/dashboard/summary"),
+  dashboardCompliance: () => req("/dashboard/compliance"),
+
   // incidents & CAs
   listIncidents: () => req("/incidents"),
   createIncident: (i) => req("/incidents", { method: "POST", body: i }),
