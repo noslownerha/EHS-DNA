@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ROLE_PERMS } from "./constants.js";
 import LandingPage                   from "./LandingPage.jsx";
 import AppShell, { EHSHeader }       from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 import StaffDashboard                from "./StaffDashboard.jsx";
 
 import { TriageProvider, TriageRouter }                                from "./flow0_glue.jsx";
@@ -44,7 +45,7 @@ function MobileFrame({ children }) {
   );
 }
 
-const COMPANY = "WhistlePig";
+const COMPANY = BRAND.company;
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
