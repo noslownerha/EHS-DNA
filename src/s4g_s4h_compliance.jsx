@@ -101,7 +101,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
     api.dashboardCompliance().then(setStaff).catch(err => console.error("Compliance load failed:", err.message));
   }, []);
 
-  const sites = [...new Set(SEED_STAFF.map(s => s.site))];
+  const sites = (BRAND.siteRecords ?? []).map(s => s.name);
   const depts = [...new Set(SEED_STAFF.map(s => s.dept))];
 
   const filtered = useMemo(() =>
@@ -273,8 +273,28 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
 // S4h — Staff Compliance Detail (desktop)
 // ════════════════════════════════════════════════════════════════════════════
 export function S4hStaffComplianceDetail({ onHome, staffId, companyName, onBack }) {
-  const staff = SEED_STAFF.find(s => s.id === (staffId ?? 1)) ?? SEED_STAFF[0];
-  const trainings = STAFF_TRAININGS;
+  const [staff, setStaff] = useState({ name: "…", site: "", dept: "", compliance: 0, current: 0, total: 0, overdue: 0, expiring: 0 });
+  const [trainings, setTrainings] = useState([]);
+
+  useEffect(() => {
+    Promise.all([api.dashboardCompliance(), api.listTrainings(), api.listCompletions()])
+      .then(([compliance, trs, comps]) => {
+        const row = compliance.find(c => c.id === staffId);
+        if (row) setStaff(row);
+        const fmt = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+        const now = Date.now(), soon = now + 30 * 86400000;
+        setTrainings(trs.filter(t => t.active).map(t => {
+          const comp = comps.filter(c => c.training_id === t.id && c.user_id === staffId)
+            .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+          let status, due = null, expiresAt = null;
+          if (!comp) { status = "not_started"; }
+          else if (comp.expires_at && new Date(comp.expires_at).getTime() < now) { status = "expired"; expiresAt = fmt(comp.expires_at); }
+          else if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) { status = "expiring_soon"; expiresAt = fmt(comp.expires_at); }
+          else { status = "current"; expiresAt = fmt(comp?.expires_at); }
+          return { id: t.id, title: t.title, status, due, expiresAt };
+        }));
+      }).catch(err => console.error("Staff detail load failed:", err.message));
+  }, [staffId]);
 
   const thStyle = {
     padding: "9px 14px", textAlign: "left",
