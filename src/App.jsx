@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api, getToken } from "./api.js";
 import { ROLE_PERMS } from "./constants.js";
 import LandingPage                   from "./LandingPage.jsx";
 import AppShell, { EHSHeader }       from "./AppShell.jsx";
@@ -50,21 +51,41 @@ const COMPANY = BRAND.company;
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
+  const [booting,     setBooting]     = useState(!!getToken());
 
-  function handleEnter(demoUser) {
-    setCurrentUser(demoUser.user);
+  // Resume session if a valid token exists
+  useEffect(() => {
+    if (!getToken()) return;
+    api.fetchConfig()
+      .then(() => {
+        const cached = sessionStorage.getItem("ehs_user");
+        if (cached) setCurrentUser(JSON.parse(cached));
+      })
+      .catch(() => api.logout())
+      .finally(() => setBooting(false));
+  }, []);
+
+  function handleEnter(user) {
+    sessionStorage.setItem("ehs_user", JSON.stringify(user));
+    setCurrentUser(user);
     setActiveTab("home");
+  }
+
+  function handleLogout() {
+    api.logout();
+    sessionStorage.removeItem("ehs_user");
+    setCurrentUser(null);
   }
 
   function handleHome() { setActiveTab("home"); }
   function handleTab(tabId) { setActiveTab(tabId); }
   function handleNavigate(dest) { setActiveTab(dest); }
 
+  if (booting) return null;
   if (!currentUser) return <LandingPage onEnter={handleEnter} />;
 
   const perms   = ROLE_PERMS[currentUser.role] ?? ROLE_PERMS.staff;
-  const fullName = `${currentUser.first} ${currentUser.last}`;
-  const userObj  = { ...currentUser, name: fullName };
+  const userObj = { ...currentUser, name: currentUser.name ?? `${currentUser.first ?? ""} ${currentUser.last ?? ""}`.trim() };
 
   function renderContent() {
     switch (activeTab) {

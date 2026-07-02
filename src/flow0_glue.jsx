@@ -17,6 +17,8 @@
 
 import { createContext, useContext, useReducer, useCallback } from "react";
 
+import { api } from "./api.js";
+import { BRAND } from "./constants.js";
 import S0aTriageEntry                from "./s0a_triage_entry";
 import S0bDecisionTree               from "./s0b_decision_tree";
 import S0cImmediateAction            from "./s0c_immediate_action";
@@ -158,6 +160,7 @@ export function TriageProvider({
     config:   config   ?? INITIAL_STATE.config,
     contacts: contacts ?? INITIAL_STATE.contacts,
   });
+  const stateRef = { current: state };
 
   const navigate = useCallback((screen, { replace = false } = {}) =>
     dispatch({ type: "NAVIGATE", screen, replace }), []);
@@ -167,8 +170,18 @@ export function TriageProvider({
   const start = useCallback((responder, site) =>
     dispatch({ type: "START", responder, site }), []);
 
-  const setOutcome = useCallback((outcome) =>
-    dispatch({ type: "SET_OUTCOME", outcome }), []);
+  const setOutcome = useCallback((outcome) => {
+    dispatch({ type: "SET_OUTCOME", outcome });
+    // Persist the triage record (fire-and-forget; UI proceeds regardless)
+    const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === stateRef.current.site);
+    api.createTriage({
+      siteId: siteRec?.id ?? null,
+      outcome,
+      notified: outcome === "911"
+        ? ["Site Manager", "Emergency Response Coordinator (ERC)"]
+        : outcome === "triage" ? ["Site Manager"] : [],
+    }).catch(err => console.error("Triage save failed:", err.message));
+  }, []);
 
   const saveConfig = useCallback((payload) =>
     dispatch({ type: "SAVE_CONFIG", payload }), []);

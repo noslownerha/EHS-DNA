@@ -19,6 +19,7 @@
 
 import { createContext, useContext, useReducer, useCallback } from "react";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 import S2a1IncidentType                     from "./s2a1_incident_type";
 import S2a2WhatHappened                     from "./s2a2_what_happened";
@@ -125,6 +126,14 @@ function reducer(state, action) {
       };
     }
 
+    case "SERVER_REF":
+      // Replace client-generated id with the server's canonical ref
+      return state.submitted
+        ? { ...state,
+            submitted: { ...state.submitted, id: action.ref },
+            incidents: state.incidents.map(i => i.id === state.submitted.id ? { ...i, id: action.ref } : i) }
+        : state;
+
     case "VIEW_INCIDENT":
       return { ...state, viewingId: action.id, screen: INCIDENT_SCREENS.DETAIL, history: [...state.history, state.screen] };
 
@@ -149,6 +158,8 @@ export function IncidentProvider({
   initialScreen  = INCIDENT_SCREENS.TYPE,
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
+  const stateRef = { current: state };  // always-fresh snapshot for async callbacks
+
 
   const navigate   = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);
   const back       = useCallback(() => dispatch({ type: "BACK" }), []);
@@ -156,7 +167,18 @@ export function IncidentProvider({
   const saveWhat   = useCallback(payload => dispatch({ type: "SAVE_WHAT",   payload }), []);
   const saveWho    = useCallback(payload => dispatch({ type: "SAVE_WHO",    payload }), []);
   const savePhotos = useCallback(payload => dispatch({ type: "SAVE_PHOTOS", payload }), []);
-  const submit     = useCallback(()      => dispatch({ type: "SUBMIT" }), []);
+  const submit     = useCallback(() => {
+    dispatch({ type: "SUBMIT" });
+    // Persist to server; UI already advanced optimistically
+    const d = stateRef.current.draft;
+    const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === d.site);
+    api.createIncident({
+      type: d.incidentType, severity: d.severity, siteId: siteRec?.id ?? null,
+      description: d.description, locationDetail: d.location,
+      involved: d.involved ?? [], occurredAt: d.datetime ?? null,
+    }).then(({ ref }) => dispatch({ type: "SERVER_REF", ref }))
+      .catch(err => console.error("Incident save failed:", err.message));
+  }, []);
   const viewIncident = useCallback(id   => dispatch({ type: "VIEW_INCIDENT", id }), []);
   const resetDraft = useCallback(()     => dispatch({ type: "RESET_DRAFT" }), []);
 

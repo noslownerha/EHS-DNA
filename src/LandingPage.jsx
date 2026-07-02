@@ -1,8 +1,34 @@
 import { useState } from "react";
-import { BRAND, DEMO_USERS } from "./constants.js";
+import { BRAND } from "./constants.js";
+import { api } from "./api.js";
+
+const inputStyle = {
+  width: "100%", padding: "13px 16px",
+  background: "rgba(255,255,255,.06)",
+  border: "1px solid rgba(168,213,181,.15)",
+  borderRadius: 10, color: "#fff",
+  fontSize: ".92rem", fontFamily: "'DM Sans', sans-serif",
+  outline: "none", boxSizing: "border-box",
+};
 
 export default function LandingPage({ onEnter }) {
-  const [hoveredId, setHoveredId] = useState(null);
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError]       = useState(null);
+  const [busy, setBusy]         = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      const user = await api.login(email, password);
+      await api.fetchConfig();
+      onEnter(user);
+    } catch (err) {
+      setError(err.status === 401 ? "Invalid email or password" : "Could not reach the server — try again");
+      setBusy(false);
+    }
+  }
 
   return (
     // Bucket 1.5: use 100dvh so it fills exactly the device viewport with no scroll
@@ -73,47 +99,46 @@ export default function LandingPage({ onEnter }) {
           </p>
         </div>
 
-        {/* Role selector label */}
+        {/* Sign-in label */}
         <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
           <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
-            Select a role to explore
+            Sign in
           </p>
         </div>
 
-        {/* Role buttons */}
-        <div className="a4" style={{ display: "flex", flexDirection: "column", gap: 9, width: "100%" }}>
-          {DEMO_USERS.map(demo => (
-            <button
-              key={demo.id}
-              className="role-btn"
-              onClick={() => onEnter(demo)}
-              onMouseEnter={() => setHoveredId(demo.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              style={{
-                width: "100%", padding: "14px 18px",
-                background: hoveredId === demo.id ? `${demo.color}ee` : `${demo.color}bb`,
-                border: "1px solid rgba(168,213,181,.12)",
-                borderRadius: 11, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 12,
-                boxShadow: hoveredId === demo.id ? "0 6px 20px rgba(0,0,0,.3)" : "0 2px 8px rgba(0,0,0,.2)",
-              }}
-            >
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: "rgba(255,255,255,.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>
-                {demo.emoji}
-              </div>
-              <div style={{ textAlign: "left", flex: 1 }}>
-                <div style={{ fontSize: ".92rem", fontWeight: 700, color: "#fff", marginBottom: 1 }}>{demo.label}</div>
-                <div style={{ fontSize: ".73rem", color: "rgba(255,255,255,.45)" }}>{demo.sublabel}</div>
-              </div>
-              <div style={{ color: "rgba(255,255,255,.3)", fontSize: ".85rem", flexShrink: 0 }}>→</div>
-            </button>
-          ))}
-        </div>
+        {/* Login form */}
+        <form className="a4" onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+          <input
+            type="email" required autoComplete="email" placeholder="Email"
+            value={email} onChange={e => setEmail(e.target.value)}
+            style={inputStyle}
+          />
+          <input
+            type="password" required autoComplete="current-password" placeholder="Password"
+            value={password} onChange={e => setPassword(e.target.value)}
+            style={inputStyle}
+          />
+          {error && (
+            <div style={{ fontSize: ".78rem", color: "#F0A5A5", background: "rgba(220,80,80,.12)", border: "1px solid rgba(220,80,80,.25)", borderRadius: 8, padding: "8px 12px" }}>
+              {error}
+            </div>
+          )}
+          <button type="submit" disabled={busy} style={{
+            width: "100%", padding: "14px 18px", marginTop: 2,
+            background: busy ? "rgba(74,140,92,.5)" : "#4A8C5C",
+            border: "1px solid rgba(168,213,181,.2)",
+            borderRadius: 11, cursor: busy ? "default" : "pointer",
+            fontSize: ".95rem", fontWeight: 700, color: "#fff",
+            fontFamily: "'DM Sans', sans-serif",
+            boxShadow: "0 4px 16px rgba(74,140,92,.25)",
+          }}>
+            {busy ? "Signing in…" : "Sign in →"}
+          </button>
+        </form>
 
-        {/* Bucket 3: footer note — remove company name, add prototype context */}
         <div style={{ marginTop: 28, textAlign: "center" }}>
           <p style={{ fontSize: ".67rem", color: "rgba(255,255,255,.15)", letterSpacing: ".04em", lineHeight: 1.6 }}>
-            PROTOTYPE · This will be the login page when live
+            Access is provisioned by your administrator
           </p>
         </div>
       </div>
