@@ -35,6 +35,7 @@ import S5aSiteManagerDashboard                        from "./s5a_site_manager_d
 import { S5bCompanyAdminDashboard, S5cStaffMobileHome } from "./s5b_s5c_admin_dashboard_mobile_home";
 import S5dReportBuilder                                from "./s5d_report_builder";
 import S5eManageStaff                                  from "./s5e_manage_staff";
+import S5fCompanySettings                              from "./s5f_company_settings";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen IDs
@@ -45,6 +46,7 @@ export const DASHBOARD_SCREENS = {
   STAFF_HOME:   "s5c",
   REPORT:       "s5d",
   STAFF_MGMT:   "s5e",
+  SETTINGS:     "s5f",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,6 +138,7 @@ export function DashboardRouter({
     switch (dest) {
       case "report":    return navigate(DASHBOARD_SCREENS.REPORT);
       case "staff":     return navigate(DASHBOARD_SCREENS.STAFF_MGMT);
+      case "settings":  return navigate(DASHBOARD_SCREENS.SETTINGS);
       case "incidents": return onIncidents?.();
       case "findings":  return onFindings?.();
       case "cas":       return onCAs?.();
@@ -196,6 +199,15 @@ export function DashboardRouter({
     case DASHBOARD_SCREENS.STAFF_MGMT:
       return (
         <S5eManageStaff
+          onHome={onHome ?? onDone}
+          companyName={companyName}
+        />
+      );
+
+    // ── s5f: Company Settings ────────────────────────────────────────────────
+    case DASHBOARD_SCREENS.SETTINGS:
+      return (
+        <S5fCompanySettings
           onHome={onHome ?? onDone}
           companyName={companyName}
         />

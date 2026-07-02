@@ -112,6 +112,12 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
+            <button className="nav-btn" onClick={() => onNavigate?.("settings")} style={{
+              padding: "8px 16px", background: C.white, color: C.pine,
+              border: `1.5px solid ${C.mint}`, borderRadius: 7,
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
+              cursor: "pointer", transition: "all .15s",
+            }}>Settings →</button>
             <button className="nav-btn" onClick={() => onNavigate?.("staff")} style={{
               padding: "8px 16px", background: C.white, color: C.pine,
               border: `1.5px solid ${C.mint}`, borderRadius: 7,
