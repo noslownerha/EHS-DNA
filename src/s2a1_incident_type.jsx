@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { INCIDENT_TYPES } from "./constants.js";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -22,8 +23,8 @@ function Progress({ step, total }) {
 }
 
 export default function S2a1IncidentType({
-  user = { name: "Alex Torres", site: "Moriah" },
-  onContinue, onBack, onTriage,
+  user = { name: "Responder", site: "Moriah" },
+  onContinue, onBack, onTriage, onHome,
 }) {
   const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const [selectedType, setSelectedType] = useState(null);
@@ -41,11 +42,7 @@ export default function S2a1IncidentType({
         select, input { appearance: none; color-scheme: light; }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", flexShrink: 0 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint }}><span style={{ color: C.white }}>EHS</span> DNA</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
 
       <div style={{ padding: "10px 0 6px", flexShrink: 0 }}><Progress step={0} total={5} /></div>
 

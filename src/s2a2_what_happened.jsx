@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -93,6 +94,7 @@ export default function S2a2WhatHappened({
   incidentType = "injury",
   onContinue,
   onBack,
+  onHome,
 }) {
   const [description, setDescription] = useState("");
   const [location,    setLocation]    = useState("");
@@ -124,11 +126,7 @@ export default function S2a2WhatHappened({
       `}</style>
 
       {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
 
       <div style={{ padding: "14px 0 6px" }}>
         <MobileProgress step={1} total={5} />

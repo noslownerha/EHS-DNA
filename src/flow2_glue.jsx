@@ -18,6 +18,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback } from "react";
+import { BRAND } from "./constants.js";
 
 import S2a1IncidentType                     from "./s2a1_incident_type";
 import S2a2WhatHappened                     from "./s2a2_what_happened";
@@ -144,7 +145,7 @@ export function IncidentProvider({
   children,
   user           = { name: "Ahren H.", site: "Moriah", dept: "Administration", role: "admin" },
   triageProvider = { name: "Concentra Occupational Health", phone: "(800) 555-0147" },
-  companyName    = "WhistlePig Whiskey",
+  companyName    = BRAND.company,
   initialScreen  = INCIDENT_SCREENS.TYPE,
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
@@ -182,7 +183,7 @@ export function useIncident() {
 // ─────────────────────────────────────────────────────────────────────────────
 // IncidentRouter
 // ─────────────────────────────────────────────────────────────────────────────
-export function IncidentRouter({ onDone, onGoToTriage }) {
+export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
   const {
     state, navigate, back,
     saveType, saveWhat, saveWho, savePhotos, submit, viewIncident, resetDraft,
@@ -197,6 +198,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.TYPE:
       return (
         <S2a1IncidentType
+          onHome={onHome ?? onDone}
           user={user}
           onBack={onDone ?? back}
           onContinue={data => {
@@ -210,6 +212,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.WHAT:
       return (
         <S2a2WhatHappened
+          onHome={onHome ?? onDone}
           incidentType={draft.type}
           onBack={back}
           onContinue={data => {
@@ -223,6 +226,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.WHO:
       return (
         <S2a3WhoWasInvolved
+          onHome={onHome ?? onDone}
           severity={draft.severity}
           incidentType={draft.type}
           triageProvider={triageProvider}
@@ -238,6 +242,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.PHOTOS:
       return (
         <S2a4PhotosLocation
+          onHome={onHome ?? onDone}
           onBack={back}
           onContinue={data => {
             savePhotos(data);
@@ -250,6 +255,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.REVIEW:
       return (
         <S2a5ReviewSubmit
+          onHome={onHome ?? onDone}
           flowData={draft}
           onBack={back}
           onSubmit={extraData => {
@@ -262,6 +268,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.CONFIRMATION:
       return (
         <S2bConfirmationResponse
+          onHome={onHome ?? onDone}
           incidentId={submitted?.id}
           incidentType={submitted?.type}
           severity={submitted?.severity}
@@ -276,6 +283,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.LIST:
       return (
         <S2cIncidentList
+          onHome={onHome ?? onDone}
           companyName={companyName}
           onViewIncident={id => viewIncident(id)}
           onNewIncident={() => navigate(INCIDENT_SCREENS.TYPE)}
@@ -286,6 +294,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.DETAIL:
       return (
         <S2dIncidentDetail
+          onHome={onHome ?? onDone}
           incidentId={viewingId}
           companyName={companyName}
           onBack={back}
@@ -297,6 +306,7 @@ export function IncidentRouter({ onDone, onGoToTriage }) {
     case INCIDENT_SCREENS.CA_TRACKER:
       return (
         <S2eCATracker
+          onHome={onHome ?? onDone}
           companyName={companyName}
           onViewIncident={id => viewIncident(id)}
         />

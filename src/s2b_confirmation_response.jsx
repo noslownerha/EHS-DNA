@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -137,6 +138,7 @@ export default function S2bConfirmationResponse({
   timestamp    = new Date(),
   onDone,
   onViewIncident,
+  onHome,
 }) {
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
   const [checklist, setChecklist]= useState(DEFAULT_CHECKLIST.map((s, i) => ({ id: i, text: s, done: false })));
@@ -189,9 +191,7 @@ export default function S2bConfirmationResponse({
       `}</style>
 
       {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-      </div>
+      <EHSHeader onHome={onHome ?? onDone} />
 
       <div style={{ flex: 1, padding: "16px 20px 80px", overflowY: "auto" }}>
 

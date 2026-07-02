@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -66,7 +67,7 @@ function PhotoThumb({ photo, onRemove }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S2a4 — Photos & Location
 // ════════════════════════════════════════════════════════════════════════════
-export function S2a4PhotosLocation({ onContinue, onBack }) {
+export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
   const [photos,     setPhotos]    = useState([]);
   const [anonymous,  setAnonymous] = useState(false);
   const [gpsGranted, setGps]       = useState(false);
@@ -111,11 +112,7 @@ export function S2a4PhotosLocation({ onContinue, onBack }) {
         .continue-btn:hover { background: ${C.pine} !important; }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
 
       <div style={{ padding: "14px 0 6px" }}><MobileProgress step={3} total={5} /></div>
 
@@ -241,7 +238,7 @@ const OPTIONAL_RECIPIENTS = [
   { id: "dept",    name: "—",          role: "Department Lead",  site: "Moriah" },
 ];
 
-export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
+export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack, onHome }) {
   const [optionalChecked, setOptionalChecked] = useState({});
   const [submitting,      setSubmitting]       = useState(false);
 
@@ -296,11 +293,7 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack }) {
         .submit-btn:hover:not(:disabled) { background: ${C.pine} !important; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(45,90,61,.3); }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
 
       <div style={{ padding: "14px 0 6px" }}><MobileProgress step={4} total={5} /></div>
 

@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -38,25 +40,13 @@ function pill(label, bg, color) {
   );
 }
 
-function DesktopNav({ companyName = "WhistlePig Whiskey" }) {
+function DesktopNav({ companyName = BRAND.company, onHome }) {
   return (
-    <div style={{
-      height: 56, background: C.forest,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      position: "sticky", top: 0, zIndex: 100,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>
+    <EHSHeader onHome={onHome} title={companyName} rightContent={
+      <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
         CA Tracker
       </div>
-    </div>
+    } />
   );
 }
 
@@ -123,7 +113,7 @@ function CARow({ ca, onVerify, onViewIncident }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function S2eCATracker({ companyName, onViewIncident }) {
+export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
   const [cas,          setCas]         = useState(SEED_CAS);
   const [activeTab,    setActiveTab]   = useState("overdue"); // "overdue" | "on-track" | "closed"
   const [filterSite,   setFilterSite]  = useState("");
@@ -180,7 +170,7 @@ export default function S2eCATracker({ companyName, onViewIncident }) {
         .ca-row:hover td { background: ${C.foam} !important; }
       `}</style>
 
-      <DesktopNav companyName={companyName} />
+      <DesktopNav companyName={companyName} onHome={onHome} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
