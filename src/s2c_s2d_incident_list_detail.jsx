@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -66,6 +67,33 @@ function DesktopNav({ companyName = BRAND.company, onHome }) {
 // S2c — Incident List (Desktop)
 // ════════════════════════════════════════════════════════════════════════════
 export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, onHome }) {
+  const [liveIncidents, setLiveIncidents] = useState([]);
+  const [liveCAs,       setLiveCAs]       = useState([]);
+  const [loading,       setLoading]       = useState(true);
+
+  useEffect(() => {
+    Promise.all([api.listIncidents(), api.listCAs()])
+      .then(([incs, cas]) => { setLiveIncidents(incs); setLiveCAs(cas); })
+      .catch(err => console.error("Failed to load incidents:", err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Adapt server rows to the shape this screen was built around
+  const SEED_INCIDENTS = useMemo(() => liveIncidents.map(i => {
+    const openCAs = liveCAs.filter(c => c.incident_id === i.id && c.status !== "done" && c.status !== "verified");
+    const overdue = openCAs.some(c => c.due_date && new Date(c.due_date) < new Date());
+    const hasAnyCA = liveCAs.some(c => c.incident_id === i.id);
+    return {
+      id: i.ref, type: i.type, site: i.site_name ?? "—", dept: "—",
+      severity: i.severity ?? "minor", status: i.status,
+      reporter: i.reporter_name ?? "—",
+      date: (i.occurred_at ?? i.created_at ?? "").slice(0, 10),
+      osha: "Pending",
+      caStatus: !hasAnyCA ? "closed" : overdue ? "overdue" : "on-track",
+      triageId: null,
+    };
+  }), [liveIncidents, liveCAs]);
+
   const [search,      setSearch]      = useState("");
   const [filterSite,  setFilterSite]  = useState("");
   const [filterType,  setFilterType]  = useState("");
@@ -360,7 +388,35 @@ function EditableField({ label, value, onSave, multiline = false, canEdit = true
 
 export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, onHome }) {
   const [incident, setIncident] = useState({ ...SEED_DETAIL, id: incidentId ?? SEED_DETAIL.id });
+  const [dbId, setDbId] = useState(null); // server row id, needed for PUT calls
   const [showClose, setShowClose] = useState(false);
+
+  // Load the real incident + its CAs, overlaying server data onto the seed shape
+  useEffect(() => {
+    if (!incidentId) return;
+    Promise.all([api.listIncidents(), api.listCAs()]).then(([incs, cas]) => {
+      const row = incs.find(i => i.ref === incidentId);
+      if (!row) return;
+      setDbId(row.id);
+      const rowCAs = cas.filter(c => c.incident_id === row.id);
+      setIncident(i => ({
+        ...i,
+        id: row.ref, type: row.type, site: row.site_name ?? i.site,
+        severity: row.severity ?? i.severity, status: row.status,
+        reporter: row.reporter_name ?? i.reporter,
+        date: row.occurred_at ?? row.created_at ?? i.date,
+        description: row.description ?? i.description,
+        location: row.location_detail ?? i.location,
+        involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
+        cas: rowCAs.length ? rowCAs.map(c => ({
+          id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned",
+          due: c.due_date, status: c.status === "done" || c.status === "verified" ? "closed"
+               : (c.due_date && new Date(c.due_date) < new Date()) ? "overdue" : "on-track",
+          priority: c.priority,
+        })) : i.cas,
+      }));
+    }).catch(err => console.error("Failed to load incident detail:", err.message));
+  }, [incidentId]);
 
   const canEditOsha = USER_ROLE === "safety" || USER_ROLE === "admin";
   // Spec §12.8: once closed, read-only for standard users; Company Admin can edit for error correction
@@ -368,6 +424,9 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
 
   function updateField(field, value) {
     setIncident(i => ({ ...i, [field]: value }));
+    if (field === "status" && dbId) {
+      api.updateIncident(dbId, { status: value }).catch(err => console.error("Status update failed:", err.message));
+    }
   }
 
   const caStatusSummary = {

@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -114,16 +115,35 @@ function CARow({ ca, onVerify, onViewIncident }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
-  const [cas,          setCas]         = useState(SEED_CAS);
+  const [cas,          setCas]         = useState([]);
   const [activeTab,    setActiveTab]   = useState("overdue"); // "overdue" | "on-track" | "closed"
   const [filterSite,   setFilterSite]  = useState("");
   const [filterAssignee, setFilterAssignee] = useState("");
 
-  const sites     = [...new Set(SEED_CAS.map(c => c.site))];
-  const assignees = [...new Set(SEED_CAS.map(c => c.assignee))];
+  useEffect(() => {
+    Promise.all([api.listCAs(), api.listIncidents()]).then(([rawCAs, incs]) => {
+      const bySite = Object.fromEntries((BRAND.siteRecords ?? []).map(s => [s.id, s.name]));
+      const incById = Object.fromEntries(incs.map(i => [i.id, i]));
+      setCas(rawCAs.map(c => {
+        const inc = incById[c.incident_id];
+        const overdue = c.due_date && new Date(c.due_date) < new Date() && c.status !== "done" && c.status !== "verified";
+        return {
+          id: c.id, incidentId: inc?.ref ?? null, desc: c.title,
+          assignee: c.assignee_name ?? "Unassigned", due: c.due_date,
+          status: (c.status === "done" || c.status === "verified") ? "closed" : overdue ? "overdue" : "on-track",
+          priority: c.priority, site: bySite[inc?.site_id] ?? "—",
+          escalated: overdue && c.priority === "high",
+        };
+      }));
+    }).catch(err => console.error("Failed to load corrective actions:", err.message));
+  }, []);
+
+  const sites     = [...new Set(cas.map(c => c.site))];
+  const assignees = [...new Set(cas.map(c => c.assignee))];
 
   function handleVerify(id) {
     setCas(cs => cs.map(c => c.id === id ? { ...c, status: "closed" } : c));
+    api.updateCA(id, { status: "done", verified: true }).catch(err => console.error("Verify failed:", err.message));
   }
 
   // Spec §12.9: split overdue / on-track / closed

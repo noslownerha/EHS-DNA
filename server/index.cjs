@@ -148,7 +148,12 @@ function nextRef(prefix, table) {
     .get(1, `${prefix}-${year}-%`);
   return `${prefix}-${year}-${String(row.n + 1).padStart(4, "0")}`;
 }
-app.get("/api/incidents", auth, listAll("incidents", "created_at DESC"));
+app.get("/api/incidents", auth, (req, res) =>
+  res.json(db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
+                       FROM incidents i
+                       LEFT JOIN sites s ON s.id = i.site_id
+                       LEFT JOIN users u ON u.id = i.reported_by
+                       WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)));
 app.post("/api/incidents", auth, (req, res) => {
   const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt } = req.body || {};
   if (!type) return res.status(400).json({ error: "type required" });
@@ -168,7 +173,12 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
 });
 
 // ── Corrective actions ───────────────────────────────────────────────────────
-app.get("/api/cas", auth, listAll("corrective_actions", "due_date ASC"));
+app.get("/api/cas", auth, (req, res) =>
+  res.json(db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name
+                       FROM corrective_actions c
+                       LEFT JOIN incidents i ON i.id = c.incident_id
+                       LEFT JOIN users u ON u.id = c.assignee_id
+                       WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant)));
 app.post("/api/cas", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
   const { incidentId, findingId, title, priority, assigneeId, dueDate } = req.body || {};
   if (!title) return res.status(400).json({ error: "title required" });
