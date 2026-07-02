@@ -28,6 +28,7 @@
  *   </DashboardProvider>
  */
 
+import { BRAND } from "./constants.js";
 import { createContext, useContext, useReducer, useCallback } from "react";
 
 import S5aSiteManagerDashboard                        from "./s5a_site_manager_dashboard";
@@ -88,7 +89,7 @@ const DashboardContext = createContext(null);
 export function DashboardProvider({
   children,
   user        = { name: "Ahren H.", site: "Moriah", role: "admin" },
-  companyName = "WhistlePig Whiskey",
+  companyName = BRAND.company,
   initialScreen,
 }) {
   const startScreen = initialScreen ?? defaultScreenForRole(user.role);
@@ -123,6 +124,7 @@ export function DashboardRouter({
   onFindings,       // () => void  — launches Flow 3 aging tracker
   onCAs,            // () => void  — launches Flow 2 CA tracker
   onDone,
+  onHome,
 }) {
   const { state, navigate, back, user, companyName } = useDashboard();
   const { screen } = state;
@@ -146,6 +148,7 @@ export function DashboardRouter({
     case DASHBOARD_SCREENS.SITE_MANAGER:
       return (
         <S5aSiteManagerDashboard
+          onHome={onHome ?? onDone}
           companyName={companyName}
           manager={{ name: user.name, site: user.site }}
           onNavigate={handleNavigate}
@@ -156,6 +159,7 @@ export function DashboardRouter({
     case DASHBOARD_SCREENS.ADMIN:
       return (
         <S5bCompanyAdminDashboard
+          onHome={onHome ?? onDone}
           companyName={companyName}
           onNavigate={handleNavigate}
         />
@@ -165,6 +169,7 @@ export function DashboardRouter({
     case DASHBOARD_SCREENS.STAFF_HOME:
       return (
         <S5cStaffMobileHome
+          onHome={onHome ?? onDone}
           user={user}
           triageEnabled={true}
           onTriage={onTriage}
@@ -178,6 +183,7 @@ export function DashboardRouter({
     case DASHBOARD_SCREENS.REPORT:
       return (
         <S5dReportBuilder
+          onHome={onHome ?? onDone}
           companyName={companyName}
           onBack={back}
         />

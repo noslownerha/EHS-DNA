@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -17,18 +19,11 @@ const SITES = [
   { name: "Brandenburg",  location: "Brandenburg, KY",  staff: 11, daysSince: 198, compliance: 100, openIncidents: 0, openCAs: 0, criticalFindings: 0 },
 ];
 
-function DesktopNav({ companyName = "WhistlePig Whiskey", label }) {
+function DesktopNav({ companyName = BRAND.company, label, onHome }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <span style={{ color: "rgba(255,255,255,.2)" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>{label}</div>
-    </div>
+    <EHSHeader onHome={onHome} title={companyName} rightContent={
+      <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{label}</div>
+    } />
   );
 }
 
@@ -61,7 +56,7 @@ function DaysBadge({ days }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S5b — Company Admin Dashboard (desktop)
 // ════════════════════════════════════════════════════════════════════════════
-export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", onNavigate }) {
+export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNavigate, onHome }) {
   // Company-wide aggregates
   const totalStaff      = SITES.reduce((n, s) => n + s.staff, 0);
   const totalIncidents  = SITES.reduce((n, s) => n + s.openIncidents, 0);
@@ -97,7 +92,7 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
         .nav-btn:hover { background: ${C.foam} !important; }
       `}</style>
 
-      <DesktopNav companyName={companyName} label="Company Dashboard" />
+      <DesktopNav onHome={onHome} companyName={companyName} label="Company Dashboard" />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
@@ -201,6 +196,7 @@ export function S5bCompanyAdminDashboard({ companyName = "WhistlePig Whiskey", o
 // Spec: prominent "Something happened" button, own training queue, recent activity
 // ════════════════════════════════════════════════════════════════════════════
 export function S5cStaffMobileHome({
+  onHome,
   user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging", role: "staff" },
   triageEnabled = true,   // driven by company triage config
   onTriage,               // () => void — launches Flow 0
@@ -234,16 +230,14 @@ export function S5cStaffMobileHome({
         .activity-row:hover { background: rgba(255,255,255,.05) !important; }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{ padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-            <span style={{ color: "rgba(255,255,255,.6)" }}>EHS</span>platform
-          </div>
-          <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)", marginTop: 2 }}>
-            {user.name} · {user.site}
-          </div>
+      <EHSHeader onHome={onHome} dark rightContent={
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+          {user.name} · {user.site}
         </div>
+      } />
+
+      {/* Top bar */}
+      <div style={{ padding: "8px 18px", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
         {(overdueTrainings > 0 || expiringSoon > 0) && (
           <div style={{
             background: C.gold, color: C.white, borderRadius: "50%",
