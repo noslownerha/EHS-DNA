@@ -83,8 +83,9 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
 
   const compliance = await fetch(`${B}/api/dashboard/compliance`, { headers: H() }).then(j);
   const staffRow = compliance.find(c => c.id === staff.id);
+  // 10 seeded trainings + 1 created in this test = 11 required; staff completed 1
   ok("compliance rollup", Array.isArray(compliance) && compliance.length === 2 &&
-     staffRow && staffRow.current === 1 && staffRow.total === 1 && staffRow.compliance === 100);
+     staffRow && staffRow.current === 1 && staffRow.total === 11 && staffRow.compliance === Math.round(100 / 11));
 
   await fetch(`${B}/api/users/${staff.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ active: 0 }) });
   const usersAfter = await fetch(`${B}/api/users`, { headers: H() }).then(j);

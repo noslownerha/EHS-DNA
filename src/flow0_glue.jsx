@@ -183,8 +183,15 @@ export function TriageProvider({
     }).catch(err => console.error("Triage save failed:", err.message));
   }, []);
 
-  const saveConfig = useCallback((payload) =>
-    dispatch({ type: "SAVE_CONFIG", payload }), []);
+  const saveConfig = useCallback((payload) => {
+    dispatch({ type: "SAVE_CONFIG", payload });
+    api.updateConfig({ triage: {
+      enabled: payload.enabled,
+      providerName: payload.providerName,
+      providerPhone: payload.providerPhone,
+    }}).then(() => api.fetchConfig())
+      .catch(err => console.error("Triage config save failed:", err.message));
+  }, []);
 
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
 

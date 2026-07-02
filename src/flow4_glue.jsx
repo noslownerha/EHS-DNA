@@ -22,6 +22,7 @@
 
 import { createContext, useContext, useReducer, useCallback, useState } from "react";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 import S4aTrainingQueue                    from "./s4a_training_queue";
 import { S4bCBTPlayer, S4cInPersonSignOff } from "./s4b_s4c_cbt_signoff";
@@ -217,7 +218,15 @@ export function TrainingRouter({ onDone, onHome }) {
         <S4bCBTPlayer
           onHome={onHome ?? onDone}
           training={activeTraining ?? undefined}
-          onComplete={({ score, passed }) => back()}
+          onComplete={({ score, passed }) => {
+            if (passed) {
+              api.listTrainings().then(trs => {
+                const match = trs.find(t => t.title === (activeTraining?.title ?? ""));
+                if (match) return api.logCompletion({ trainingId: match.id, method: "cbt", score });
+              }).catch(err => console.error("Completion log failed:", err.message));
+            }
+            back();
+          }}
           onBack={back}
         />
       );

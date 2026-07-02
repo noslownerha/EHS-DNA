@@ -174,6 +174,23 @@ function seed() {
     const hash = bcrypt.hashSync(process.env.EHS_ADMIN_PASSWORD || "ChangeMe!2026", 10);
     db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id)
                 VALUES (1, 'ahren@whistlepig.com', ?, 'Ahren', 'admin', 1)`).run(hash);
+
+    // Starter training catalog — standard distillery/manufacturing EHS set.
+    // All editable/deactivatable through the training library.
+    const trStmt = db.prepare(`INSERT INTO trainings (tenant_id, title, kind, frequency_months, required_roles, required_departments)
+                               VALUES (1, ?, ?, ?, '[]', '[]')`);
+    [
+      ["New Hire Safety Orientation",        "in_person", null],
+      ["Hazard Communication (HazCom/GHS)",  "cbt",       12],
+      ["Lockout/Tagout (LOTO) Awareness",    "cbt",       12],
+      ["Forklift / PIT Operator",            "in_person", 36],
+      ["PPE Selection & Use",                "cbt",       12],
+      ["Emergency Action Plan & Evacuation", "cbt",       12],
+      ["Fire Extinguisher Use",              "in_person", 12],
+      ["Confined Space Awareness",           "cbt",       12],
+      ["Hot Work Awareness",                 "cbt",       12],
+      ["Ethanol & Flammable Liquids Safety", "cbt",       12],
+    ].forEach(([title, kind, freq]) => trStmt.run(title, kind, freq));
   });
   seedTx();
   console.log("Seeded tenant: WhistlePig Whiskey (4 sites, 6 departments, 1 admin)");
