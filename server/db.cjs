@@ -8,6 +8,7 @@ const bcrypt = require("bcryptjs");
 const path = require("path");
 
 const DB_PATH = process.env.EHS_DB_PATH || path.join(__dirname, "..", "data", "ehs.db");
+require("fs").mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = open(DB_PATH);
 console.log("SQLite engine:", db.__engine);
 
