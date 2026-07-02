@@ -86,6 +86,10 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("compliance rollup", Array.isArray(compliance) && compliance.length === 2 &&
      staffRow && staffRow.current === 1 && staffRow.total === 1 && staffRow.compliance === 100);
 
+  await fetch(`${B}/api/users/${staff.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ active: 0 }) });
+  const usersAfter = await fetch(`${B}/api/users`, { headers: H() }).then(j);
+  ok("deactivate user", usersAfter.find(u => u.id === staff.id).active === 0);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

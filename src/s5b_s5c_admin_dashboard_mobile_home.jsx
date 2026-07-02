@@ -111,12 +111,20 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
               {SITES.length} sites · {totalStaff} staff · all-time best: {bestDays} days since recordable
             </p>
           </div>
-          <button className="nav-btn" onClick={() => onNavigate?.("report")} style={{
-            padding: "8px 16px", background: C.white, color: C.pine,
-            border: `1.5px solid ${C.mint}`, borderRadius: 7,
-            fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-            cursor: "pointer", transition: "all .15s",
-          }}>Reports →</button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="nav-btn" onClick={() => onNavigate?.("staff")} style={{
+              padding: "8px 16px", background: C.white, color: C.pine,
+              border: `1.5px solid ${C.mint}`, borderRadius: 7,
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
+              cursor: "pointer", transition: "all .15s",
+            }}>Manage Staff →</button>
+            <button className="nav-btn" onClick={() => onNavigate?.("report")} style={{
+              padding: "8px 16px", background: C.white, color: C.pine,
+              border: `1.5px solid ${C.mint}`, borderRadius: 7,
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
+              cursor: "pointer", transition: "all .15s",
+            }}>Reports →</button>
+          </div>
         </div>
 
         {/* KPI tiles */}
