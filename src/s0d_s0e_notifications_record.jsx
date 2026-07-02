@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -70,6 +71,7 @@ export function S0dNotificationsSent({
   },
   onViewRecord,   // () => void → s0e
   onDone,         // () => void → home
+  onHome,
 }) {
   const notified     = NOTIFICATION_RULES[outcome] ?? [];
   const sev          = OUTCOME_SEVERITY[outcome] ?? OUTCOME_SEVERITY["secure"];
@@ -95,13 +97,9 @@ export function S0dNotificationsSent({
         .record-btn:hover { background: rgba(255,255,255,.08) !important; }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end" }}>
-        <div style={{
-          fontSize: ".72rem", color: "rgba(255,255,255,.3)",
-          background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20,
-        }}>{responder} · {site}</div>
-      </div>
+      <EHSHeader onHome={onHome ?? onDone} dark rightContent={
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder} · {site}</div>
+      } />
 
       <div style={{
         flex: 1, padding: "0 20px 100px",
@@ -246,6 +244,7 @@ export function S0eTriageRecord({
   },
   onFileReport,   // () => void → Flow 2 pre-populated
   onDone,
+  onHome,
 }) {
   const sev     = OUTCOME_SEVERITY[record.outcome] ?? OUTCOME_SEVERITY["secure"];
   const timeStr = record.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -279,16 +278,16 @@ export function S0eTriageRecord({
         .done-btn:hover { background: rgba(255,255,255,.1) !important; }
       `}</style>
 
+      <EHSHeader onHome={onHome ?? onDone} dark rightContent={
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".72rem", color: "rgba(255,255,255,.35)", letterSpacing: ".06em" }}>{record.id}</div>
+      } />
+
       {/* Top bar */}
-      <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center" }}>
         <button onClick={onDone} style={{
           background: "none", border: "none", color: "rgba(255,255,255,.4)",
           fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>← Back</button>
-        <div style={{
-          fontFamily: "'DM Mono', monospace", fontSize: ".72rem",
-          color: "rgba(255,255,255,.25)", letterSpacing: ".06em",
-        }}>{record.id}</div>
       </div>
 
       <div style={{

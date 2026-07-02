@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -8,7 +8,8 @@ const C = {
 };
 
 export default function S0aTriageEntry({
-  user = { name: "Alex Torres", site: "Moriah" },
+  user = { name: "Responder", site: "Moriah" },
+  onHome,
   onStart,
   onReportInstead,
 }) {
@@ -32,12 +33,9 @@ export default function S0aTriageEntry({
         .a3 { animation: fadeUp .4s ease .35s both; }
       `}</style>
 
-      <div style={{ padding: "16px 18px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: "rgba(255,255,255,.5)" }}>EHS</span> DNA
-        </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.3)" }}>{user.name} · {user.site}</div>
-      </div>
+      <EHSHeader onHome={onHome} dark rightContent={
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{user.name} · {user.site}</div>
+      } />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 24px" }}>
 

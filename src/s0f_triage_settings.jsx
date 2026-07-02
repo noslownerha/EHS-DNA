@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -313,7 +314,7 @@ function NotificationRulesEditor({ rules, onChange }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function S0fTriageSettings({ onBack, onSave }) {
+export default function S0fTriageSettings({ onBack, onSave, onHome }) {
   const [enabled,      setEnabled]      = useState(true);
   const [providerName, setProviderName] = useState("Concentra Occupational Health");
   const [providerPhone,setProviderPhone]= useState("(800) 555-0147");
@@ -365,20 +366,12 @@ export default function S0fTriageSettings({ onBack, onSave }) {
         .save-btn:hover:not(:disabled) { background: ${C.pine} !important; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(45,90,61,.3); }
       `}</style>
 
-      {/* Top nav */}
-      <div style={{
-        height: 56, background: C.forest,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 24px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
+      <EHSHeader onHome={onHome ?? onBack} title="Triage Settings" rightContent={
         <button onClick={onBack} style={{
           background: "none", border: "none", color: C.mint,
           fontSize: ".83rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>← Back</button>
-      </div>
+      } />
 
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "28px 20px" }}>
 

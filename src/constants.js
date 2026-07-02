@@ -56,3 +56,34 @@ export const DEMO_USERS = [
     user: STAFF[4], dashboard: "staff",
   },
 ];
+
+// ── Incident types (Round 1: Environmental Release & Vehicle Incident removed) ─
+export const INCIDENT_TYPES = [
+  { id: "injury",      label: "Injury / Illness",      icon: "🩹" },
+  { id: "near_miss",   label: "Near Miss",             icon: "⚠️" },
+  { id: "property",    label: "Property Damage",       icon: "🔧" },
+  { id: "spill",       label: "Spill / Leak",          icon: "💧" },
+  { id: "fire",        label: "Fire / Explosion Risk", icon: "🔥" },
+  { id: "security",    label: "Security Event",        icon: "🔒" },
+];
+
+// ── Bottom nav tab definitions ─────────────────────────────────────────────────
+export const TAB_CONFIG = {
+  home:     { icon: "🏠", label: "Home"     },
+  flag:     { icon: "🚩", label: "Report"   },
+  triage:   { icon: "⛑️", label: "Triage"   },
+  inspect:  { icon: "📋", label: "Inspect"  },
+  training: { icon: "🎓", label: "Training" },
+  reports:  { icon: "📊", label: "Reports"  },
+};
+
+// ── Role permissions & tab access ──────────────────────────────────────────────
+// Reports restricted to Site Manager and above (Round 1 decision).
+// Triage accessible to all roles.
+export const ROLE_PERMS = {
+  admin:        { dashboard: "admin",   seeCAs: true,  tabs: ["home", "flag", "triage", "inspect", "training", "reports"] },
+  safety:       { dashboard: "admin",   seeCAs: true,  tabs: ["home", "flag", "triage", "inspect", "training", "reports"] },
+  site_manager: { dashboard: "manager", seeCAs: true,  tabs: ["home", "flag", "triage", "inspect", "training", "reports"] },
+  trainer:      { dashboard: "staff",   seeCAs: false, tabs: ["home", "flag", "triage", "inspect", "training"] },
+  staff:        { dashboard: "staff",   seeCAs: false, tabs: ["home", "flag", "triage", "inspect", "training"] },
+};

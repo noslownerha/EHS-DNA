@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -150,6 +151,7 @@ function TriageProviderCard({ provider }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S0cImmediateAction({
+  onHome,
   outcome = "triage",           // "911" | "triage" | "firstaid" | "secure"
   triageProvider = null,         // { name, phone } or null
   responder = "Responder",
@@ -187,19 +189,16 @@ export default function S0cImmediateAction({
         .continue-btn:hover { opacity: .9 !important; transform: translateY(-1px); }
       `}</style>
 
+      <EHSHeader onHome={onHome} dark rightContent={
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder} · {site}</div>
+      } />
+
       {/* Top bar */}
-      <div style={{
-        padding: "16px 20px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
+      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center" }}>
         <button onClick={onBack} style={{
           background: "none", border: "none", color: "rgba(255,255,255,.4)",
           fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>← Back</button>
-        <div style={{
-          fontSize: ".72rem", color: "rgba(255,255,255,.3)",
-          background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20,
-        }}>{responder} · {site}</div>
       </div>
 
       {/* Scrollable content */}

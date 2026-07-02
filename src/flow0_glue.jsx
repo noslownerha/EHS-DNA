@@ -202,6 +202,7 @@ export function TriageRouter({
   onDone,           // () => void — called when triage session ends (go home)
   onFileReport,     // () => void — called when user wants to file incident report
   onSettings,       // optional — if omitted, settings navigates internally
+  onHome,           // () => void — logo tap → role dashboard (defaults to onDone)
 }) {
   const { state, navigate, back, start, setOutcome, saveConfig, reset, authUser } = useTriage();
   const { screen, responder, site, outcome, record, config, contacts } = state;
@@ -224,9 +225,9 @@ export function TriageRouter({
       return (
         <S0aTriageEntry
           user={authUser}
-          onSomethingHappened={({ responder: r, site: s }) => start(r, s)}
-          onReportIncident={handleFileReport}
-          onBack={handleDone}
+          onHome={onHome ?? handleDone}
+          onStart={() => start(authUser?.name, authUser?.site)}
+          onReportInstead={handleFileReport}
         />
       );
 
@@ -235,6 +236,7 @@ export function TriageRouter({
       return (
         <S0bDecisionTree
           responder={responder}
+          onHome={onHome ?? handleDone}
           onOutcome={setOutcome}
           onBack={back}
         />
@@ -244,6 +246,7 @@ export function TriageRouter({
     case TRIAGE_SCREENS.ACTION:
       return (
         <S0cImmediateAction
+          onHome={onHome ?? handleDone}
           outcome={outcome}
           triageProvider={config.providerName
             ? { name: config.providerName, phone: config.providerPhone }
@@ -261,6 +264,7 @@ export function TriageRouter({
     case TRIAGE_SCREENS.NOTIFIED:
       return (
         <S0dNotificationsSent
+          onHome={onHome ?? handleDone}
           outcome={outcome}
           responder={responder}
           site={site}
@@ -276,6 +280,7 @@ export function TriageRouter({
       return (
         <S0eTriageRecord
           record={record}
+          onHome={onHome ?? handleDone}
           onFileReport={handleFileReport}
           onDone={back}
         />
@@ -286,6 +291,7 @@ export function TriageRouter({
       return (
         <S0fTriageSettings
           onBack={back}
+          onHome={onHome ?? handleDone}
           onSave={(data) => {
             saveConfig({
               enabled:       data.enabled,

@@ -111,8 +111,11 @@ function AnswerBtn({ label, onClick, variant }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+import { EHSHeader } from "./AppShell.jsx";
+
 export default function S0bDecisionTree({
   responder = "Responder",
+  onHome,
   onOutcome,   // (outcome: "911"|"triage"|"firstaid"|"secure") => void
   onBack,
 }) {
@@ -156,6 +159,10 @@ export default function S0bDecisionTree({
         .q-anim { animation: slideIn .22s cubic-bezier(.4,0,.2,1) both; }
       `}</style>
 
+      <EHSHeader onHome={onHome} dark rightContent={
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder}</div>
+      } />
+
       {/* Top bar */}
       <div style={{
         padding: "16px 20px",
@@ -170,13 +177,6 @@ export default function S0bDecisionTree({
             display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
           }}
         >← Back</button>
-        <div style={{
-          fontSize: ".72rem", color: "rgba(255,255,255,.3)",
-          background: "rgba(255,255,255,.07)",
-          padding: "3px 10px", borderRadius: 20,
-        }}>
-          {responder}
-        </div>
       </div>
 
       {/* Content */}
