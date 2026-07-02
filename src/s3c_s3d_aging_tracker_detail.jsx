@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -76,6 +77,19 @@ function AgeBar({ days, maxDays = 14, severity }) {
 // S3c — Aging Tracker (Desktop)
 // ════════════════════════════════════════════════════════════════════════════
 export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
+  const [SEED_FINDINGS, setFindings] = useState([]);
+  useEffect(() => {
+    api.listFindings().then(rows => {
+      const bySite = Object.fromEntries((BRAND.siteRecords ?? []).map(s => [s.id, s.name]));
+      setFindings(rows.map(f => ({
+        id: f.id, site: bySite[f.site_id] ?? "—", dept: "—",
+        category: "General", severity: f.severity ?? "minor",
+        desc: f.description, assignee: "Unassigned",
+        due: null, status: f.status, capex: false,
+        ageDays: Math.max(0, Math.floor((Date.now() - new Date(f.created_at).getTime()) / 86400000)),
+      })));
+    }).catch(err => console.error("Findings load failed:", err.message));
+  }, []);
   const [filterSite,    setFilterSite]    = useState("");
   const [filterSev,     setFilterSev]     = useState("");
   const [filterAssignee,setFilterAssignee]= useState("");

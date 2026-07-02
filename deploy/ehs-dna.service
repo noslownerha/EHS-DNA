@@ -1,0 +1,19 @@
+[Unit]
+Description=EHS DNA application server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ehs-platform
+Environment=PORT=3000
+Environment=NODE_ENV=production
+# Set once during setup: systemctl edit ehs-dna  →  [Service] Environment=EHS_JWT_SECRET=<random hex>
+EnvironmentFile=-/etc/ehs-dna.env
+ExecStart=/usr/bin/node server/index.cjs
+Restart=always
+RestartSec=3
+StandardOutput=append:/var/log/ehs-dna.log
+StandardError=append:/var/log/ehs-dna.log
+
+[Install]
+WantedBy=multi-user.target
