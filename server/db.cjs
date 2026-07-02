@@ -1,0 +1,183 @@
+/**
+ * EHS DNA — Database layer (SQLite via better-sqlite3)
+ * Every domain table carries tenant_id from day one. Single tenant today
+ * (WhistlePig = 1); multi-tenant later is a data change, not a schema change.
+ */
+const { open } = require("./sqlite.cjs");
+const bcrypt = require("bcryptjs");
+const path = require("path");
+
+const DB_PATH = process.env.EHS_DB_PATH || path.join(__dirname, "..", "data", "ehs.db");
+const db = open(DB_PATH);
+console.log("SQLite engine:", db.__engine);
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS tenants (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  short_name TEXT,
+  industry TEXT,
+  tagline TEXT,
+  triage_enabled INTEGER DEFAULT 1,
+  triage_provider_name TEXT,
+  triage_provider_phone TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS sites (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  name TEXT NOT NULL,
+  location TEXT,
+  active INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS departments (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  name TEXT NOT NULL,
+  active INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('admin','safety','site_manager','trainer','staff')),
+  site_id INTEGER REFERENCES sites(id),
+  department_id INTEGER REFERENCES departments(id),
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS incidents (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  ref TEXT NOT NULL,                -- e.g. INC-2026-0001
+  type TEXT NOT NULL,               -- injury | near_miss | property | spill | fire | security
+  severity TEXT,                    -- minor | significant | serious | critical
+  status TEXT DEFAULT 'open',       -- open | investigating | closed
+  site_id INTEGER REFERENCES sites(id),
+  description TEXT,
+  location_detail TEXT,
+  involved TEXT,                    -- JSON array
+  photos TEXT,                      -- JSON array of file refs
+  reported_by INTEGER REFERENCES users(id),
+  occurred_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS corrective_actions (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  incident_id INTEGER REFERENCES incidents(id),
+  finding_id INTEGER,
+  title TEXT NOT NULL,
+  priority TEXT DEFAULT 'medium',
+  status TEXT DEFAULT 'open',       -- open | in_progress | done | verified
+  assignee_id INTEGER REFERENCES users(id),
+  due_date TEXT,
+  verified_by INTEGER REFERENCES users(id),
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS checklists (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  name TEXT NOT NULL,
+  items TEXT NOT NULL,              -- JSON array of {id,label,category}
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS inspections (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  checklist_id INTEGER REFERENCES checklists(id),
+  site_id INTEGER REFERENCES sites(id),
+  inspector_id INTEGER REFERENCES users(id),
+  status TEXT DEFAULT 'in_progress',-- in_progress | complete
+  responses TEXT,                   -- JSON {itemId: pass|fail|na}
+  started_at TEXT DEFAULT (datetime('now')),
+  completed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS findings (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  inspection_id INTEGER REFERENCES inspections(id),
+  site_id INTEGER REFERENCES sites(id),
+  severity TEXT DEFAULT 'low',
+  description TEXT NOT NULL,
+  status TEXT DEFAULT 'open',       -- open | resolved
+  photos TEXT,
+  reported_by INTEGER REFERENCES users(id),
+  created_at TEXT DEFAULT (datetime('now')),
+  resolved_at TEXT
+);
+CREATE TABLE IF NOT EXISTS trainings (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  title TEXT NOT NULL,
+  kind TEXT DEFAULT 'cbt',          -- cbt | in_person
+  content TEXT,                     -- JSON (slides, quiz)
+  frequency_months INTEGER,         -- recurrence; null = one-time
+  required_roles TEXT,              -- JSON array of roles
+  required_departments TEXT,        -- JSON array of department ids
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS training_completions (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  training_id INTEGER NOT NULL REFERENCES trainings(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  session_id TEXT,                  -- shared for group sessions (audit trace)
+  method TEXT DEFAULT 'cbt',        -- cbt | signoff | group
+  score REAL,
+  completed_at TEXT DEFAULT (datetime('now')),
+  expires_at TEXT
+);
+CREATE TABLE IF NOT EXISTS triage_records (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  ref TEXT NOT NULL,                -- TRG-2026-0001
+  responder_id INTEGER REFERENCES users(id),
+  site_id INTEGER REFERENCES sites(id),
+  outcome TEXT,                     -- emergency | triage | firstaid | none
+  steps_completed TEXT,             -- JSON array
+  notified TEXT,                    -- JSON array
+  linked_incident_id INTEGER REFERENCES incidents(id),
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_incidents_tenant ON incidents(tenant_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_completions_user ON training_completions(tenant_id, user_id);
+`);
+
+// ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
+function seed() {
+  const t = db.prepare("SELECT id FROM tenants WHERE id = 1").get();
+  if (t) return; // already seeded
+
+  const seedTx = db.transaction(() => {
+    db.prepare(`INSERT INTO tenants (id, name, short_name, industry, tagline, triage_enabled, triage_provider_name, triage_provider_phone)
+                VALUES (1, 'WhistlePig Whiskey', 'WhistlePig', 'Spirits / Distilling',
+                        'Safety & Operations Management', 1, 'Concentra', '(800) 555-0147')`).run();
+
+    const siteStmt = db.prepare("INSERT INTO sites (tenant_id, name, location) VALUES (1, ?, ?)");
+    siteStmt.run("Moriah", "Moriah, NY");
+    siteStmt.run("Middlebury", "Middlebury, VT");
+    siteStmt.run("Shoreham", "Shoreham, VT");
+    siteStmt.run("Brandenburg", "Brandenburg, KY");
+
+    const deptStmt = db.prepare("INSERT INTO departments (tenant_id, name) VALUES (1, ?)");
+    ["Distillation", "Bottling & Packaging", "Warehouse & Barrel Ops",
+     "Maintenance", "Quality", "Shipping & Receiving"].forEach(d => deptStmt.run(d));
+
+    // Initial admin — password must be changed on first real use
+    const hash = bcrypt.hashSync(process.env.EHS_ADMIN_PASSWORD || "ChangeMe!2026", 10);
+    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id)
+                VALUES (1, 'ahren@whistlepig.com', ?, 'Ahren', 'admin', 1)`).run(hash);
+  });
+  seedTx();
+  console.log("Seeded tenant: WhistlePig Whiskey (4 sites, 6 departments, 1 admin)");
+}
+seed();
+
+module.exports = db;
