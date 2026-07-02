@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api as apiClient } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -64,9 +65,25 @@ function pill(label, bg, color) {
 // Spec §14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
 // ════════════════════════════════════════════════════════════════════════════
 export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining }) {
+  const [SEED_LIBRARY, setLibrary] = useState([]);
   const [filterType, setFilterType] = useState("");
   const [search,     setSearch]     = useState("");
   const [sfocused,   setSfocused]   = useState(false);
+
+  useEffect(() => {
+    Promise.all([apiClient.listTrainings(), apiClient.listCompletions(), apiClient.dashboardCompliance()])
+      .then(([trs, comps, compliance]) => {
+        setLibrary(trs.filter(t => t.active).map(t => ({
+          id: t.id, title: t.title, type: t.kind ?? "cbt",
+          groups: (JSON.parse(t.required_departments || "[]").length || JSON.parse(t.required_roles || "[]").length)
+            ? [...JSON.parse(t.required_roles || "[]"), "…"]
+            : ["All Staff"],
+          recurrence: t.frequency_months, passThreshold: null, version: "v1.0",
+          completions: comps.filter(c => c.training_id === t.id).length,
+          overdue: 0,
+        })));
+      }).catch(err => console.error("Training library load failed:", err.message));
+  }, []);
 
   const filtered = SEED_LIBRARY.filter(t => {
     if (filterType && t.type !== filterType) return false;
