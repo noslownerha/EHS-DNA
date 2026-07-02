@@ -87,6 +87,12 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("compliance rollup", Array.isArray(compliance) && compliance.length === 2 &&
      staffRow && staffRow.current === 1 && staffRow.total === 11 && staffRow.compliance === Math.round(100 / 11));
 
+  const lead = await fetch(`${B}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Test Lead", email: "lead@example.com", company: "Acme" }) }).then(j);
+  const badLead = await fetch(`${B}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "not-an-email" }) });
+  ok("lead capture + validation", lead.ok === true && badLead.status === 400);
+
   await fetch(`${B}/api/users/${staff.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ active: 0 }) });
   const usersAfter = await fetch(`${B}/api/users`, { headers: H() }).then(j);
   ok("deactivate user", usersAfter.find(u => u.id === staff.id).active === 0);

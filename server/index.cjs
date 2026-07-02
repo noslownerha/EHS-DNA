@@ -54,6 +54,17 @@ app.post("/api/auth/change-password", auth, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Public lead capture (marketing site) ─────────────────────────────────────
+app.post("/api/leads", (req, res) => {
+  const { name, email, company, message } = req.body || {};
+  if (!email || !/.+@.+\..+/.test(email)) return res.status(400).json({ error: "Valid email required" });
+  db.prepare("INSERT INTO leads (name, email, company, message) VALUES (?, ?, ?, ?)")
+    .run((name ?? "").slice(0, 200), String(email).slice(0, 200), (company ?? "").slice(0, 200), (message ?? "").slice(0, 2000));
+  res.json({ ok: true });
+});
+app.get("/api/leads", auth, requireRole("admin"), (req, res) =>
+  res.json(db.prepare("SELECT * FROM leads ORDER BY created_at DESC").all()));
+
 // ── Tenant config (drives BRAND on the frontend; editable = onboarding) ──────
 app.get("/api/config", auth, (req, res) => {
   const t = db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.auth.tenant);

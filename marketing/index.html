@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EHS DNA — Safety & Operations Management for Multi-Site Manufacturers</title>
+<meta name="description" content="Incident reporting, inspections, training compliance, and emergency triage — one platform built for multi-site factories. A fraction of the cost of legacy EHS software." />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --forest:#1C3A2A; --pine:#2D5A3D; --sage:#4A8C5C; --mint:#A8D5B5;
+    --foam:#E8F5EC; --ink:#0F1F17; --slate:#4A5568; --mist:#8FA3A0;
+    --chalk:#F4F7F5; --gold:#C8922A;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; color:var(--ink); background:#fff; line-height:1.6; }
+  .wrap { max-width:1060px; margin:0 auto; padding:0 24px; }
+  a { color:var(--sage); text-decoration:none; }
+
+  /* Nav */
+  nav { position:sticky; top:0; z-index:50; background:var(--forest); box-shadow:0 2px 12px rgba(0,0,0,.15); }
+  .nav-inner { display:flex; align-items:center; justify-content:space-between; height:60px; }
+  .logo { font-family:'DM Mono',monospace; font-weight:600; letter-spacing:.06em; color:var(--mint); font-size:1.05rem; display:flex; align-items:center; gap:8px; }
+  .logo span { color:#fff; }
+  .nav-links { display:flex; gap:26px; align-items:center; }
+  .nav-links a { color:rgba(255,255,255,.75); font-size:.9rem; font-weight:500; }
+  .nav-links a:hover { color:#fff; }
+  .btn { display:inline-block; padding:11px 26px; border-radius:9px; font-weight:700; font-size:.95rem; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; transition:all .15s; }
+  .btn-primary { background:var(--sage); color:#fff; }
+  .btn-primary:hover { background:var(--pine); transform:translateY(-1px); }
+  .btn-ghost { background:transparent; color:var(--mint); border:1.5px solid rgba(168,213,181,.4); }
+  .btn-ghost:hover { border-color:var(--mint); color:#fff; }
+
+  /* Hero */
+  .hero { background:linear-gradient(170deg, var(--forest) 0%, #12291D 100%); color:#fff; padding:88px 0 96px; }
+  .hero h1 { font-size:clamp(2rem, 5vw, 3.1rem); font-weight:800; line-height:1.15; letter-spacing:-.5px; max-width:760px; }
+  .hero h1 em { color:var(--mint); font-style:normal; }
+  .hero p.sub { font-size:1.12rem; color:rgba(255,255,255,.65); max-width:620px; margin:22px 0 34px; }
+  .hero .cta-row { display:flex; gap:14px; flex-wrap:wrap; }
+  .hero .kicker { font-family:'DM Mono',monospace; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; color:var(--mint); margin-bottom:18px; }
+
+  /* Stats bar */
+  .stats { background:var(--foam); padding:26px 0; }
+  .stats .wrap { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; text-align:center; }
+  .stat b { display:block; font-size:1.5rem; color:var(--pine); font-weight:800; }
+  .stat span { font-size:.83rem; color:var(--slate); }
+
+  /* Features */
+  section.features { padding:80px 0; }
+  h2.section { font-size:2rem; font-weight:800; letter-spacing:-.3px; margin-bottom:10px; }
+  p.section-sub { color:var(--mist); margin-bottom:44px; max-width:560px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:22px; }
+  .card { background:var(--chalk); border-radius:14px; padding:26px; border:1px solid #E4EDE8; }
+  .card .icon { font-size:1.6rem; margin-bottom:12px; }
+  .card h3 { font-size:1.02rem; font-weight:700; margin-bottom:8px; }
+  .card p { font-size:.9rem; color:var(--slate); }
+
+  /* Pricing */
+  section.pricing { padding:80px 0; background:var(--chalk); }
+  .price-card { background:#fff; border-radius:16px; padding:38px; max-width:520px; margin:0 auto; box-shadow:0 10px 40px rgba(15,31,23,.08); text-align:center; border-top:4px solid var(--sage); }
+  .price-card .big { font-size:2.6rem; font-weight:800; color:var(--pine); }
+  .price-card .big small { font-size:1rem; color:var(--mist); font-weight:500; }
+  .price-card ul { list-style:none; margin:22px 0 28px; text-align:left; }
+  .price-card li { padding:7px 0; font-size:.92rem; color:var(--slate); }
+  .price-card li::before { content:"✓  "; color:var(--sage); font-weight:700; }
+  .anchor-note { text-align:center; font-size:.85rem; color:var(--mist); margin-top:16px; }
+
+  /* Lead form */
+  section.contact { padding:80px 0; }
+  form.lead { max-width:520px; margin:0 auto; display:grid; gap:12px; }
+  form.lead input, form.lead textarea {
+    width:100%; padding:13px 15px; border:1.5px solid #D0DEDB; border-radius:9px;
+    font-family:'DM Sans',sans-serif; font-size:.95rem; color:var(--ink); outline:none;
+  }
+  form.lead input:focus, form.lead textarea:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(74,140,92,.12); }
+  .form-msg { text-align:center; font-size:.9rem; padding:10px; border-radius:8px; display:none; }
+  .form-msg.ok { display:block; background:var(--foam); color:var(--pine); }
+  .form-msg.err { display:block; background:#FDECEA; color:#C0392B; }
+
+  footer { background:var(--forest); color:rgba(255,255,255,.45); padding:34px 0; font-size:.83rem; }
+  footer .wrap { display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="logo">🧬 <span>EHS</span>&nbsp;DNA</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
+      <a class="btn btn-ghost" href="/app" style="padding:8px 20px;">Sign in</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Safety & Operations Management</div>
+    <h1>EHS software built for <em>multi-site factories</em> — not enterprise bloat.</h1>
+    <p class="sub">Incident reporting, inspections, training compliance, corrective actions, and emergency triage. One platform your floor staff will actually use — on the phone already in their pocket.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#contact">Request a demo</a>
+      <a class="btn btn-ghost" href="#features">See what's inside</a>
+    </div>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="wrap">
+    <div class="stat"><b>7 modules</b><span>from triage to reporting</span></div>
+    <div class="stat"><b>Minutes</b><span>from incident to logged record</span></div>
+    <div class="stat"><b>1 dashboard</b><span>every site, every metric</span></div>
+    <div class="stat"><b>~50% less</b><span>than legacy EHS platforms</span></div>
+  </div>
+</div>
+
+<section class="features" id="features">
+  <div class="wrap">
+    <h2 class="section">Everything a safety program needs</h2>
+    <p class="section-sub">Purpose-built for manufacturers running multiple production sites with lean safety teams.</p>
+    <div class="grid">
+      <div class="card"><div class="icon">⛑️</div><h3>Emergency Triage</h3><p>Guided decision tree the moment something happens — call 911, nurse triage line, or first aid — with an automatic audit record and notifications.</p></div>
+      <div class="card"><div class="icon">🚩</div><h3>Incident Reporting</h3><p>A five-step mobile wizard staff finish in under two minutes. Photos, people involved, and location — straight into the incident log with OSHA classification workflow.</p></div>
+      <div class="card"><div class="icon">🛠️</div><h3>Corrective Actions</h3><p>Assign, track, escalate, and verify CAs across sites. Overdue items surface automatically on manager dashboards.</p></div>
+      <div class="card"><div class="icon">📋</div><h3>Inspections & Findings</h3><p>Custom checklists, quick-flag findings from the floor, and an aging tracker so nothing critical sits unresolved.</p></div>
+      <div class="card"><div class="icon">🎓</div><h3>Training Compliance</h3><p>CBT modules, in-person sign-offs, and group session logging — with per-person compliance rollups and expiry tracking built in.</p></div>
+      <div class="card"><div class="icon">📊</div><h3>Multi-Site Dashboards</h3><p>Days-since-recordable, open incidents, training gaps, and critical findings — per site and company-wide, live.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="wrap">
+    <h2 class="section" style="text-align:center;">Simple pricing</h2>
+    <p class="section-sub" style="text-align:center; margin-left:auto; margin-right:auto;">One flat annual price. Every module, every site, every user.</p>
+    <div class="price-card">
+      <div style="font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-bottom:8px;">Company license</div>
+      <div class="big">$6,500<small>/year</small></div>
+      <ul>
+        <li>Unlimited sites and users</li>
+        <li>All seven modules included</li>
+        <li>Guided onboarding with your real org data</li>
+        <li>Nightly backups &amp; audit-ready records</li>
+        <li>Email support from the people who built it</li>
+      </ul>
+      <a class="btn btn-primary" href="#contact" style="width:100%;">Request a demo</a>
+      <p class="anchor-note">Comparable legacy platforms quote $12,000+/year for 130 users.</p>
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="wrap">
+    <h2 class="section" style="text-align:center;">See it with your own sites in it</h2>
+    <p class="section-sub" style="text-align:center; margin-left:auto; margin-right:auto;">Tell us a little about your operation and we'll set up a walkthrough seeded with your site names and departments.</p>
+    <form class="lead" id="leadForm">
+      <input name="name" placeholder="Your name" required />
+      <input name="email" type="email" placeholder="Work email" required />
+      <input name="company" placeholder="Company" />
+      <textarea name="message" rows="3" placeholder="How many sites are you running?"></textarea>
+      <button class="btn btn-primary" type="submit">Request demo</button>
+      <div class="form-msg" id="formMsg"></div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 EHS DNA</div>
+    <div>Built for multi-site manufacturers.</div>
+  </div>
+</footer>
+
+<script>
+document.getElementById("leadForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target, msg = document.getElementById("formMsg");
+  const body = Object.fromEntries(new FormData(f).entries());
+  msg.className = "form-msg";
+  try {
+    const res = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || "Failed");
+    msg.textContent = "Thanks — we'll be in touch shortly.";
+    msg.classList.add("ok");
+    f.reset();
+  } catch (err) {
+    msg.textContent = err.message === "Failed" ? "Something went wrong — email us instead." : err.message;
+    msg.classList.add("err");
+  }
+});
+</script>
+</body>
+</html>

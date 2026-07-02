@@ -146,6 +146,12 @@ CREATE TABLE IF NOT EXISTS triage_records (
   linked_incident_id INTEGER REFERENCES incidents(id),
   created_at TEXT DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS leads (
+  id INTEGER PRIMARY KEY,
+  name TEXT, email TEXT NOT NULL, company TEXT, message TEXT,
+  source TEXT DEFAULT 'marketing',
+  created_at TEXT DEFAULT (datetime('now'))
+);
 CREATE INDEX IF NOT EXISTS idx_incidents_tenant ON incidents(tenant_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_completions_user ON training_completions(tenant_id, user_id);
 `);
