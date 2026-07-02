@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -463,7 +465,8 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S1cOrgChart({
-  companyName = "WhistlePig Whiskey",
+  onHome,
+  companyName = BRAND.company,
   initialOrg  = SEED_ORG,
   onAddStaff,
   onAddSite,
@@ -540,19 +543,11 @@ export default function S1cOrgChart({
       `}</style>
 
       {/* ── Top nav ── */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 100,
-        height: 56, background: C.forest,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20 }}>
+      <EHSHeader onHome={onHome} rightContent={
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           Organization
         </div>
-      </div>
+      } />
 
       {/* ── Content ── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>

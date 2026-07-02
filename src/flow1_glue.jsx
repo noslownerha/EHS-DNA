@@ -200,7 +200,7 @@ export function selectDeptNames(state) {
 // ─────────────────────────────────────────────────────────────────────────────
 // FlowRouter — the single component you mount; renders the right screen
 // ─────────────────────────────────────────────────────────────────────────────
-export function FlowRouter() {
+export function FlowRouter({ onHome } = {}) {
   const { state, navigate, back, save } = useFlow();
   const { screen, company, sites, departments, staff } = state;
 
@@ -210,6 +210,7 @@ export function FlowRouter() {
     case SCREENS.LOGIN:
       return (
         <S1aLogin
+          onHome={onHome}
           onSignIn={(auth) => {
             save("SAVE_AUTH", auth);
             navigate(SCREENS.COMPANY);
@@ -222,6 +223,7 @@ export function FlowRouter() {
     case SCREENS.COMPANY:
       return (
         <S1b1CompanyInfo
+          onHome={onHome}
           initialData={company}
           onBack={back}
           onContinue={(data) => {
@@ -235,6 +237,7 @@ export function FlowRouter() {
     case SCREENS.SITES:
       return (
         <S1b2AddSites
+          onHome={onHome}
           initialSites={sites.length > 0 ? sites : undefined}
           onBack={back}
           onContinue={({ sites: newSites }) => {
@@ -248,6 +251,7 @@ export function FlowRouter() {
     case SCREENS.DEPARTMENTS:
       return (
         <S1b3Departments
+          onHome={onHome}
           industry={company.industry}
           onBack={back}
           onContinue={({ departments: newDepts }) => {
@@ -261,6 +265,7 @@ export function FlowRouter() {
     case SCREENS.STAFF:
       return (
         <S1b4AddStaff
+          onHome={onHome}
           sites={selectSiteNames(state)}
           departments={selectDeptNames(state)}
           initialStaff={staff.length > 0 ? staff : undefined}
@@ -276,6 +281,7 @@ export function FlowRouter() {
     case SCREENS.TRAINING:
       return (
         <S1b5TrainingGroups
+          onHome={onHome}
           departments={departments}
           onBack={back}
           onContinue={({ manualGroups }) => {
@@ -289,6 +295,7 @@ export function FlowRouter() {
     case SCREENS.COMPLETE:
       return (
         <S1b6SetupComplete
+          onHome={onHome}
           companyName={company.companyName}
           industry={company.industry}
           sites={selectSiteNames(state)}
@@ -306,6 +313,7 @@ export function FlowRouter() {
     case SCREENS.ORG_CHART:
       return (
         <S1cOrgChart
+          onHome={onHome}
           companyName={company.companyName}
           initialOrg={buildOrgFromFlowState({ sites, departments, staff })}
           onAddStaff={() => navigate(SCREENS.STAFF)}

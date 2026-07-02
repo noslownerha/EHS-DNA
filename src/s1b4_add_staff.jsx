@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -411,6 +412,7 @@ function StaffTable({ staff, onInvite, onRemove, filterSite }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S1b4AddStaff({
+  onHome,
   sites       = ["Moriah", "Middlebury", "Shoreham", "Brandenburg"],
   departments = ["Production / Distilling", "Bottling & Packaging", "Warehouse", "Facility Maintenance", "Quality Control", "Tasting Room / Hospitality", "Administration"],
   initialStaff = SEED_STAFF,
@@ -465,18 +467,11 @@ export default function S1b4AddStaff({
       `}</style>
 
       {/* Top nav */}
-      <div style={{
-        height: 56, background: C.forest,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20 }}>
+      <EHSHeader onHome={onHome} rightContent={
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           New account setup
         </div>
-      </div>
+      } />
 
       {/* Content */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 20px" }}>

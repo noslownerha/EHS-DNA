@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -237,7 +239,7 @@ function AddGroupForm({ onAdd, onClose }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S1b5 — Training Groups
 // ════════════════════════════════════════════════════════════════════════════
-export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
+export function S1b5TrainingGroups({ departments = [], onContinue, onBack, onHome }) {
   const [manualGroups, setManualGroups] = useState(SEED_MANUAL_GROUPS.map(g => ({ ...g })));
   const [adding,       setAdding]       = useState(false);
   const nextId = useRef(SEED_MANUAL_GROUPS.length + 1);
@@ -282,18 +284,11 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
       `}</style>
 
       {/* Top nav */}
-      <div style={{
-        height: 56, background: C.forest,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20 }}>
+      <EHSHeader onHome={onHome} rightContent={
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           New account setup
         </div>
-      </div>
+      } />
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "32px 24px 20px" }}>
 
@@ -451,7 +446,8 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack }) {
 // S1b6 — Setup Complete
 // ════════════════════════════════════════════════════════════════════════════
 export function S1b6SetupComplete({
-  companyName  = "WhistlePig Whiskey",
+  onHome,
+  companyName  = BRAND.company,
   industry     = "Spirits / Distilling",
   sites        = ["Moriah", "Middlebury", "Shoreham", "Brandenburg"],
   departments  = [],
@@ -532,18 +528,11 @@ export function S1b6SetupComplete({
       `}</style>
 
       {/* Top nav */}
-      <div style={{
-        height: 56, background: C.forest,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20 }}>
+      <EHSHeader onHome={onHome} rightContent={
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           Setup complete
         </div>
-      </div>
+      } />
 
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 40px" }}>
 
@@ -689,6 +678,7 @@ export function S1b6SetupComplete({
 export default function S1b5and6({
   departments, staff, sites, companyName, industry,
   onBack, onOrgChart, onLogIncident, onStartInspection, onDashboard, onResumeStaff,
+  onHome,
 }) {
   const [screen, setScreen] = useState("training"); // "training" | "complete"
   const [trainingData, setTrainingData] = useState(null);
@@ -696,6 +686,7 @@ export default function S1b5and6({
   if (screen === "complete") {
     return (
       <S1b6SetupComplete
+        onHome={onHome}
         companyName={companyName}
         industry={industry}
         sites={sites}
@@ -712,6 +703,7 @@ export default function S1b5and6({
 
   return (
     <S1b5TrainingGroups
+        onHome={onHome}
       departments={departments}
       onBack={onBack}
       onContinue={data => { setTrainingData(data); setScreen("complete"); }}

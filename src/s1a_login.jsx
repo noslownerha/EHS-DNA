@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BRAND } from "./constants.js";
 
 // ── Design tokens (matching wireframe exactly) ──────────────────────────────
 const C = {
@@ -143,10 +144,10 @@ export default function S1aLogin({ onSignIn, onStartSetup }) {
           color: C.forest,
           letterSpacing: ".04em",
         }}>
-          <span style={{ color: C.sage }}>EHS</span>platform
+          <span style={{ color: C.sage }}>EHS</span> DNA
         </div>
         <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 6 }}>
-          Safety &amp; Operations Management
+          {BRAND.tagline}
         </p>
       </div>
 

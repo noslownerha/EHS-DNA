@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -174,8 +176,8 @@ function InlineError({ msg }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }) {
-  const [companyName, setCompanyName] = useState(initialData.companyName ?? "WhistlePig Whiskey");
+export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack, onHome }) {
+  const [companyName, setCompanyName] = useState(initialData.companyName ?? BRAND.company);
   const [industry,    setIndustry]    = useState(initialData.industry    ?? "Spirits / Distilling");
   const [siteCount,   setSiteCount]   = useState(initialData.siteCount   ?? "4–6");
   const [contactName, setContactName] = useState(initialData.contactName ?? "Ahren Hartman");
@@ -238,27 +240,11 @@ export default function S1b1CompanyInfo({ initialData = {}, onContinue, onBack }
       `}</style>
 
       {/* ── Top nav bar ── */}
-      <div style={{
-        height: 56, background: C.forest,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px",
-        boxShadow: "0 2px 12px rgba(0,0,0,.2)",
-      }}>
-        <div style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: ".95rem", fontWeight: 500,
-          color: C.mint, letterSpacing: ".06em",
-        }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{
-          fontSize: ".75rem", color: C.mist,
-          background: "rgba(255,255,255,.08)",
-          padding: "3px 10px", borderRadius: 20,
-        }}>
+      <EHSHeader onHome={onHome} rightContent={
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           New account setup
         </div>
-      </div>
+      } />
 
       {/* ── Page content ── */}
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px 80px" }}>
