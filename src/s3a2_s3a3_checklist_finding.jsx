@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -289,7 +290,7 @@ function ChecklistItem({ item, onResult, findings }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S3a2 — Checklist in Progress
 // ════════════════════════════════════════════════════════════════════════════
-export function S3a2ChecklistInProgress({
+export function S3a2ChecklistInProgress({ onHome,
   templateName = "Bottling Line Safety Check",
   site         = "Moriah",
   onComplete,
@@ -409,7 +410,7 @@ export function S3a2ChecklistInProgress({
 // S3a3 — Log Finding from Checklist (standalone full-screen version)
 // This is the same form but as a full screen when accessed outside a checklist
 // ════════════════════════════════════════════════════════════════════════════
-export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
+export function S3a3LogFinding({ onHome, prefill = {}, onSubmit, onBack }) {
   const [photo,       setPhoto]     = useState(null);
   const [desc,        setDesc]      = useState(prefill.text ?? "");
   const [severity,    setSeverity]  = useState(prefill.severity ?? "minor");
@@ -430,11 +431,7 @@ export function S3a3LogFinding({ prefill = {}, onSubmit, onBack }) {
         .submit-btn:hover { background: ${C.pine} !important; }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
 
       <div style={{ flex: 1, padding: "16px 18px 100px", overflowY: "auto" }}>
         <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Log finding</h1>

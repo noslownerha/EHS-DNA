@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -42,16 +44,13 @@ function isOverdue(dueDateStr) {
   return new Date(dueDateStr) < today;
 }
 
-function DesktopNav({ companyName = "WhistlePig Whiskey", active = "" }) {
+function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>{active}</div>
-    </div>
+    <EHSHeader onHome={onHome} title={companyName} rightContent={
+      active ? (
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{active}</div>
+      ) : null
+    } />
   );
 }
 
@@ -76,7 +75,7 @@ function AgeBar({ days, maxDays = 14, severity }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S3c — Aging Tracker (Desktop)
 // ════════════════════════════════════════════════════════════════════════════
-export function S3cAgingTracker({ companyName, onViewFinding }) {
+export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
   const [filterSite,    setFilterSite]    = useState("");
   const [filterSev,     setFilterSev]     = useState("");
   const [filterAssignee,setFilterAssignee]= useState("");
@@ -139,7 +138,7 @@ export function S3cAgingTracker({ companyName, onViewFinding }) {
         select option { color: ${C.ink}; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Findings" />
+      <DesktopNav companyName={companyName} active="Findings" onHome={onHome} />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>
 
@@ -286,7 +285,7 @@ const SEED_DETAIL = {
 
 const RESOLUTION_ACTIONS = ["Fixed on site", "Work order raised", "Interim control in place", "Deferred — awaiting parts", "Deferred — CapEx approval required", "Finding closed — no action needed"];
 
-export function S3dFindingDetail({ findingId, companyName, onBack }) {
+export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
   const [finding,   setFinding]   = useState({ ...SEED_DETAIL, id: findingId ?? SEED_DETAIL.id });
   const [resAction, setResAction] = useState("");
   const [resNotes,  setResNotes]  = useState("");
@@ -349,7 +348,7 @@ export function S3dFindingDetail({ findingId, companyName, onBack }) {
         .resolve-btn:hover:not(:disabled) { background: ${C.pine} !important; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Finding Detail" />
+      <DesktopNav companyName={companyName} active="Finding Detail" onHome={onHome} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 

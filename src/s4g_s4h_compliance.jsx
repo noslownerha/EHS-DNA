@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -43,16 +45,13 @@ const STAFF_TRAININGS = [
   { id: 8, title: "First Aid & CPR",                    status: "current",       due: null,            expiresAt: "Apr 2026"     },
 ];
 
-function DesktopNav({ companyName = "WhistlePig Whiskey", active }) {
+function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>{active}</div>
-    </div>
+    <EHSHeader onHome={onHome} title={companyName} rightContent={
+      active ? (
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{active}</div>
+      ) : null
+    } />
   );
 }
 
@@ -89,7 +88,7 @@ function ComplianceBar({ pct, compact = false }) {
 // S4g — Compliance Dashboard (desktop)
 // Spec §14.3: 4 KPI tiles (value + label only), "Send Reminders" BELOW tile row
 // ════════════════════════════════════════════════════════════════════════════
-export function S4gComplianceDashboard({ companyName, onViewStaff }) {
+export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
   const [filterSite, setFilterSite] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [sfocused,   setSfocused]   = useState(false);
@@ -144,7 +143,7 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
         .reminder-btn:hover { background: ${C.pine} !important; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Training Compliance" />
+      <DesktopNav companyName={companyName} active="Training Compliance" onHome={onHome} />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>
 
@@ -267,7 +266,7 @@ export function S4gComplianceDashboard({ companyName, onViewStaff }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S4h — Staff Compliance Detail (desktop)
 // ════════════════════════════════════════════════════════════════════════════
-export function S4hStaffComplianceDetail({ staffId, companyName, onBack }) {
+export function S4hStaffComplianceDetail({ onHome, staffId, companyName, onBack }) {
   const staff = SEED_STAFF.find(s => s.id === (staffId ?? 1)) ?? SEED_STAFF[0];
   const trainings = STAFF_TRAININGS;
 
@@ -289,7 +288,7 @@ export function S4hStaffComplianceDetail({ staffId, companyName, onBack }) {
         .anim { animation: fadeUp .25s ease both; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Staff Compliance" />
+      <DesktopNav companyName={companyName} active="Staff Compliance" onHome={onHome} />
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
 

@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -76,7 +77,7 @@ const SEED_CBT = {
 // ════════════════════════════════════════════════════════════════════════════
 // S4b — CBT Player (mobile)
 // ════════════════════════════════════════════════════════════════════════════
-export function S4bCBTPlayer({ training = SEED_CBT, onComplete, onBack }) {
+export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onBack }) {
   const [slideIndex,   setSlideIndex]   = useState(0);
   const [answers,      setAnswers]      = useState({});   // slideId → selectedIndex
   const [revealed,     setRevealed]     = useState({});   // slideId → bool
@@ -336,7 +337,7 @@ const TRAINING_LIST = [
   { id: 4, title: "Hazard Communication (HAZCOM)",       type: "in_person" },
 ];
 
-export function S4cInPersonSignOff({
+export function S4cInPersonSignOff({ onHome,
   trainerRole = "trainer", // "trainer" | "safety" | "site_manager" | "admin"
   trainer = { name: "Mia Chen", site: "Moriah" },
   onBack,
@@ -393,11 +394,7 @@ export function S4cInPersonSignOff({
         .submit-btn:hover:not(:disabled) { background: ${C.pine} !important; }
       `}</style>
 
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <div style={{ width: 40 }} />
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
 
       <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
         <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Sign off training</h1>

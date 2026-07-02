@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -43,16 +45,13 @@ const SEED_COMPLETIONS = [
   { id: 8, staffName: "Lena Park",       site: "Middlebury", completedAt: "2024-04-12", score: null, passed: true,expiresAt: "2025-04-12", trainerName: "Mia Chen",sessionId: "SES-2024-041" },
 ];
 
-function DesktopNav({ companyName = "WhistlePig Whiskey", active }) {
+function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
   return (
-    <div style={{ height: 56, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", boxShadow: "0 2px 12px rgba(0,0,0,.2)", position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".95rem", fontWeight: 500, color: C.mint, letterSpacing: ".06em" }}><span style={{ color: C.white }}>EHS</span>platform</div>
-        <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>|</span>
-        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>{companyName}</span>
-      </div>
-      <div style={{ fontSize: ".75rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20 }}>{active}</div>
-    </div>
+    <EHSHeader onHome={onHome} title={companyName} rightContent={
+      active ? (
+        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{active}</div>
+      ) : null
+    } />
   );
 }
 
@@ -64,7 +63,7 @@ function pill(label, bg, color) {
 // S4e — Training Library (desktop)
 // Spec §14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
 // ════════════════════════════════════════════════════════════════════════════
-export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining }) {
+export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining }) {
   const [filterType, setFilterType] = useState("");
   const [search,     setSearch]     = useState("");
   const [sfocused,   setSfocused]   = useState(false);
@@ -100,7 +99,7 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
         select option { color: ${C.ink}; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Training Library" />
+      <DesktopNav companyName={companyName} active="Training Library" onHome={onHome} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
@@ -206,7 +205,7 @@ export function S4eTrainingLibrary({ companyName, userRole = "admin", onViewTrai
 // S4f — Training Record Detail (desktop)
 // Spec §14.1: expiration derived from recurrence_months; status chips
 // ════════════════════════════════════════════════════════════════════════════
-export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = "admin" }) {
+export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, userRole = "admin" }) {
   const training = SEED_LIBRARY.find(t => t.id === (trainingId ?? 1)) ?? SEED_LIBRARY[0];
   const [completions, setCompletions] = useState(SEED_COMPLETIONS);
 
@@ -242,7 +241,7 @@ export function S4fTrainingDetail({ trainingId, companyName, onBack, userRole = 
         .session-btn:hover { background: ${C.foam} !important; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Training Detail" />
+      <DesktopNav companyName={companyName} active="Training Detail" onHome={onHome} />
 
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "28px 24px" }}>
 

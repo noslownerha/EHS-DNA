@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -49,7 +50,7 @@ function dueDateFromShortcut(days) {
 // ════════════════════════════════════════════════════════════════════════════
 // S3a4 — Session Complete
 // ════════════════════════════════════════════════════════════════════════════
-export function S3a4SessionComplete({
+export function S3a4SessionComplete({ onHome,
   templateName = "Bottling Line Safety Check",
   site         = "Moriah",
   sessionData  = { passCount: 8, failCount: 2, naCount: 1 },
@@ -77,12 +78,7 @@ export function S3a4SessionComplete({
         .finding-row:hover { background: ${C.foam} !important; }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 18px" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-      </div>
+      <EHSHeader onHome={onHome} />
 
       <div style={{ flex: 1, padding: "16px 18px 100px", overflowY: "auto" }}>
 
@@ -175,7 +171,7 @@ export function S3a4SessionComplete({
 // ════════════════════════════════════════════════════════════════════════════
 // Spec: category grid, photo-first nudge, description, severity, assign,
 // due shortcuts, CapEx toggle in collapsed Additional details. Under 60 seconds.
-export function S3bQuickFinding({
+export function S3bQuickFinding({ onHome,
   site = "Moriah",
   user = { name: "Mia Chen" },
   onSubmit,
@@ -219,15 +215,13 @@ export function S3bQuickFinding({
         .submit-btn:hover:not(:disabled) { background: ${C.pine} !important; }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <button onClick={step === "details" ? () => setStep("category") : onBack}
-          style={{ background: "none", border: "none", color: C.mint, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
+      <EHSHeader onHome={onHome} rightContent={
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.4)" }}>{site}</span>
+          <button onClick={step === "details" ? () => setStep("category") : onBack}
+            style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
         </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.4)" }}>{site}</div>
-      </div>
+      } />
 
       {/* Step indicator */}
       <div style={{ display: "flex", gap: 4, padding: "10px 18px 0" }}>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -55,7 +56,7 @@ function ProgressBar({ pct }) {
   );
 }
 
-export default function S4aTrainingQueue({
+export default function S4aTrainingQueue({ onHome,
   user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging" },
   onOpen,
   onBack,
@@ -83,13 +84,7 @@ export default function S4aTrainingQueue({
         .start-btn:hover { background: ${C.purple}cc !important; }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name}</div>
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name}</div>} />
 
       <div style={{ flex: 1, padding: "16px 18px 80px", overflowY: "auto" }}>
 

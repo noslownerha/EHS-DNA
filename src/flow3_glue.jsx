@@ -18,6 +18,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback } from "react";
+import { BRAND } from "./constants.js";
 
 import S3a1StartInspection                            from "./s3a1_start_inspection";
 import { S3a2ChecklistInProgress, S3a3LogFinding }    from "./s3a2_s3a3_checklist_finding";
@@ -133,7 +134,7 @@ const InspectionContext = createContext(null);
 export function InspectionProvider({
   children,
   user        = { name: "Mia Chen", site: "Moriah", role: "Inspector" },
-  companyName = "WhistlePig Whiskey",
+  companyName = BRAND.company,
   initialScreen = INSPECTION_SCREENS.START,
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
@@ -168,7 +169,7 @@ export function useInspection() {
 // ─────────────────────────────────────────────────────────────────────────────
 // InspectionRouter
 // ─────────────────────────────────────────────────────────────────────────────
-export function InspectionRouter({ onDone }) {
+export function InspectionRouter({ onDone, onHome }) {
   const { state, navigate, back, startMode, completeSession, submitQuick, viewFinding, resetSession, user, companyName } = useInspection();
   const { screen, sessionItems, sessionFindings, viewingFindingId } = state;
 
@@ -178,6 +179,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.START:
       return (
         <S3a1StartInspection
+          onHome={onHome ?? onDone}
           user={user}
           onMode={mode => startMode(mode)}
           onResume={id  => startMode("checklist")}
@@ -189,6 +191,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.CHECKLIST:
       return (
         <S3a2ChecklistInProgress
+          onHome={onHome ?? onDone}
           site={user.site}
           onBack={back}
           onComplete={({ items, findings, passCount, failCount, naCount }) => {
@@ -201,6 +204,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.LOG_FINDING:
       return (
         <S3a3LogFinding
+          onHome={onHome ?? onDone}
           onBack={back}
           onSubmit={data => {
             navigate(INSPECTION_SCREENS.SESSION_DONE);
@@ -212,6 +216,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.SESSION_DONE:
       return (
         <S3a4SessionComplete
+          onHome={onHome ?? onDone}
           site={user.site}
           findings={sessionFindings}
           onDone={() => { resetSession(); onDone?.(); }}
@@ -223,6 +228,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.QUICK:
       return (
         <S3bQuickFinding
+          onHome={onHome ?? onDone}
           site={user.site}
           user={user}
           onBack={back}
@@ -237,6 +243,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.AGING:
       return (
         <S3cAgingTracker
+          onHome={onHome ?? onDone}
           companyName={companyName}
           onViewFinding={viewFinding}
         />
@@ -246,6 +253,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.FINDING_DETAIL:
       return (
         <S3dFindingDetail
+          onHome={onHome ?? onDone}
           findingId={viewingFindingId}
           companyName={companyName}
           onBack={back}
@@ -256,6 +264,7 @@ export function InspectionRouter({ onDone }) {
     case INSPECTION_SCREENS.BUILDER:
       return (
         <S3eChecklistBuilder
+          onHome={onHome ?? onDone}
           companyName={companyName}
           onBack={back}
         />

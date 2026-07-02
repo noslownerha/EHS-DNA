@@ -21,6 +21,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback, useState } from "react";
+import { BRAND } from "./constants.js";
 
 import S4aTrainingQueue                    from "./s4a_training_queue";
 import { S4bCBTPlayer, S4cInPersonSignOff } from "./s4b_s4c_cbt_signoff";
@@ -125,7 +126,7 @@ const TrainingContext = createContext(null);
 export function TrainingProvider({
   children,
   user        = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging", role: "staff" },
-  companyName = "WhistlePig Whiskey",
+  companyName = BRAND.company,
   initialScreen = TRAINING_SCREENS.QUEUE,
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
@@ -160,7 +161,7 @@ export function useTraining() {
 // ─────────────────────────────────────────────────────────────────────────────
 // TrainingRouter
 // ─────────────────────────────────────────────────────────────────────────────
-export function TrainingRouter({ onDone }) {
+export function TrainingRouter({ onDone, onHome }) {
   const {
     state, navigate, back, openTraining, viewTraining, viewStaff, openGroupLog, closeGroupLog,
     user, companyName,
@@ -184,6 +185,7 @@ export function TrainingRouter({ onDone }) {
         animation: "fadeUp .2s ease both",
       }}>
         <S4dGroupSessionLog
+          onHome={onHome ?? onDone}
           userRole={user.role}
           userName={user.name}
           onConfirm={data => { closeGroupLog(); }}
@@ -201,6 +203,7 @@ export function TrainingRouter({ onDone }) {
         <>
           {GroupSessionModal}
           <S4aTrainingQueue
+          onHome={onHome ?? onDone}
             user={user}
             onOpen={openTraining}
             onBack={onDone ?? back}
@@ -212,6 +215,7 @@ export function TrainingRouter({ onDone }) {
     case TRAINING_SCREENS.CBT:
       return (
         <S4bCBTPlayer
+          onHome={onHome ?? onDone}
           training={activeTraining ?? undefined}
           onComplete={({ score, passed }) => back()}
           onBack={back}
@@ -222,6 +226,7 @@ export function TrainingRouter({ onDone }) {
     case TRAINING_SCREENS.SIGN_OFF:
       return (
         <S4cInPersonSignOff
+          onHome={onHome ?? onDone}
           trainerRole={user.role}
           trainer={{ name: user.name, site: user.site }}
           onBack={back}
@@ -233,6 +238,7 @@ export function TrainingRouter({ onDone }) {
     case TRAINING_SCREENS.GROUP_LOG:
       return (
         <S4dGroupSessionLog
+          onHome={onHome ?? onDone}
           userRole={user.role}
           userName={user.name}
           onConfirm={() => back()}
@@ -246,6 +252,7 @@ export function TrainingRouter({ onDone }) {
         <>
           {GroupSessionModal}
           <S4eTrainingLibrary
+          onHome={onHome ?? onDone}
             companyName={companyName}
             userRole={user.role}
             onViewTraining={viewTraining}
@@ -261,6 +268,7 @@ export function TrainingRouter({ onDone }) {
         <>
           {GroupSessionModal}
           <S4fTrainingDetail
+          onHome={onHome ?? onDone}
             trainingId={viewingTrainingId}
             companyName={companyName}
             userRole={user.role}
@@ -275,6 +283,7 @@ export function TrainingRouter({ onDone }) {
         <>
           {GroupSessionModal}
           <S4gComplianceDashboard
+          onHome={onHome ?? onDone}
             companyName={companyName}
             onViewStaff={viewStaff}
           />
@@ -285,6 +294,7 @@ export function TrainingRouter({ onDone }) {
     case TRAINING_SCREENS.STAFF_DETAIL:
       return (
         <S4hStaffComplianceDetail
+          onHome={onHome ?? onDone}
           staffId={viewingStaffId}
           companyName={companyName}
           onBack={back}

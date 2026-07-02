@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EHSHeader } from "./AppShell.jsx";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -74,7 +75,7 @@ function pill(severity) {
   );
 }
 
-export default function S3a1StartInspection({
+export default function S3a1StartInspection({ onHome,
   user = { name: "Mia Chen", site: "Moriah", role: "Inspector" },
   onMode,         // (mode: "quick"|"checklist"|"gemba"|"scheduled") => void
   onResume,       // (inspectionId) => void
@@ -99,13 +100,7 @@ export default function S3a1StartInspection({
         .continue-btn:hover:not(:disabled) { background: ${C.pine} !important; transform: translateY(-1px); }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{ height: 52, background: C.forest, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.mint, letterSpacing: ".04em" }}>
-          <span style={{ color: C.white }}>EHS</span>platform
-        </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name} · {user.site}</div>
-      </div>
+      <EHSHeader onHome={onHome} rightContent={<div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name} · {user.site}</div>} />
 
       <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
 
