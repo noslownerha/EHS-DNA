@@ -70,7 +70,7 @@ export const INCIDENT_TYPES = [
 // ── Bottom nav tab definitions ─────────────────────────────────────────────────
 export const TAB_CONFIG = {
   home:     { icon: "🏠", label: "Home"     },
-  flag:     { icon: "🚩", label: "Report"   },
+  flag:     { icon: "🚩", label: "Flag Issue" },
   triage:   { icon: "⛑️", label: "Triage"   },
   inspect:  { icon: "📋", label: "Inspect"  },
   training: { icon: "🎓", label: "Training" },

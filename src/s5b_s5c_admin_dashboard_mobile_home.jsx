@@ -74,10 +74,10 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
   const bestDays        = SITES.length ? Math.max(...SITES.map(s => s.daysSince)) : 0;
 
   const kpis = [
-    { label: "Open incidents",      value: totalIncidents, color: C.red    },
-    { label: "Open CAs",            value: totalCAs,       color: C.orange },
-    { label: "Critical findings",   value: totalCritical,  color: C.gold   },
-    { label: "Sites < 80% training",value: belowThreshold, color: C.purple },
+    { label: "Open incidents",      value: totalIncidents, color: C.red,    dest: "incidents" },
+    { label: "Open CAs",            value: totalCAs,       color: C.orange, dest: "cas"       },
+    { label: "Critical findings",   value: totalCritical,  color: C.gold,   dest: "findings"  },
+    { label: "Sites < 80% training",value: belowThreshold, color: C.purple, dest: "training"  },
   ];
 
   const thStyle = {
@@ -95,6 +95,8 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .anim { animation: fadeUp .25s ease both; }
+        .kpi-tile:active { transform: scale(.97); }
+        .kpi-tile:hover { box-shadow: 0 4px 18px rgba(15,31,23,.13); }
         .site-row:hover td { background: ${C.foam} !important; cursor: pointer; }
         .nav-btn:hover { background: ${C.foam} !important; }
       `}</style>
@@ -104,14 +106,14 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
         {/* Header */}
-        <div className="anim" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+        <div className="anim" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>{companyName}</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
               {SITES.length} sites · {totalStaff} staff · all-time best: {bestDays} days since recordable
             </p>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button className="nav-btn" onClick={() => onNavigate?.("settings")} style={{
               padding: "8px 16px", background: C.white, color: C.pine,
               border: `1.5px solid ${C.mint}`, borderRadius: 7,
@@ -136,16 +138,18 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
         {/* KPI tiles */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 8 }}>
           {kpis.map((kpi, i) => (
-            <div key={i} style={{
+            <button key={i} onClick={() => onNavigate?.(kpi.dest)} className="kpi-tile" style={{
               background: C.white, borderRadius: 10,
               boxShadow: "0 2px 12px rgba(15,31,23,.07)",
-              padding: "20px 22px", height: 90,
+              padding: "20px 22px", height: 90, cursor: "pointer",
               display: "flex", flexDirection: "column", justifyContent: "center",
-              borderTop: `3px solid ${kpi.color}`,
+              border: "none", borderTop: `3px solid ${kpi.color}`,
+              textAlign: "left", fontFamily: "'DM Sans', sans-serif",
+              transition: "transform .12s, box-shadow .12s",
             }}>
               <div style={{ fontSize: "1.75rem", fontWeight: 700, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-              <div style={{ fontSize: ".8rem", color: C.slate, marginTop: 4, fontWeight: 500 }}>{kpi.label}</div>
-            </div>
+              <div style={{ fontSize: ".8rem", color: C.slate, marginTop: 4, fontWeight: 500 }}>{kpi.label} →</div>
+            </button>
           ))}
         </div>
 

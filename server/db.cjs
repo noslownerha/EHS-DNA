@@ -147,6 +147,40 @@ CREATE TABLE IF NOT EXISTS triage_records (
   linked_incident_id INTEGER REFERENCES incidents(id),
   created_at TEXT DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS billing_config (
+  tenant_id INTEGER PRIMARY KEY REFERENCES tenants(id),
+  base_price REAL DEFAULT 0,
+  per_site REAL DEFAULT 0,
+  per_user REAL DEFAULT 0,
+  auto_approve INTEGER DEFAULT 0,
+  billing_contact TEXT,
+  notes TEXT
+);
+CREATE TABLE IF NOT EXISTS billing_adjustments (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  kind TEXT NOT NULL CHECK (kind IN ('credit','discount_flat','discount_pct')),
+  amount REAL NOT NULL,              -- dollars for credit/flat, percent for pct
+  description TEXT,
+  recurring INTEGER DEFAULT 0,       -- 1 = applies every invoice; 0 = consumed once
+  consumed_invoice_id INTEGER,       -- set when a one-time adjustment is used
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS invoices (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  ref TEXT NOT NULL,                 -- INV-2026-07-001
+  period TEXT NOT NULL,              -- YYYY-MM
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft','approved','sent','paid','void')),
+  line_items TEXT NOT NULL,          -- JSON [{label, qty, rate, amount}]
+  subtotal REAL NOT NULL,
+  adjustments TEXT DEFAULT '[]',     -- JSON [{label, amount}] (negative amounts)
+  total REAL NOT NULL,
+  generated_at TEXT DEFAULT (datetime('now')),
+  approved_at TEXT, sent_at TEXT, paid_at TEXT,
+  UNIQUE (tenant_id, period)
+);
 CREATE TABLE IF NOT EXISTS leads (
   id INTEGER PRIMARY KEY,
   name TEXT, email TEXT NOT NULL, company TEXT, message TEXT,
@@ -198,6 +232,8 @@ function seed() {
       ["Hot Work Awareness",                 "cbt",       12],
       ["Ethanol & Flammable Liquids Safety", "cbt",       12],
     ].forEach(([title, kind, freq]) => trStmt.run(title, kind, freq));
+    db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact)
+                VALUES (1, 250, 75, 8, 0, 'ap@whistlepigrye.com')`).run();
   });
   seedTx();
   console.log("Seeded tenant: WhistlePig Whiskey (4 sites, 6 departments, 1 admin)");

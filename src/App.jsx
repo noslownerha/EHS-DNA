@@ -52,6 +52,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
   const [booting,     setBooting]     = useState(!!getToken());
+  const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
 
   // Resume session if a valid token exists
   useEffect(() => {
@@ -78,7 +79,11 @@ export default function App() {
   }
 
   function handleHome() { setActiveTab("home"); }
-  function handleTab(tabId) { setActiveTab(tabId); }
+  function handleTab(tabId) {
+    if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
+    else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);
+    setActiveTab(tabId);
+  }
   function handleNavigate(dest) { setActiveTab(dest); }
 
   if (booting) return null;
@@ -104,9 +109,9 @@ export default function App() {
                 onTriage={()        => handleTab("triage")}
                 onReportIncident={() => handleTab("flag")}
                 onTraining={()      => handleTab("training")}
-                onIncidents={()     => handleTab("flag")}
+                onIncidents={()     => { setFlagScreen(INCIDENT_SCREENS.LIST); handleTab("flag"); }}
                 onFindings={()      => handleTab("inspect")}
-                onCAs={()           => handleTab("flag")}
+                onCAs={()           => { setFlagScreen(INCIDENT_SCREENS.CA_TRACKER); handleTab("flag"); }}
               />
             </DashboardProvider>
           </MobileFrame>
@@ -117,7 +122,7 @@ export default function App() {
       case "flag":
         return (
           <MobileFrame>
-            <IncidentProvider user={userObj} companyName={COMPANY} initialScreen={INCIDENT_SCREENS.TYPE}>
+            <IncidentProvider key={flagScreen} user={userObj} companyName={COMPANY} initialScreen={flagScreen}>
               <IncidentRouter onDone={handleHome} />
             </IncidentProvider>
           </MobileFrame>
@@ -129,7 +134,7 @@ export default function App() {
         return (
           <MobileFrame>
             <TriageProvider user={userObj} companyName={COMPANY}>
-              <TriageRouter onDone={handleHome} />
+              <TriageRouter onDone={handleHome} onFileReport={() => setActiveTab("flag")} />
             </TriageProvider>
           </MobileFrame>
         );

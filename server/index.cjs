@@ -322,6 +322,9 @@ app.get("/api/dashboard/summary", auth, (req, res) => {
 });
 
 
+// ── Billing module ────────────────────────────────────────────────────────────
+require("./billing.cjs")(app, db, auth, requireRole);
+
 // ── Training compliance summary (per-staff rollup against required trainings) ─
 app.get("/api/dashboard/compliance", auth, (req, res) => {
   const t = req.auth.tenant;

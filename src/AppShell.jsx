@@ -31,7 +31,7 @@ export function EHSHeader({ onHome, title, rightContent, dark = false }) {
         </span>
       </button>
       {title && (
-        <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.6)", pointerEvents: "none" }}>
+        <div style={{ flex: 1, minWidth: 0, margin: "0 10px", fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.6)", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {title}
         </div>
       )}
@@ -145,8 +145,8 @@ function BottomTabBar({ tabs, activeTab, onTab }) {
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0,
       height: 58,
-      background: "#0F1F17",
-      borderTop: "1px solid rgba(168,213,181,.12)",
+      background: "#2A4435",
+      borderTop: "1px solid rgba(168,213,181,.25)",
       display: "flex", zIndex: 200,
       boxShadow: "0 -4px 20px rgba(0,0,0,.3)",
     }}>
@@ -169,7 +169,7 @@ function BottomTabBar({ tabs, activeTab, onTab }) {
             </div>
             <span style={{
               fontSize: ".58rem", fontWeight: active ? 700 : 400,
-              color: active ? "#A8D5B5" : "rgba(255,255,255,.3)",
+              color: active ? "#D6EDDD" : "rgba(255,255,255,.65)",
               fontFamily: "'DM Sans', sans-serif", letterSpacing: ".03em", transition: "color .15s",
             }}>{cfg.label}</span>
           </button>
