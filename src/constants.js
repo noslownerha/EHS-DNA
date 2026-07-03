@@ -59,12 +59,10 @@ export const DEMO_USERS = [
 
 // ── Incident types (Round 1: Environmental Release & Vehicle Incident removed) ─
 export const INCIDENT_TYPES = [
-  { id: "injury",      label: "Injury / Illness",      icon: "🩹" },
-  { id: "near_miss",   label: "Near Miss",             icon: "⚠️" },
-  { id: "property",    label: "Property Damage",       icon: "🔧" },
-  { id: "spill",       label: "Spill / Leak",          icon: "💧" },
-  { id: "fire",        label: "Fire / Explosion Risk", icon: "🔥" },
-  { id: "security",    label: "Security Event",        icon: "🔒" },
+  { id: "injury",    label: "Injury / Illness", icon: "🩹", color: "#C0392B", bg: "#FDECEA" },
+  { id: "near_miss", label: "Near Miss / Risk", icon: "⚠️", color: "#C8922A", bg: "#FDF3E3" },
+  { id: "property",  label: "Property Damage",  icon: "🔧", color: "#D4622A", bg: "#FEF0E7" },
+  { id: "security",  label: "Security Event",   icon: "🔒", color: "#4A5568", bg: "#EEF2F0" },
 ];
 
 // ── Bottom nav tab definitions ─────────────────────────────────────────────────

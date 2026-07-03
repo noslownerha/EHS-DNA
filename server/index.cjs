@@ -174,6 +174,19 @@ app.post("/api/incidents", auth, (req, res) => {
     .run(req.auth.tenant, ref, type, severity ?? null, siteId ?? null, description ?? null,
          locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
          req.auth.uid, occurredAt ?? null);
+  // Auto-notify on injury incidents (fire-and-forget webhook → n8n → email/SMS)
+  if (type === "injury" && process.env.EHS_NOTIFY_WEBHOOK) {
+    const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
+    fetch(process.env.EHS_NOTIFY_WEBHOOK, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "injury_incident", ref, site,
+        severity: severity ?? "unspecified",
+        description: (description ?? "").slice(0, 500),
+        reportedBy: req.auth.name, at: new Date().toISOString(),
+      }),
+    }).catch(err => console.error("Notify webhook failed:", err.message));
+  }
   res.json({ id: r.lastInsertRowid, ref });
 });
 app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {

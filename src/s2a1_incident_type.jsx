@@ -73,16 +73,20 @@ export default function S2a1IncidentType({
         {/* Bucket 3: 2x2 grid — 4 types only */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
           {INCIDENT_TYPES.map(t => (
-            <div key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
-              padding: "14px 12px",
+            <button key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
+              padding: "16px 12px", width: "100%",
               background: selectedType === t.id ? t.bg : C.white,
-              border: `2px solid ${selectedType === t.id ? t.color : "#E2EBE6"}`,
-              borderRadius: 10, cursor: "pointer", transition: "all .15s",
-              boxShadow: selectedType === t.id ? `0 2px 12px ${t.color}22` : "0 1px 4px rgba(0,0,0,.05)",
+              border: `2px solid ${selectedType === t.id ? t.color : "#C9D8D0"}`,
+              borderRadius: 12, cursor: "pointer", transition: "all .15s",
+              boxShadow: selectedType === t.id
+                ? `0 4px 14px ${t.color}33`
+                : "0 2px 8px rgba(15,31,23,.10)",
+              fontFamily: "'DM Sans', sans-serif", textAlign: "center",
+              transform: selectedType === t.id ? "translateY(-1px)" : "none",
             }}>
-              <div style={{ fontSize: "1.3rem", marginBottom: 5 }}>{t.emoji}</div>
-              <div style={{ fontSize: ".85rem", fontWeight: 600, color: selectedType === t.id ? t.color : C.ink }}>{t.label}</div>
-            </div>
+              <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>{t.icon}</div>
+              <div style={{ fontSize: ".85rem", fontWeight: 700, color: selectedType === t.id ? t.color : C.ink }}>{t.label}</div>
+            </button>
           ))}
         </div>
 
