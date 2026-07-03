@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS findings (
   description TEXT NOT NULL,
   status TEXT DEFAULT 'open',       -- open | resolved
   photos TEXT,
+  resolution_action TEXT,
+  resolution_notes TEXT,
   reported_by INTEGER REFERENCES users(id),
   created_at TEXT DEFAULT (datetime('now')),
   resolved_at TEXT
@@ -199,6 +201,9 @@ CREATE INDEX IF NOT EXISTS idx_completions_user ON training_completions(tenant_i
   try { db.exec(`ALTER TABLE checklists ADD COLUMN ${col}`); } catch {}
 });
 try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'"); } catch {}
+["resolution_action TEXT", "resolution_notes TEXT"].forEach(col => {
+  try { db.exec(`ALTER TABLE findings ADD COLUMN ${col}`); } catch {}
+});
 
 // ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
 function seed() {

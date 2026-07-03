@@ -280,7 +280,11 @@ app.put("/api/inspections/:id", auth, (req, res) => {
     .run(responses ? JSON.stringify(responses) : null, complete ? 1 : 0, complete ? 1 : 0, req.params.id, req.auth.tenant);
   res.json({ ok: true });
 });
-app.get("/api/findings", auth, listAll("findings", "created_at DESC"));
+app.get("/api/findings", auth, (req, res) =>
+  res.json(db.prepare(`SELECT f.*, u.name AS reporter_name, s.name AS site_name
+                       FROM findings f LEFT JOIN users u ON u.id = f.reported_by
+                       LEFT JOIN sites s ON s.id = f.site_id
+                       WHERE f.tenant_id = ? ORDER BY f.created_at DESC`).all(req.auth.tenant)));
 app.post("/api/findings", auth, (req, res) => {
   const { inspectionId, siteId, severity, description, photos } = req.body || {};
   if (!description) return res.status(400).json({ error: "description required" });
@@ -299,12 +303,28 @@ app.post("/api/findings", auth, (req, res) => {
   res.json({ id: r.lastInsertRowid });
 });
 app.put("/api/findings/:id", auth, (req, res) => {
-  const { status } = req.body || {};
+  const { status, resolutionAction, resolutionNotes, escalateToCA, caDueDate } = req.body || {};
+  const finding = db.prepare("SELECT * FROM findings WHERE id = ? AND tenant_id = ?").get(req.params.id, req.auth.tenant);
+  if (!finding) return res.status(404).json({ error: "Finding not found" });
+  const { photos } = req.body || {};
   db.prepare(`UPDATE findings SET status = COALESCE(?, status),
+              resolution_action = COALESCE(?, resolution_action),
+              resolution_notes = COALESCE(?, resolution_notes),
+              photos = COALESCE(?, photos),
               resolved_at = CASE WHEN ? = 'resolved' THEN datetime('now') ELSE resolved_at END
               WHERE id = ? AND tenant_id = ?`)
-    .run(status, status, req.params.id, req.auth.tenant);
-  res.json({ ok: true });
+    .run(status, resolutionAction, resolutionNotes,
+         photos ? JSON.stringify(photos) : null, status, req.params.id, req.auth.tenant);
+  let caId = null;
+  if (escalateToCA) {
+    const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, finding_id, title, priority, due_date)
+                          VALUES (?, ?, ?, ?, ?)`)
+      .run(req.auth.tenant, finding.id, `Resolve finding: ${(finding.description ?? "").slice(0, 120)}`,
+           finding.severity === "critical" || finding.severity === "high" ? "high" : "medium",
+           caDueDate ?? null);
+    caId = r.lastInsertRowid;
+  }
+  res.json({ ok: true, caId });
 });
 
 // ── Trainings & completions ──────────────────────────────────────────────────

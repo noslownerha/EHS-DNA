@@ -97,7 +97,7 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
   const [sfocused,      setSfocused]      = useState(false);
   const [search,        setSearch]        = useState("");
 
-  const open = SEED_FINDINGS.filter(f => f.status === "open");
+  const open = SEED_FINDINGS.filter(f => f.status !== "resolved");
 
   // Spec §13.2: CapEx findings remain visible but excluded from avg age
   const nonCapExOpen = open.filter(f => !f.capex);
@@ -299,21 +299,90 @@ const SEED_DETAIL = {
 
 const RESOLUTION_ACTIONS = ["Fixed on site", "Work order raised", "Interim control in place", "Deferred — awaiting parts", "Deferred — CapEx approval required", "Finding closed — no action needed"];
 
+// action → pipeline status: resolved closes; interim/deferred stay open (aging continues)
+const ACTION_STATUS = {
+  "Fixed on site": "resolved",
+  "Finding closed — no action needed": "resolved",
+  "Work order raised": "interim",
+  "Interim control in place": "interim",
+  "Deferred — awaiting parts": "interim",
+  "Deferred — CapEx approval required": "interim",
+};
+const ESCALATING = ["Work order raised", "Deferred — awaiting parts", "Deferred — CapEx approval required"];
+
 export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
-  const [finding,   setFinding]   = useState({ ...SEED_DETAIL, id: findingId ?? SEED_DETAIL.id });
+  const [finding,   setFinding]   = useState({ ...SEED_DETAIL, id: findingId ?? SEED_DETAIL.id, photoList: [] });
+  const [dbId, setDbId] = useState(null);
+
+  useEffect(() => {
+    if (!findingId) return;
+    api.listFindings().then(rows => {
+      const row = rows.find(f => f.id === findingId);
+      if (!row) return;
+      setDbId(row.id);
+      setFinding({
+        id: `FND-${String(row.id).padStart(4, "0")}`,
+        site: row.site_name ?? "—", dept: "—", category: "General",
+        severity: row.severity ?? "low",
+        desc: row.description, location: row.location ?? "—",
+        assignee: "Unassigned", due: null,
+        status: row.status,
+        resolutionAction: row.resolution_action, resolutionNotes: row.resolution_notes,
+        ageDays: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
+        capex: false, capexNotes: "",
+        photoList: JSON.parse(row.photos || "[]"), gps: false,
+        loggedBy: row.reporter_name ?? "—", loggedAt: row.created_at,
+        escalationTimeline: [
+          { date: (row.created_at ?? "").slice(5, 10), event: `Finding logged by ${row.reporter_name ?? "staff"}` },
+          ...(row.resolution_action ? [{ date: (row.resolved_at ?? "").slice(5, 10) || "—", event: `${row.resolution_action}${row.status === "resolved" ? " — resolved" : " — still open"}` }] : []),
+        ],
+        linkedIncidentId: null,
+      });
+    }).catch(err => console.error("Finding load failed:", err.message));
+  }, [findingId]);
   const [resAction, setResAction] = useState("");
   const [resNotes,  setResNotes]  = useState("");
   const [resolved,  setResolved]  = useState(false);
   const [editing,   setEditing]   = useState(null);
   const [draft,     setDraft]     = useState("");
   const [resFocused,setResFocused]= useState(false);
+  const [viewPhoto, setViewPhoto]  = useState(null);
+
+  function handleAddPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+      const nextList = [...(finding.photoList ?? []), dataUrl];
+      setFinding(f => ({ ...f, photoList: nextList }));
+      if (dbId) api.updateFinding(dbId, { photos: nextList }).catch(err => console.error("Photo save failed:", err.message));
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+    e.target.value = "";
+  }
 
   const sev = SEV[finding.severity] ?? SEV.noted;
 
   function handleResolve() {
     if (!resAction) return;
+    const nextStatus = ACTION_STATUS[resAction] ?? "interim";
     setResolved(true);
-    setFinding(f => ({ ...f, status: "resolved" }));
+    setFinding(f => ({ ...f, status: nextStatus }));
+    if (dbId) {
+      api.updateFinding(dbId, {
+        status: nextStatus,
+        resolutionAction: resAction,
+        resolutionNotes: resNotes,
+        escalateToCA: ESCALATING.includes(resAction),
+      }).catch(err => console.error("Resolution save failed:", err.message));
+    }
   }
 
   function startEdit(field, val) { setEditing(field); setDraft(val); }
@@ -379,7 +448,7 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 {pill(sev.label, sev.bg, sev.color)}
                 {pill(finding.category, "#EEF1F0", C.slate)}
-                {pill(finding.status === "open" ? "Open" : "Resolved", finding.status === "open" ? C.foam : "#EEF1F0", finding.status === "open" ? C.pine : C.slate)}
+                {pill(finding.status === "resolved" ? "Resolved" : finding.status === "interim" ? "Interim control" : "Open", finding.status === "resolved" ? "#EEF1F0" : finding.status === "interim" ? C.goldLt : C.foam, finding.status === "resolved" ? C.slate : finding.status === "interim" ? C.gold : C.pine)}
                 {/* Spec §13.2: CapEx badge navy */}
                 {finding.capex && pill("CapEx required", C.navyLt, C.navy)}
                 {finding.linkedIncidentId && (
@@ -391,7 +460,7 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
         </div>
 
         {/* Two-col layout */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start" }}>
 
           {/* Left */}
           <div>
@@ -430,20 +499,27 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 24, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Photos</h2>
-                <span style={{ fontSize: ".78rem", color: C.mist }}>{finding.photos} attached{finding.gps ? " · GPS tagged" : ""}</span>
+                <span style={{ fontSize: ".78rem", color: C.mist }}>{(finding.photoList ?? []).length} attached</span>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                {Array.from({ length: finding.photos }).map((_, i) => (
-                  <div key={i} style={{ width: 100, height: 80, borderRadius: 8, background: `hsl(${140 + i * 15}, 25%, 82%)`, border: "2px solid #E2EBE6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".72rem", color: C.mist }}>
-                    Photo {i + 1}{finding.gps ? " 📍" : ""}
-                  </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {(finding.photoList ?? []).map((src, i) => (
+                  <img key={i} src={src} alt={`Photo ${i + 1}`} onClick={() => setViewPhoto(src)}
+                    style={{ width: 100, height: 80, borderRadius: 8, objectFit: "cover", border: "2px solid #E2EBE6", cursor: "pointer" }} />
                 ))}
-                <div style={{ width: 100, height: 80, borderRadius: 8, border: "2px dashed #C8DDD2", background: C.chalk, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".75rem", color: C.sage, cursor: "pointer" }}>+ Add</div>
+                <label style={{ width: 100, height: 80, borderRadius: 8, border: "2px dashed #C8DDD2", background: C.chalk, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".75rem", color: C.sage, cursor: "pointer" }}>
+                  + Add
+                  <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleAddPhoto} />
+                </label>
               </div>
+              {viewPhoto && (
+                <div onClick={() => setViewPhoto(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,31,23,.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                  <img src={viewPhoto} alt="Finding photo" style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 10 }} />
+                </div>
+              )}
             </div>
 
             {/* Resolution form */}
-            {finding.status === "open" && (
+            {finding.status !== "resolved" && (
               <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 24 }}>
                 <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 14 }}>
                   {resolved ? "✓ Finding resolved" : "Resolve this finding"}
@@ -465,11 +541,18 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
                         style={{ width: "100%", padding: "9px 11px", border: `1.5px solid ${resFocused ? C.sage : "#D0DEDB"}`, borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, outline: "none", resize: "vertical", lineHeight: 1.5, transition: "all .18s" }} />
                     </div>
                     <button className="resolve-btn" onClick={handleResolve} disabled={!resAction} style={{ padding: "10px 24px", background: resAction ? C.sage : "#B0C8BA", color: C.white, border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", fontWeight: 600, cursor: resAction ? "pointer" : "default", transition: "all .18s" }}>
-                      Mark resolved
+                      Submit
                     </button>
                   </>
                 ) : (
-                  <div style={{ color: C.pine, fontSize: ".88rem" }}>✓ Resolved — {resAction}</div>
+                  <div style={{ color: C.pine, fontSize: ".88rem" }}>
+                    ✓ Submitted — {resAction}
+                    {ACTION_STATUS[resAction] !== "resolved" && (
+                      <div style={{ color: C.gold, marginTop: 4, fontSize: ".8rem" }}>
+                        Finding remains open{ESCALATING.includes(resAction) ? " — corrective action created" : ""} and will keep aging until fully resolved.
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
