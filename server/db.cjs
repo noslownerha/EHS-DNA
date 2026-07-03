@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS sites (
   tenant_id INTEGER NOT NULL REFERENCES tenants(id),
   name TEXT NOT NULL,
   location TEXT,
+  floorplan TEXT,
   active INTEGER DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS departments (
@@ -204,6 +205,15 @@ try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'
 ["resolution_action TEXT", "resolution_notes TEXT"].forEach(col => {
   try { db.exec(`ALTER TABLE findings ADD COLUMN ${col}`); } catch {}
 });
+try { db.exec("ALTER TABLE users ADD COLUMN is_operator INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE sites ADD COLUMN floorplan TEXT"); } catch {}
+try { db.exec("ALTER TABLE incidents ADD COLUMN floor_pos TEXT"); } catch {}
+db.exec(`CREATE TABLE IF NOT EXISTS response_checklists (
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  incident_type TEXT NOT NULL,
+  items TEXT NOT NULL,
+  PRIMARY KEY (tenant_id, incident_type)
+)`);
 
 // ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
 function seed() {
@@ -312,6 +322,28 @@ function ensureDefaults() {
       "Housekeeping / 5S condition", "PPE compliance observed", "Blocked exits or egress issues",
       "Equipment guarding in place", "Spill or leak evidence", "Staff safety feedback collected"]), "gemba", null);
     console.log("Backfilled: starter checklist catalog");
+  }
+
+  if (!db.prepare("SELECT id FROM users WHERE email = 'ahrenwolson@gmail.com'").get()) {
+    const bcrypt2 = require("bcryptjs");
+    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, is_operator)
+                VALUES (1, 'ahrenwolson@gmail.com', ?, 'EHS DNA Admin', 'admin', 1)`)
+      .run(bcrypt2.hashSync(process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026", 10));
+    console.log("Backfilled: operator account ahrenwolson@gmail.com");
+  }
+
+  if (db.prepare("SELECT COUNT(*) n FROM response_checklists WHERE tenant_id = 1").get().n === 0) {
+    const rc = db.prepare("INSERT INTO response_checklists (tenant_id, incident_type, items) VALUES (1, ?, ?)");
+    rc.run("injury", JSON.stringify(["Complete first aid log", "Notify shift supervisor",
+      "Preserve scene — don't move anything until photos are done", "Secure the area if hazard still present",
+      "Check in with the injured person within 24 hours"]));
+    rc.run("near_miss", JSON.stringify(["Notify shift supervisor", "Secure the area if hazard still present",
+      "Identify what prevented harm", "Share learning at next toolbox talk"]));
+    rc.run("property", JSON.stringify(["Notify shift supervisor", "Isolate damaged equipment / tag out",
+      "Photograph damage before cleanup", "Assess production impact"]));
+    rc.run("security", JSON.stringify(["Notify site manager immediately", "Preserve any camera footage",
+      "Do not confront individuals — document only", "Contact authorities if warranted"]));
+    console.log("Backfilled: response checklists");
   }
 
   const hasRulesTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notification_rules'").get();

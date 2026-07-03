@@ -38,11 +38,16 @@ export default function S5fCompanySettings({ companyName, onHome }) {
   const [rules, setRules] = useState([]);
   const [users, setUsers] = useState([]);
   const [newRule, setNewRule] = useState({ event: "incident_injury", recipientRoles: ["admin", "safety"], recipientUsers: [], email: true });
+  const [checklists, setChecklists] = useState({});
+  const [clType, setClType] = useState("injury");
+  const [clText, setClText] = useState("");
+  const [clSaved, setClSaved] = useState(false);
   const [newDept, setNewDept] = useState("");
 
   useEffect(() => {
     api.fetchConfig().then(setCfg).catch(err => setError(err.message));
     api.notificationRules().then(setRules).catch(() => {});
+    api.responseChecklists().then(c => { setChecklists(c); setClText((c.injury ?? []).join("\n")); }).catch(() => {});
     api.listUsers().then(setUsers).catch(() => {});
   }, []);
 
@@ -80,6 +85,26 @@ export default function S5fCompanySettings({ companyName, onHome }) {
       setSaved(true);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
+  }
+
+  function handleFloorplanUpload(e, siteId) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = async () => {
+      const scale = Math.min(1, 1400 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      try {
+        await api.updateSiteFloorplan(siteId, canvas.toDataURL("image/jpeg", 0.8));
+        setCfg(await api.fetchConfig());
+      } catch (err) { setError(err.message); }
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+    e.target.value = "";
   }
 
   async function addSite(e) {
@@ -191,6 +216,32 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           {saved && <span style={{ fontSize: ".82rem", color: C.sage, fontWeight: 600 }}>✓ Saved</span>}
         </div>
 
+        <Card title="Immediate response checklists">
+          <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 10 }}>
+            Steps shown after an incident is submitted — one per line, per incident type.
+          </p>
+          <select style={{ ...inputStyle, width: 220, marginBottom: 10 }} value={clType}
+            onChange={e => { setClType(e.target.value); setClText((checklists[e.target.value] ?? []).join("\n")); setClSaved(false); }}>
+            <option value="injury">Injury / Illness</option>
+            <option value="near_miss">Near Miss / Risk</option>
+            <option value="property">Property Damage</option>
+            <option value="security">Security Event</option>
+          </select>
+          <textarea rows={6} value={clText} onChange={e => { setClText(e.target.value); setClSaved(false); }}
+            style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+            <button onClick={async () => {
+              const items = clText.split("\n").map(s => s.trim()).filter(Boolean);
+              try {
+                await api.updateResponseChecklist(clType, items);
+                setChecklists(c => ({ ...c, [clType]: items }));
+                setClSaved(true);
+              } catch (err) { setError(err.message); }
+            }} style={{ padding: "8px 18px", background: C.sage, color: "#fff", border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>Save checklist</button>
+            {clSaved && <span style={{ fontSize: ".78rem", color: C.sage, fontWeight: 700 }}>✓ Saved</span>}
+          </div>
+        </Card>
+
         <Card title="Notification rules">
           <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 12 }}>
             Matching events create in-app alerts for the recipients. Email adds an email copy (delivery setup pending).
@@ -248,7 +299,22 @@ export default function S5fCompanySettings({ companyName, onHome }) {
 
         <Card title={`Sites (${cfg.sites.length})`}>
           <div style={{ marginBottom: 12 }}>
-            {cfg.sites.map(s => chip(`${s.name}${s.location ? ` · ${s.location}` : ""}`, () => removeSite(s.id)))}
+            {cfg.sites.map(s => (
+              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                {chip(`${s.name}${s.location ? ` · ${s.location}` : ""}`, () => removeSite(s.id))}
+                <label style={{ fontSize: ".74rem", fontWeight: 600, color: s.hasFloorplan ? C.pine : C.slate, background: s.hasFloorplan ? C.foam : "#EEF2F0", padding: "5px 12px", borderRadius: 20, cursor: "pointer" }}>
+                  🗺️ {s.hasFloorplan ? "Replace floor plan" : "Upload floor plan"}
+                  <input type="file" accept="image/*" style={{ display: "none" }}
+                    onChange={e => handleFloorplanUpload(e, s.id)} />
+                </label>
+                {s.hasFloorplan && (
+                  <button onClick={async () => { await api.updateSiteFloorplan(s.id, null); setCfg(await api.fetchConfig()); }}
+                    style={{ background: "none", border: "1px solid #E4B4B4", color: C.red, borderRadius: 20, padding: "4px 12px", fontSize: ".72rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                    Remove plan
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
           <form onSubmit={addSite} style={{ display: "flex", gap: 10 }}>
             <input style={{ ...inputStyle, width: 180 }} placeholder="Site name" value={newSite.name}

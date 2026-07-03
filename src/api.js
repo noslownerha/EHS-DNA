@@ -99,6 +99,12 @@ export const api = {
   createNotificationRule: (r) => req("/notification-rules", { method: "POST", body: r }),
   deleteNotificationRule: (id) => req(`/notification-rules/${id}`, { method: "DELETE" }),
 
+  // response checklists & floor plans
+  responseChecklists: () => req("/response-checklists"),
+  updateResponseChecklist: (type, items) => req(`/response-checklists/${type}`, { method: "PUT", body: { items } }),
+  siteFloorplan: (siteId) => req(`/sites/${siteId}/floorplan`),
+  updateSiteFloorplan: (siteId, floorplan) => req(`/sites/${siteId}/floorplan`, { method: "PUT", body: { floorplan } }),
+
   // billing
   billingConfig: () => req("/billing/config"),
   updateBillingConfig: (patch) => req("/billing/config", { method: "PUT", body: patch }),

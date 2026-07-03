@@ -24,11 +24,11 @@ app.post("/api/auth/login", (req, res) => {
   if (!user || !bcrypt.compareSync(password, user.password_hash))
     return res.status(401).json({ error: "Invalid email or password" });
   const token = jwt.sign(
-    { uid: user.id, tenant: user.tenant_id, role: user.role, name: user.name },
+    { uid: user.id, tenant: user.tenant_id, role: user.role, name: user.name, op: !!user.is_operator },
     SECRET, { expiresIn: TOKEN_TTL }
   );
   const site = user.site_id ? db.prepare("SELECT name FROM sites WHERE id = ?").get(user.site_id) : null;
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, site: site?.name ?? null, siteId: user.site_id } });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, site: site?.name ?? null, siteId: user.site_id, isOperator: !!user.is_operator } });
 });
 
 function auth(req, res, next) {
@@ -43,6 +43,9 @@ function requireRole(...roles) {
     roles.includes(req.auth.role) ? next() : res.status(403).json({ error: "Insufficient permissions" });
 }
 const ADMINISH = ["admin", "safety"];
+function requireOperator(req, res, next) {
+  return req.auth.op ? next() : res.status(403).json({ error: "Operator access only" });
+}
 
 app.post("/api/auth/change-password", auth, (req, res) => {
   const { current, next: nextPw } = req.body || {};
@@ -62,13 +65,39 @@ app.post("/api/leads", (req, res) => {
     .run((name ?? "").slice(0, 200), String(email).slice(0, 200), (company ?? "").slice(0, 200), (message ?? "").slice(0, 2000));
   res.json({ ok: true });
 });
-app.get("/api/leads", auth, requireRole("admin"), (req, res) =>
+app.get("/api/leads", auth, requireOperator, (req, res) =>
   res.json(db.prepare("SELECT * FROM leads ORDER BY created_at DESC").all()));
+
+// ── Response checklists (post-incident immediate steps, per type) ────────────
+app.get("/api/response-checklists", auth, (req, res) => {
+  const rows = db.prepare("SELECT incident_type, items FROM response_checklists WHERE tenant_id = ?").all(req.auth.tenant);
+  res.json(Object.fromEntries(rows.map(r => [r.incident_type, JSON.parse(r.items)])));
+});
+app.put("/api/response-checklists/:type", auth, requireRole(...ADMINISH), (req, res) => {
+  const items = req.body?.items;
+  if (!Array.isArray(items)) return res.status(400).json({ error: "items array required" });
+  db.prepare(`INSERT INTO response_checklists (tenant_id, incident_type, items) VALUES (?, ?, ?)
+              ON CONFLICT(tenant_id, incident_type) DO UPDATE SET items = excluded.items`)
+    .run(req.auth.tenant, req.params.type, JSON.stringify(items.filter(i => i && i.trim())));
+  res.json({ ok: true });
+});
+
+// ── Site floor plans ──────────────────────────────────────────────────────────
+app.get("/api/sites/:id/floorplan", auth, (req, res) => {
+  const row = db.prepare("SELECT floorplan FROM sites WHERE id = ? AND tenant_id = ?").get(req.params.id, req.auth.tenant);
+  res.json({ floorplan: row?.floorplan ?? null });
+});
+app.put("/api/sites/:id/floorplan", auth, requireRole(...ADMINISH), (req, res) => {
+  const { floorplan } = req.body || {};   // base64 data URL or null to remove
+  db.prepare("UPDATE sites SET floorplan = ? WHERE id = ? AND tenant_id = ?")
+    .run(floorplan ?? null, req.params.id, req.auth.tenant);
+  res.json({ ok: true });
+});
 
 // ── Tenant config (drives BRAND on the frontend; editable = onboarding) ──────
 app.get("/api/config", auth, (req, res) => {
   const t = db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.auth.tenant);
-  const sites = db.prepare("SELECT id, name, location FROM sites WHERE tenant_id = ? AND active = 1").all(req.auth.tenant);
+  const sites = db.prepare("SELECT id, name, location, (floorplan IS NOT NULL) AS hasFloorplan FROM sites WHERE tenant_id = ? AND active = 1").all(req.auth.tenant);
   const departments = db.prepare("SELECT id, name FROM departments WHERE tenant_id = ? AND active = 1").all(req.auth.tenant);
   res.json({
     company: t.name, shortName: t.short_name, industry: t.industry, tagline: t.tagline,
@@ -172,14 +201,14 @@ app.get("/api/incidents", auth, (req, res) =>
                        LEFT JOIN users u ON u.id = i.reported_by
                        WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)));
 app.post("/api/incidents", auth, (req, res) => {
-  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt } = req.body || {};
+  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos } = req.body || {};
   if (!type) return res.status(400).json({ error: "type required" });
   const ref = nextRef("INC", "incidents");
-  const r = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  const r = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(req.auth.tenant, ref, type, severity ?? null, siteId ?? null, description ?? null,
          locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
-         req.auth.uid, occurredAt ?? null);
+         req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null);
   // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
   const events = ["incident_any"];
   if (type === "injury") events.push("incident_injury");
@@ -484,7 +513,7 @@ app.delete("/api/notification-rules/:id", auth, requireRole(...ADMINISH), (req, 
 });
 
 // ── Billing module ────────────────────────────────────────────────────────────
-require("./billing.cjs")(app, db, auth, requireRole);
+require("./billing.cjs")(app, db, auth, () => requireOperator);
 
 // ── Training compliance summary (per-staff rollup against required trainings) ─
 app.get("/api/dashboard/compliance", auth, (req, res) => {
@@ -492,7 +521,7 @@ app.get("/api/dashboard/compliance", auth, (req, res) => {
   const users = db.prepare(`SELECT u.id, u.name, u.role, u.department_id, s.name AS site, d.name AS dept
                             FROM users u LEFT JOIN sites s ON s.id = u.site_id
                             LEFT JOIN departments d ON d.id = u.department_id
-                            WHERE u.tenant_id = ? AND u.active = 1`).all(t);
+                            WHERE u.tenant_id = ? AND u.active = 1 AND u.is_operator = 0`).all(t);
   const trainings = db.prepare("SELECT * FROM trainings WHERE tenant_id = ? AND active = 1").all(t);
   const completions = db.prepare("SELECT * FROM training_completions WHERE tenant_id = ?").all(t);
 

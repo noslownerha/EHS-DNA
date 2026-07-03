@@ -389,6 +389,7 @@ function EditableField({ label, value, onSave, multiline = false, canEdit = true
 export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, onHome }) {
   const [incident, setIncident] = useState({ ...SEED_DETAIL, id: incidentId ?? SEED_DETAIL.id });
   const [dbId, setDbId] = useState(null); // server row id, needed for PUT calls
+  const [floorRef, setFloorRef] = useState(null); // { plan, pos:{x,y} }
   const [showClose, setShowClose] = useState(false);
 
   // Load the real incident + its CAs, overlaying server data onto the seed shape
@@ -398,6 +399,12 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
       const row = incs.find(i => i.ref === incidentId);
       if (!row) return;
       setDbId(row.id);
+      if (row.floor_pos && row.site_id) {
+        const pos = JSON.parse(row.floor_pos);
+        api.siteFloorplan(row.site_id).then(r => {
+          if (r.floorplan) setFloorRef({ plan: r.floorplan, pos });
+        }).catch(() => {});
+      }
       const rowCAs = cas.filter(c => c.incident_id === row.id);
       setIncident(i => ({
         ...i,
@@ -507,6 +514,16 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
 
               <EditableField label="Description" value={incident.description} multiline canEdit={canEdit}
                 onSave={v => updateField("description", v)} />
+
+              {floorRef && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.mist, marginBottom: 8 }}>Marked location</div>
+                  <div style={{ position: "relative", maxWidth: 420 }}>
+                    <img src={floorRef.plan} alt="Floor plan" style={{ width: "100%", borderRadius: 8, border: "1px solid #E2EBE6", display: "block" }} />
+                    <div style={{ position: "absolute", left: `${floorRef.pos.x}%`, top: `${floorRef.pos.y}%`, transform: "translate(-50%, -90%)", fontSize: "1.4rem", pointerEvents: "none" }}>📍</div>
+                  </div>
+                </div>
+              )}
               <EditableField label="Location within site" value={incident.location} canEdit={canEdit}
                 onSave={v => updateField("location", v)} />
 

@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -67,7 +69,16 @@ function PhotoThumb({ photo, onRemove }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S2a4 — Photos & Location
 // ════════════════════════════════════════════════════════════════════════════
-export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
+export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
+  const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === site);
+  const [plan, setPlan] = useState(null);
+  const [showPlan, setShowPlan] = useState(false);
+  const [floorPos, setFloorPos] = useState(null);   // { x, y } as % of image
+  useEffect(() => {
+    if (siteRec?.hasFloorplan) {
+      api.siteFloorplan(siteRec.id).then(r => setPlan(r.floorplan)).catch(() => {});
+    }
+  }, [siteRec?.id]);
   const [photos,     setPhotos]    = useState([]);
   const [anonymous,  setAnonymous] = useState(false);
   const [gpsGranted, setGps]       = useState(false);
@@ -183,7 +194,43 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
 
         {gpsError && <div style={{ fontSize: ".76rem", color: "#C0392B", margin: "-8px 0 14px 4px" }}>{gpsError}</div>}
 
-        {/* Floor plan overlay — hidden until per-site floor plan uploads exist */}
+        {/* Floor plan — only when this site has one uploaded */}
+        {plan && (
+          <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.ink }}>Mark location on floor plan</div>
+                <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>{floorPos ? "Location marked — tap to adjust" : "Tap to open the site map"}</div>
+              </div>
+              <button onClick={() => setShowPlan(true)} style={{
+                padding: "7px 14px", background: floorPos ? C.sage : C.white,
+                color: floorPos ? C.white : C.pine,
+                border: `1.5px solid ${floorPos ? C.sage : C.mint}`,
+                borderRadius: 6, fontFamily: "'DM Sans', sans-serif",
+                fontSize: ".78rem", fontWeight: 600, cursor: "pointer",
+              }}>{floorPos ? "✓ Marked" : "Open map"}</button>
+            </div>
+          </div>
+        )}
+        {showPlan && plan && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(15,31,23,.85)", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 14 }}>
+            <div style={{ color: "#fff", fontSize: ".85rem", marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>Tap the incident location</div>
+            <div style={{ position: "relative", maxWidth: "100%", maxHeight: "78vh" }}>
+              <img src={plan} alt="Floor plan" style={{ maxWidth: "100%", maxHeight: "78vh", borderRadius: 8, display: "block" }}
+                onClick={e => {
+                  const r = e.target.getBoundingClientRect();
+                  setFloorPos({ x: +(((e.clientX - r.left) / r.width) * 100).toFixed(1),
+                                y: +(((e.clientY - r.top) / r.height) * 100).toFixed(1) });
+                }} />
+              {floorPos && (
+                <div style={{ position: "absolute", left: `${floorPos.x}%`, top: `${floorPos.y}%`, transform: "translate(-50%, -90%)", fontSize: "1.6rem", pointerEvents: "none" }}>📍</div>
+              )}
+            </div>
+            <button onClick={() => setShowPlan(false)} style={{ marginTop: 14, padding: "10px 28px", background: C.sage, color: "#fff", border: "none", borderRadius: 8, fontSize: ".9rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+              {floorPos ? "Done" : "Close"}
+            </button>
+          </div>
+        )}
         {false && (<>
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -224,7 +271,7 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
       </div>
 
       <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 20px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
-        <button className="continue-btn" onClick={() => onContinue?.({ photos, gpsGranted, gpsCoords, anonymous: false })} style={{
+        <button className="continue-btn" onClick={() => onContinue?.({ photos, gpsGranted, gpsCoords, floorPos, anonymous: false })} style={{
           width: "100%", padding: "14px", background: C.sage, color: C.white,
           border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
           fontSize: ".95rem", fontWeight: 700, cursor: "pointer", transition: "all .18s",

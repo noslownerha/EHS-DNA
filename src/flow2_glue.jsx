@@ -175,7 +175,7 @@ export function IncidentProvider({
     const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === d.site);
     api.createIncident({
       type: d.incidentType, severity: d.severity, siteId: siteRec?.id ?? null,
-      description: d.description, locationDetail: d.location,
+      description: d.description, locationDetail: d.location, floorPos: d.floorPos ?? null,
       involved: d.involved ?? [], occurredAt: d.datetime ?? null,
     }).then(({ ref, id }) => dispatch({ type: "SERVER_REF", ref, dbId: id }))
       .catch(err => console.error("Incident save failed:", err.message));
@@ -266,6 +266,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
       return (
         <S2a4PhotosLocation
           onHome={onHome ?? onDone}
+          site={state.draft.site}
           onBack={back}
           onContinue={data => {
             savePhotos(data);
