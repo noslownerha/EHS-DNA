@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS checklists (
   tenant_id INTEGER NOT NULL REFERENCES tenants(id),
   name TEXT NOT NULL,
   items TEXT NOT NULL,              -- JSON array of {id,label,category}
+  site_id INTEGER REFERENCES sites(id),   -- null = available at all sites
+  kind TEXT DEFAULT 'checklist',          -- checklist | gemba
+  frequency_days INTEGER,                 -- null = on-demand only
   active INTEGER DEFAULT 1,
   created_at TEXT DEFAULT (datetime('now'))
 );
@@ -191,6 +194,11 @@ CREATE INDEX IF NOT EXISTS idx_incidents_tenant ON incidents(tenant_id, created_
 CREATE INDEX IF NOT EXISTS idx_completions_user ON training_completions(tenant_id, user_id);
 `);
 
+// Idempotent migrations for databases created before these columns existed
+["site_id INTEGER REFERENCES sites(id)", "kind TEXT DEFAULT 'checklist'", "frequency_days INTEGER"].forEach(col => {
+  try { db.exec(`ALTER TABLE checklists ADD COLUMN ${col}`); } catch {}
+});
+
 // ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
 function seed() {
   const t = db.prepare("SELECT id FROM tenants WHERE id = 1").get();
@@ -232,6 +240,32 @@ function seed() {
       ["Hot Work Awareness",                 "cbt",       12],
       ["Ethanol & Flammable Liquids Safety", "cbt",       12],
     ].forEach(([title, kind, freq]) => trStmt.run(title, kind, freq));
+    // Starter inspection checklists — editable in the builder; per-site schedules
+    const clStmt = db.prepare(`INSERT INTO checklists (tenant_id, name, items, kind, frequency_days)
+                               VALUES (1, ?, ?, ?, ?)`);
+    const items = arr => JSON.stringify(arr.map((label, i) => ({ id: `i${i + 1}`, label })));
+    clStmt.run("Forklift / PIT Pre-Use", items([
+      "Tires & wheels in good condition", "Forks not bent or cracked", "Hydraulics — no leaks",
+      "Horn and lights working", "Brakes and steering responsive", "Seatbelt functional",
+      "Battery/fuel level adequate", "Data plate legible",
+    ]), "checklist", null);
+    clStmt.run("Fire Extinguisher Inspection", items([
+      "Extinguisher in designated location", "Access unobstructed", "Pressure gauge in green",
+      "Pin and tamper seal intact", "Hose/nozzle free of damage", "Inspection tag current",
+    ]), "checklist", 60);
+    clStmt.run("Eyewash Station Check", items([
+      "Station accessible and marked", "Flushing fluid flows from both heads", "Caps in place",
+      "Water clear (no discoloration)", "Activation within 1 second", "Inspection tag updated",
+    ]), "checklist", 180);
+    clStmt.run("AED Readiness Check", items([
+      "Status indicator shows ready", "Battery within expiry", "Pads sealed and within expiry",
+      "Case and signage intact", "Rescue kit present",
+    ]), "checklist", 30);
+    clStmt.run("Gemba Walk", items([
+      "Housekeeping / 5S condition", "PPE compliance observed", "Blocked exits or egress issues",
+      "Equipment guarding in place", "Spill or leak evidence", "Staff safety feedback collected",
+    ]), "gemba", null);
+
     db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact)
                 VALUES (1, 250, 75, 8, 0, 'ap@whistlepigrye.com')`).run();
   });

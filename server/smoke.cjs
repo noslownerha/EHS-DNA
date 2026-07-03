@@ -97,6 +97,26 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const usersAfter = await fetch(`${B}/api/users`, { headers: H() }).then(j);
   ok("deactivate user", usersAfter.find(u => u.id === staff.id).active === 0);
 
+  // Checklist schedule: 3 scheduled lists × 4 sites = 12 rows, all due-now (never run)
+  const sched = await fetch(`${B}/api/checklists/schedule`, { headers: H() }).then(j);
+  ok("schedule rollup", sched.length === 12 && sched.every(s => s.daysUntil <= 0 || s.dueSoon !== undefined));
+
+  // Complete an extinguisher inspection at Moriah → its next due moves out ~60 days
+  const lists = await fetch(`${B}/api/checklists`, { headers: H() }).then(j);
+  const ext = lists.find(l => l.name.includes("Extinguisher"));
+  const insp2 = await fetch(`${B}/api/inspections`, { method: "POST", headers: H(),
+    body: JSON.stringify({ checklistId: ext.id, siteId: 1 }) }).then(j);
+  await fetch(`${B}/api/inspections/${insp2.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ responses: { i1: "pass" }, complete: true }) });
+  const sched2 = await fetch(`${B}/api/checklists/schedule`, { headers: H() }).then(j);
+  const row = sched2.find(s => s.checklistId === ext.id && s.siteId === 1);
+  ok("schedule advances after run", row && row.lastRun && row.daysUntil >= 59 && !row.overdue);
+
+  const editedCl = await fetch(`${B}/api/checklists/${ext.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ frequencyDays: 30 }) });
+  const sched3 = await fetch(`${B}/api/checklists/schedule`, { headers: H() }).then(j);
+  ok("checklist edit", editedCl.ok && sched3.find(s => s.checklistId === ext.id && s.siteId === 1).frequencyDays === 30);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

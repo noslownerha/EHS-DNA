@@ -209,10 +209,51 @@ app.put("/api/cas/:id", auth, (req, res) => {
 
 // ── Checklists / inspections / findings ──────────────────────────────────────
 app.get("/api/checklists", auth, listAll("checklists"));
-app.post("/api/checklists", auth, requireRole(...ADMINISH), (req, res) => {
-  const r = db.prepare("INSERT INTO checklists (tenant_id, name, items) VALUES (?, ?, ?)")
-    .run(req.auth.tenant, req.body.name, JSON.stringify(req.body.items ?? []));
+app.post("/api/checklists", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
+  const { name, items, siteId, kind, frequencyDays } = req.body || {};
+  if (!name) return res.status(400).json({ error: "name required" });
+  const r = db.prepare("INSERT INTO checklists (tenant_id, name, items, site_id, kind, frequency_days) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(req.auth.tenant, name, JSON.stringify(items ?? []), siteId ?? null, kind ?? "checklist", frequencyDays ?? null);
   res.json({ id: r.lastInsertRowid });
+});
+app.put("/api/checklists/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
+  const { name, items, siteId, kind, frequencyDays, active } = req.body || {};
+  db.prepare(`UPDATE checklists SET name = COALESCE(?, name),
+              items = COALESCE(?, items), site_id = COALESCE(?, site_id),
+              kind = COALESCE(?, kind), frequency_days = COALESCE(?, frequency_days),
+              active = COALESCE(?, active)
+              WHERE id = ? AND tenant_id = ?`)
+    .run(name, items ? JSON.stringify(items) : null, siteId, kind, frequencyDays, active,
+         req.params.id, req.auth.tenant);
+  res.json({ ok: true });
+});
+
+// ── Checklist schedule: per checklist × site — last run, next due, overdue ────
+app.get("/api/checklists/schedule", auth, (req, res) => {
+  const t = req.auth.tenant;
+  const sites = db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1").all(t);
+  const lists = db.prepare("SELECT * FROM checklists WHERE tenant_id = ? AND active = 1 AND frequency_days IS NOT NULL").all(t);
+  const out = [];
+  for (const cl of lists) {
+    const applicable = cl.site_id ? sites.filter(s => s.id === cl.site_id) : sites;
+    for (const site of applicable) {
+      const last = db.prepare(`SELECT MAX(completed_at) d FROM inspections
+                               WHERE tenant_id = ? AND checklist_id = ? AND site_id = ? AND status = 'complete'`)
+        .get(t, cl.id, site.id).d;
+      const base = last ? new Date(last) : null;
+      const nextDue = base ? new Date(base.getTime() + cl.frequency_days * 86400000) : new Date(); // never run = due now
+      const daysUntil = Math.ceil((nextDue.getTime() - Date.now()) / 86400000);
+      out.push({
+        checklistId: cl.id, checklist: cl.name, kind: cl.kind,
+        siteId: site.id, site: site.name,
+        frequencyDays: cl.frequency_days,
+        lastRun: last, nextDue: nextDue.toISOString().slice(0, 10),
+        daysUntil, overdue: daysUntil < 0, dueSoon: daysUntil >= 0 && daysUntil <= 14,
+      });
+    }
+  }
+  out.sort((a, b) => a.daysUntil - b.daysUntil);
+  res.json(out);
 });
 app.get("/api/inspections", auth, listAll("inspections", "started_at DESC"));
 app.post("/api/inspections", auth, (req, res) => {
