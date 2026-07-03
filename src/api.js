@@ -91,6 +91,13 @@ export const api = {
   listCompletions: () => req("/completions"),
   logCompletion: (c) => req("/completions", { method: "POST", body: c }),
 
+  // notifications
+  listNotifications: () => req("/notifications"),
+  markNotificationsRead: (ids) => req("/notifications/read", { method: "PUT", body: { ids } }),
+  notificationRules: () => req("/notification-rules"),
+  createNotificationRule: (r) => req("/notification-rules", { method: "POST", body: r }),
+  deleteNotificationRule: (id) => req(`/notification-rules/${id}`, { method: "DELETE" }),
+
   // billing
   billingConfig: () => req("/billing/config"),
   updateBillingConfig: (patch) => req("/billing/config", { method: "PUT", body: patch }),

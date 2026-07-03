@@ -174,19 +174,16 @@ app.post("/api/incidents", auth, (req, res) => {
     .run(req.auth.tenant, ref, type, severity ?? null, siteId ?? null, description ?? null,
          locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
          req.auth.uid, occurredAt ?? null);
-  // Auto-notify on injury incidents (fire-and-forget webhook → n8n → email/SMS)
-  if (type === "injury" && process.env.EHS_NOTIFY_WEBHOOK) {
-    const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
-    fetch(process.env.EHS_NOTIFY_WEBHOOK, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event: "injury_incident", ref, site,
-        severity: severity ?? "unspecified",
-        description: (description ?? "").slice(0, 500),
-        reportedBy: req.auth.name, at: new Date().toISOString(),
-      }),
-    }).catch(err => console.error("Notify webhook failed:", err.message));
-  }
+  // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
+  const events = ["incident_any"];
+  if (type === "injury") events.push("incident_injury");
+  if (severity === "critical" || severity === "serious") events.push("incident_critical");
+  const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
+  notify(req.auth.tenant, events, {
+    title: `${type === "injury" ? "Injury reported" : "Incident reported"}: ${ref}`,
+    body: `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,
+    linkKind: "incident", linkRef: ref,
+  });
   res.json({ id: r.lastInsertRowid, ref });
 });
 app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
@@ -291,6 +288,14 @@ app.post("/api/findings", auth, (req, res) => {
                         VALUES (?, ?, ?, ?, ?, ?, ?)`)
     .run(req.auth.tenant, inspectionId ?? null, siteId ?? null, severity ?? "low", description,
          JSON.stringify(photos ?? []), req.auth.uid);
+  if (severity === "high" || severity === "critical") {
+    const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
+    notify(req.auth.tenant, ["finding_high"], {
+      title: `High-severity finding logged`,
+      body: `${site ?? "Unassigned site"} · ${description.slice(0, 120)} · by ${req.auth.name}`,
+      linkKind: "finding", linkRef: String(r.lastInsertRowid),
+    });
+  }
   res.json({ id: r.lastInsertRowid });
 });
 app.put("/api/findings/:id", auth, (req, res) => {
@@ -394,6 +399,63 @@ app.get("/api/dashboard/summary", auth, (req, res) => {
   res.json(summary);
 });
 
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+function notify(tenantId, events, { title, body, linkKind, linkRef }) {
+  try {
+    const rules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId)
+      .filter(r => events.includes(r.event));
+    if (!rules.length) return;
+    const recipients = new Set();
+    let wantsEmail = false;
+    for (const r of rules) {
+      if (r.email) wantsEmail = true;
+      JSON.parse(r.recipient_users || "[]").forEach(id => recipients.add(id));
+      const roles = JSON.parse(r.recipient_roles || "[]");
+      if (roles.length)
+        db.prepare(`SELECT id FROM users WHERE tenant_id = ? AND active = 1 AND role IN (${roles.map(() => "?").join(",")})`)
+          .all(tenantId, ...roles).forEach(u => recipients.add(u.id));
+    }
+    const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref, emailed)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    recipients.forEach(uid => stmt.run(tenantId, uid, title, body ?? null, linkKind ?? null, linkRef ?? null, wantsEmail ? 1 : 0));
+    if (wantsEmail && process.env.EHS_EMAIL_WEBHOOK) {
+      const emails = db.prepare(`SELECT email FROM users WHERE id IN (${[...recipients].map(() => "?").join(",")})`)
+        .all(...recipients).map(u => u.email);
+      fetch(process.env.EHS_EMAIL_WEBHOOK, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: emails, subject: title, text: body ?? title }),
+      }).catch(err => console.error("Email webhook failed:", err.message));
+    }
+  } catch (e) { console.error("notify() failed:", e.message); }
+}
+
+app.get("/api/notifications", auth, (req, res) =>
+  res.json(db.prepare(`SELECT * FROM notifications WHERE tenant_id = ? AND user_id = ?
+                       ORDER BY created_at DESC LIMIT 50`).all(req.auth.tenant, req.auth.uid)));
+app.put("/api/notifications/read", auth, (req, res) => {
+  const ids = req.body?.ids;
+  if (Array.isArray(ids) && ids.length)
+    db.prepare(`UPDATE notifications SET read = 1 WHERE tenant_id = ? AND user_id = ? AND id IN (${ids.map(() => "?").join(",")})`)
+      .run(req.auth.tenant, req.auth.uid, ...ids);
+  else
+    db.prepare("UPDATE notifications SET read = 1 WHERE tenant_id = ? AND user_id = ?").run(req.auth.tenant, req.auth.uid);
+  res.json({ ok: true });
+});
+
+app.get("/api/notification-rules", auth, requireRole(...ADMINISH), (req, res) =>
+  res.json(db.prepare("SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1").all(req.auth.tenant)));
+app.post("/api/notification-rules", auth, requireRole(...ADMINISH), (req, res) => {
+  const { event, recipientRoles, recipientUsers, email } = req.body || {};
+  if (!event) return res.status(400).json({ error: "event required" });
+  const r = db.prepare("INSERT INTO notification_rules (tenant_id, event, recipient_roles, recipient_users, email) VALUES (?, ?, ?, ?, ?)")
+    .run(req.auth.tenant, event, JSON.stringify(recipientRoles ?? []), JSON.stringify(recipientUsers ?? []), email ? 1 : 0);
+  res.json({ id: r.lastInsertRowid });
+});
+app.delete("/api/notification-rules/:id", auth, requireRole(...ADMINISH), (req, res) => {
+  db.prepare("UPDATE notification_rules SET active = 0 WHERE id = ? AND tenant_id = ?").run(req.params.id, req.auth.tenant);
+  res.json({ ok: true });
+});
 
 // ── Billing module ────────────────────────────────────────────────────────────
 require("./billing.cjs")(app, db, auth, requireRole);

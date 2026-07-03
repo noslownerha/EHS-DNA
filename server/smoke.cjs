@@ -117,6 +117,19 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const sched3 = await fetch(`${B}/api/checklists/schedule`, { headers: H() }).then(j);
   ok("checklist edit", editedCl.ok && sched3.find(s => s.checklistId === ext.id && s.siteId === 1).frequencyDays === 30);
 
+  // Notifications: injury incident triggers default rule → admin gets in-app notif
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", siteId: 1, description: "notif test" }) }).then(j);
+  const notifs = await fetch(`${B}/api/notifications`, { headers: H() }).then(j);
+  ok("injury notification", notifs.length >= 1 && notifs[0].title.includes("Injury") && notifs[0].emailed === 1);
+  const sNotifs = await fetch(`${B}/api/notifications`, { headers: sH }).then(j);
+  ok("staff not notified", sNotifs.length === 0);
+  await fetch(`${B}/api/notifications/read`, { method: "PUT", headers: H(), body: JSON.stringify({}) });
+  const after = await fetch(`${B}/api/notifications`, { headers: H() }).then(j);
+  ok("mark read", after.every(n => n.read === 1));
+  const rules = await fetch(`${B}/api/notification-rules`, { headers: H() }).then(j);
+  ok("default rule seeded", rules.length === 1 && rules[0].event === "incident_injury");
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

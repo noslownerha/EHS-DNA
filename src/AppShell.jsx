@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { BRAND, ROLE_PERMS, TAB_CONFIG } from "./constants.js";
 import { api } from "./api.js";
 
@@ -41,8 +41,75 @@ export function EHSHeader({ onHome, title, rightContent, dark = false }) {
             {BRAND.tagline.split(" ").slice(0, 4).join(" ")}…
           </span>
         )}
+        <NotificationBell />
         <AccountButton />
       </div>
+    </div>
+  );
+}
+
+// ── Notification bell (poll every 60s; dropdown inbox) ───────────────────────
+function NotificationBell() {
+  const account = useContext(AccountContext);
+  const [items, setItems] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  const load = () => api.listNotifications().then(setItems).catch(() => {});
+  useEffect(() => {
+    if (!account?.user) return;
+    load();
+    const iv = setInterval(load, 60000);
+    return () => clearInterval(iv);
+  }, [account?.user?.id]);
+
+  if (!account?.user) return null;
+  const unread = items.filter(n => !n.read).length;
+
+  function openPanel() {
+    setOpen(o => !o);
+    if (!open && unread) {
+      api.markNotificationsRead().then(load).catch(() => {});
+    }
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={openPanel} title="Notifications" style={{
+        width: 28, height: 28, borderRadius: "50%", position: "relative",
+        background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+        color: "#fff", fontSize: ".85rem", cursor: "pointer", lineHeight: 1,
+      }}>🔔
+        {unread > 0 && (
+          <span style={{
+            position: "absolute", top: -4, right: -4, minWidth: 16, height: 16,
+            background: "#C0392B", color: "#fff", borderRadius: 9, fontSize: ".6rem",
+            fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "0 3px", fontFamily: "'DM Sans', sans-serif",
+          }}>{unread > 9 ? "9+" : unread}</span>
+        )}
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", right: -40, top: 36, zIndex: 300,
+          background: "#fff", borderRadius: 10, boxShadow: "0 8px 30px rgba(0,0,0,.25)",
+          width: "min(320px, 88vw)", maxHeight: 380, overflowY: "auto",
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #EEF2F0", fontSize: ".85rem", fontWeight: 700, color: "#0F1F17" }}>
+            Notifications
+          </div>
+          {items.length === 0 && <div style={{ padding: 18, fontSize: ".8rem", color: "#8FA3A0" }}>Nothing yet.</div>}
+          {items.map(n => (
+            <div key={n.id} style={{ padding: "10px 14px", borderBottom: "1px solid #F5F8F6", background: n.read ? "#fff" : "#F3FAF5" }}>
+              <div style={{ fontSize: ".82rem", fontWeight: 700, color: "#0F1F17" }}>{n.title}</div>
+              {n.body && <div style={{ fontSize: ".76rem", color: "#4A5568", marginTop: 2 }}>{n.body}</div>}
+              <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 3 }}>
+                {(n.created_at ?? "").slice(0, 16).replace("T", " ")}{n.emailed ? " · 📧 emailed" : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

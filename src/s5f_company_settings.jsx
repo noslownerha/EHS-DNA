@@ -35,11 +35,36 @@ export default function S5fCompanySettings({ companyName, onHome }) {
   const [saved, setSaved]   = useState(false);
   const [error, setError]   = useState(null);
   const [newSite, setNewSite] = useState({ name: "", location: "" });
+  const [rules, setRules] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [newRule, setNewRule] = useState({ event: "incident_injury", recipientRoles: ["admin", "safety"], recipientUsers: [], email: true });
   const [newDept, setNewDept] = useState("");
 
   useEffect(() => {
     api.fetchConfig().then(setCfg).catch(err => setError(err.message));
+    api.notificationRules().then(setRules).catch(() => {});
+    api.listUsers().then(setUsers).catch(() => {});
   }, []);
+
+  const EVENTS = [
+    { value: "incident_any",      label: "Any incident" },
+    { value: "incident_injury",   label: "Injury / illness incident" },
+    { value: "incident_critical", label: "Serious or critical severity" },
+  ];
+  const ROLES = ["admin", "safety", "site_manager", "trainer"];
+  const toggleIn = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+
+  async function addRule(e) {
+    e.preventDefault();
+    try {
+      await api.createNotificationRule(newRule);
+      setRules(await api.notificationRules());
+    } catch (err) { setError(err.message); }
+  }
+  async function removeRule(id) {
+    try { await api.deleteNotificationRule(id); setRules(await api.notificationRules()); }
+    catch (err) { setError(err.message); }
+  }
 
   function set(field, value) { setCfg(c => ({ ...c, [field]: value })); setSaved(false); }
   function setTriage(field, value) { setCfg(c => ({ ...c, triage: { ...c.triage, [field]: value } })); setSaved(false); }
@@ -165,6 +190,61 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           }}>{saving ? "Saving…" : "Save changes"}</button>
           {saved && <span style={{ fontSize: ".82rem", color: C.sage, fontWeight: 600 }}>✓ Saved</span>}
         </div>
+
+        <Card title="Notification rules">
+          <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 12 }}>
+            Matching events create in-app alerts for the recipients. Email adds an email copy (delivery setup pending).
+          </p>
+          {rules.map(r => (
+            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #F0F4F2", fontSize: ".84rem", flexWrap: "wrap", gap: 6 }}>
+              <div>
+                <b style={{ color: C.ink }}>{(
+                  { incident_any: "Any incident", incident_injury: "Injury / illness", incident_critical: "Serious / critical" }[r.event] ?? r.event
+                )}</b>
+                <span style={{ color: C.mist, marginLeft: 8 }}>
+                  → {[...JSON.parse(r.recipient_roles || "[]"),
+                       ...JSON.parse(r.recipient_users || "[]").map(id => users.find(u => u.id === id)?.name ?? `#${id}`)
+                     ].join(", ") || "no recipients"}
+                  {r.email ? " · 📧 email" : ""}
+                </span>
+              </div>
+              <button onClick={() => removeRule(r.id)} style={{ background: "none", border: "1px solid #D0DEDB", borderRadius: 6, padding: "4px 10px", fontSize: ".74rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
+            </div>
+          ))}
+          <form onSubmit={addRule} style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+              <select style={{ ...inputStyle, width: 220 }} value={newRule.event}
+                onChange={e => setNewRule(r => ({ ...r, event: e.target.value }))}>
+                {EVENTS.map(ev => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".82rem", color: C.ink }}>
+                <input type="checkbox" checked={newRule.email} style={{ accentColor: C.sage }}
+                  onChange={e => setNewRule(r => ({ ...r, email: e.target.checked }))} /> also email
+              </label>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              {ROLES.map(role => (
+                <button type="button" key={role} onClick={() => setNewRule(r => ({ ...r, recipientRoles: toggleIn(r.recipientRoles, role) }))} style={{
+                  padding: "5px 12px", borderRadius: 20, fontSize: ".76rem", fontWeight: 600, marginRight: 6, marginBottom: 6,
+                  border: `1.5px solid ${newRule.recipientRoles.includes(role) ? C.sage : "#D0DEDB"}`,
+                  background: newRule.recipientRoles.includes(role) ? C.foam : C.white,
+                  color: newRule.recipientRoles.includes(role) ? C.pine : C.slate,
+                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}>{newRule.recipientRoles.includes(role) ? "✓ " : ""}{role.replace("_", " ")}</button>
+              ))}
+              {users.filter(u => u.active).map(u => (
+                <button type="button" key={u.id} onClick={() => setNewRule(r => ({ ...r, recipientUsers: toggleIn(r.recipientUsers, u.id) }))} style={{
+                  padding: "5px 12px", borderRadius: 20, fontSize: ".76rem", fontWeight: 600, marginRight: 6, marginBottom: 6,
+                  border: `1.5px dashed ${newRule.recipientUsers.includes(u.id) ? C.sage : "#D0DEDB"}`,
+                  background: newRule.recipientUsers.includes(u.id) ? C.foam : C.white,
+                  color: newRule.recipientUsers.includes(u.id) ? C.pine : C.slate,
+                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}>{newRule.recipientUsers.includes(u.id) ? "✓ " : ""}{u.name}</button>
+              ))}
+            </div>
+            <button type="submit" style={{ padding: "8px 18px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>+ Add rule</button>
+          </form>
+        </Card>
 
         <Card title={`Sites (${cfg.sites.length})`}>
           <div style={{ marginBottom: 12 }}>
