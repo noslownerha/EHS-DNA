@@ -300,6 +300,25 @@ app.post("/api/trainings", auth, requireRole(...ADMINISH, "trainer"), (req, res)
          JSON.stringify(requiredRoles ?? []), JSON.stringify(requiredDepartments ?? []));
   res.json({ id: r.lastInsertRowid });
 });
+app.put("/api/trainings/:id", auth, requireRole(...ADMINISH, "trainer"), (req, res) => {
+  const { title, kind, content, frequencyMonths, requiredRoles, requiredDepartments, requiredUsers, active } = req.body || {};
+  db.prepare(`UPDATE trainings SET title = COALESCE(?, title), kind = COALESCE(?, kind),
+              content = COALESCE(?, content),
+              frequency_months = ${frequencyMonths === null ? "NULL" : "COALESCE(?, frequency_months)"},
+              required_roles = COALESCE(?, required_roles),
+              required_departments = COALESCE(?, required_departments),
+              required_users = COALESCE(?, required_users),
+              active = COALESCE(?, active)
+              WHERE id = ? AND tenant_id = ?`)
+    .run(...[title, kind, content ? JSON.stringify(content) : null,
+         ...(frequencyMonths === null ? [] : [frequencyMonths]),
+         requiredRoles ? JSON.stringify(requiredRoles) : null,
+         requiredDepartments ? JSON.stringify(requiredDepartments) : null,
+         requiredUsers ? JSON.stringify(requiredUsers) : null,
+         active, req.params.id, req.auth.tenant]);
+  res.json({ ok: true });
+});
+
 app.get("/api/completions", auth, (req, res) => {
   const rows = req.auth.role === "staff"
     ? db.prepare("SELECT * FROM training_completions WHERE tenant_id = ? AND user_id = ? ORDER BY completed_at DESC").all(req.auth.tenant, req.auth.uid)
@@ -380,7 +399,9 @@ app.get("/api/dashboard/compliance", auth, (req, res) => {
     const required = trainings.filter(tr => {
       const roles = JSON.parse(tr.required_roles || "[]");
       const depts = JSON.parse(tr.required_departments || "[]");
-      return (roles.length === 0 && depts.length === 0) || roles.includes(u.role) || depts.includes(u.department_id);
+      const users = JSON.parse(tr.required_users || "[]");
+      return (roles.length === 0 && depts.length === 0 && users.length === 0)
+        || roles.includes(u.role) || depts.includes(u.department_id) || users.includes(u.id);
     });
     let current = 0, overdue = 0, expiring = 0;
     const now = Date.now(), soon = now + 30 * 86400000;

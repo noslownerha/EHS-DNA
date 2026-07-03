@@ -22,6 +22,7 @@
 
 import { createContext, useContext, useReducer, useCallback, useState } from "react";
 import { BRAND } from "./constants.js";
+import S4iTrainingBuilder from "./s4i_training_builder";
 import { api } from "./api.js";
 
 import S4aTrainingQueue                    from "./s4a_training_queue";
@@ -42,6 +43,7 @@ export const TRAINING_SCREENS = {
   DETAIL:      "s4f",
   COMPLIANCE:  "s4g",
   STAFF_DETAIL:"s4h",
+  BUILDER:     "s4i",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -266,9 +268,19 @@ export function TrainingRouter({ onDone, onHome }) {
             userRole={user.role}
             onViewTraining={viewTraining}
             onLogGroupSession={openGroupLog}
-            onCreateTraining={() => console.log("→ Create training (CBT editor)")}
+            onCreateTraining={() => navigate(TRAINING_SCREENS.BUILDER)}
           />
         </>
+      );
+
+    // ── s4i: Training Builder ────────────────────────────────────────────────
+    case TRAINING_SCREENS.BUILDER:
+      return (
+        <S4iTrainingBuilder
+          onHome={onHome ?? onDone}
+          companyName={companyName}
+          onBack={back}
+        />
       );
 
     // ── s4f: Training detail (desktop) ───────────────────────────────────────

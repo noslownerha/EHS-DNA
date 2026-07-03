@@ -198,6 +198,7 @@ CREATE INDEX IF NOT EXISTS idx_completions_user ON training_completions(tenant_i
 ["site_id INTEGER REFERENCES sites(id)", "kind TEXT DEFAULT 'checklist'", "frequency_days INTEGER"].forEach(col => {
   try { db.exec(`ALTER TABLE checklists ADD COLUMN ${col}`); } catch {}
 });
+try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'"); } catch {}
 
 // ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
 function seed() {
