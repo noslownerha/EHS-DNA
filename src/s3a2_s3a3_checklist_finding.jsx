@@ -293,10 +293,16 @@ function ChecklistItem({ item, onResult, findings }) {
 export function S3a2ChecklistInProgress({ onHome,
   templateName = "Bottling Line Safety Check",
   site         = "Moriah",
+  checklist    = null,   // DB checklist row: { id, name, items: JSON }
   onComplete,
   onBack,
 }) {
-  const [items,    setItems]    = useState(SEED_ITEMS);
+  const dbItems = checklist
+    ? JSON.parse(checklist.items || "[]").map((it, i) => ({
+        id: it.id ?? i + 1, section: it.category ?? "Checklist", text: it.label ?? String(it), result: null,
+      }))
+    : null;
+  const [items,    setItems]    = useState(dbItems?.length ? dbItems : SEED_ITEMS);
   const [findings, setFindings] = useState([]);
   const [expandedFail, setExpandedFail] = useState(null); // item id with inline finding form open
 

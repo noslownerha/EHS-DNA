@@ -21,6 +21,7 @@ import { createContext, useContext, useReducer, useCallback } from "react";
 import { BRAND } from "./constants.js";
 import { api } from "./api.js";
 
+import { S3a0ChecklistPicker, S3a5Schedule } from "./s3a0_s3a5_picker_schedule";
 import S3a1StartInspection                            from "./s3a1_start_inspection";
 import { S3a2ChecklistInProgress, S3a3LogFinding }    from "./s3a2_s3a3_checklist_finding";
 import { S3a4SessionComplete, S3bQuickFinding }       from "./s3a4_s3b_session_quickfinding";
@@ -32,6 +33,8 @@ import S3eChecklistBuilder                             from "./s3e_checklist_bui
 // ─────────────────────────────────────────────────────────────────────────────
 export const INSPECTION_SCREENS = {
   START:        "s3a1",
+  PICKER:       "s3a0",
+  SCHEDULE:     "s3a5",
   CHECKLIST:    "s3a2",
   LOG_FINDING:  "s3a3",
   SESSION_DONE: "s3a4",
@@ -82,9 +85,17 @@ function reducer(state, action) {
       return {
         ...state,
         mode: action.mode,
-        screen: action.mode === "quick"
-          ? INSPECTION_SCREENS.QUICK
-          : INSPECTION_SCREENS.CHECKLIST,
+        screen: action.mode === "quick"      ? INSPECTION_SCREENS.QUICK
+              : action.mode === "scheduled"  ? INSPECTION_SCREENS.SCHEDULE
+              : INSPECTION_SCREENS.PICKER,   // checklist | gemba → pick one first
+        history: [...state.history, state.screen],
+      };
+
+    case "SELECT_CHECKLIST":
+      return {
+        ...state,
+        activeChecklist: action.checklist,
+        screen: INSPECTION_SCREENS.CHECKLIST,
         history: [...state.history, state.screen],
       };
 
@@ -139,15 +150,19 @@ export function InspectionProvider({
   initialScreen = INSPECTION_SCREENS.START,
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
+  const stateRef = { current: state };
 
   const navigate     = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);
   const back         = useCallback(() => dispatch({ type: "BACK" }), []);
   const startMode    = useCallback(mode => dispatch({ type: "START_MODE", mode }), []);
+  const selectChecklist = useCallback(checklist => dispatch({ type: "SELECT_CHECKLIST", checklist }), []);
   const completeSession = useCallback((items, findings) => {
     dispatch({ type: "COMPLETE_SESSION", items, findings });
     (async () => {
       try {
-        const { id: inspectionId } = await api.createInspection({});
+        const cl = stateRef?.current?.activeChecklist ?? null;
+        const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === user?.site);
+        const { id: inspectionId } = await api.createInspection({ checklistId: cl?.id ?? null, siteId: siteRec?.id ?? null });
         const responses = Object.fromEntries((items ?? []).map(it => [it.id, it.result ?? it.status ?? "na"]));
         await api.updateInspection(inspectionId, { responses, complete: true });
         for (const f of (findings ?? [])) {
@@ -174,7 +189,7 @@ export function InspectionProvider({
 
   return (
     <InspectionContext.Provider value={{
-      state, navigate, back, startMode, completeSession, submitQuick, viewFinding, resetSession,
+      state, navigate, back, startMode, selectChecklist, completeSession, submitQuick, viewFinding, resetSession,
       user, companyName,
     }}>
       {children}
@@ -195,7 +210,7 @@ export function useInspection() {
 // InspectionRouter
 // ─────────────────────────────────────────────────────────────────────────────
 export function InspectionRouter({ onDone, onHome }) {
-  const { state, navigate, back, startMode, completeSession, submitQuick, viewFinding, resetSession, user, companyName } = useInspection();
+  const { state, navigate, back, startMode, selectChecklist, completeSession, submitQuick, viewFinding, resetSession, user, companyName } = useInspection();
   const { screen, sessionItems, sessionFindings, viewingFindingId } = state;
 
   switch (screen) {
@@ -212,12 +227,37 @@ export function InspectionRouter({ onDone, onHome }) {
         />
       );
 
+    // ── s3a0: Pick a checklist ───────────────────────────────────────────────
+    case INSPECTION_SCREENS.PICKER:
+      return (
+        <S3a0ChecklistPicker
+          onHome={onHome ?? onDone}
+          onBack={back}
+          user={user}
+          kind={state.mode === "gemba" ? "gemba" : "checklist"}
+          onPick={cl => selectChecklist(cl)}
+        />
+      );
+
+    // ── s3a5: Scheduled inspections ──────────────────────────────────────────
+    case INSPECTION_SCREENS.SCHEDULE:
+      return (
+        <S3a5Schedule
+          onHome={onHome ?? onDone}
+          onBack={back}
+          user={user}
+          onRun={cl => selectChecklist(cl)}
+        />
+      );
+
     // ── s3a2: Checklist in progress ──────────────────────────────────────────
     case INSPECTION_SCREENS.CHECKLIST:
       return (
         <S3a2ChecklistInProgress
           onHome={onHome ?? onDone}
           site={user.site}
+          checklist={state.activeChecklist}
+          templateName={state.activeChecklist?.name}
           onBack={back}
           onComplete={({ items, findings, passCount, failCount, naCount }) => {
             completeSession(items, findings);

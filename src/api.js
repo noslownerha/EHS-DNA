@@ -74,6 +74,8 @@ export const api = {
 
   // inspections & findings
   listChecklists: () => req("/checklists"),
+  updateChecklist: (id, patch) => req(`/checklists/${id}`, { method: "PUT", body: patch }),
+  checklistSchedule: () => req("/checklists/schedule"),
   createChecklist: (c) => req("/checklists", { method: "POST", body: c }),
   listInspections: () => req("/inspections"),
   createInspection: (i) => req("/inspections", { method: "POST", body: i }),
