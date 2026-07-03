@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
 
@@ -146,6 +146,13 @@ export default function S2bConfirmationResponse({
   const canManageCAs = ["admin", "safety", "site_manager"].includes(userRole);
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
   const [checklist, setChecklist]= useState(DEFAULT_CHECKLIST.map((s, i) => ({ id: i, text: s, done: false })));
+  useEffect(() => {
+    api.responseChecklists().then(map => {
+      const items = map[incidentType];
+      if (Array.isArray(items) && items.length)
+        setChecklist(items.map((s, i) => ({ id: i, text: s, done: false })));
+    }).catch(() => {});
+  }, [incidentType]);
   const [newCA,     setNewCA]    = useState("");
   const [caFocused, setCaFocused]= useState(false);
   const [confirmed, setConfirmed]= useState(false);
