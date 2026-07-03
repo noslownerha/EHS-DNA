@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
+import { useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -165,11 +167,66 @@ function SectionHeader({ name, count, onRename, onAdd }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+const FREQ_OPTIONS = [
+  { label: "On demand", value: "" },
+  { label: "Weekly",    value: 7 },
+  { label: "Monthly",   value: 30 },
+  { label: "Every 2 months", value: 60 },
+  { label: "Quarterly", value: 90 },
+  { label: "Every 6 months", value: 180 },
+  { label: "Yearly",    value: 365 },
+];
+
 export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
-  const [selectedTemplate, setSelectedTemplate] = useState(SEED_TEMPLATES[0]);
-  const [items,    setItems]    = useState(SEED_ITEMS);
-  const [sections, setSections] = useState([...new Set(SEED_ITEMS.map(i => i.section))]);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [items,    setItems]    = useState([]);
+  const [sections, setSections] = useState([]);
   const [saved,    setSaved]    = useState(false);
+  const [error,    setError]    = useState(null);
+
+  function rowFromDb(c) {
+    const its = JSON.parse(c.items || "[]");
+    const siteName = (BRAND.siteRecords ?? []).find(s => s.id === c.site_id)?.name ?? "All sites";
+    const schedule = c.frequency_days ? (FREQ_OPTIONS.find(f => f.value === c.frequency_days)?.label ?? `Every ${c.frequency_days}d`) : "On demand";
+    return { id: c.id, name: c.name, site: siteName, siteId: c.site_id, kind: c.kind,
+             frequencyDays: c.frequency_days, items: its.length, schedule, dept: c.kind === "gemba" ? "Gemba" : "Checklist", lastUsed: "", raw: its };
+  }
+
+  function loadTemplates(selectId) {
+    api.listChecklists().then(cls => {
+      const rows = cls.filter(c => c.active).map(rowFromDb);
+      setTemplates(rows);
+      const sel = rows.find(r => r.id === selectId) ?? rows[0] ?? null;
+      selectTemplate(sel);
+    }).catch(err => setError(err.message));
+  }
+  useEffect(() => loadTemplates(), []);
+
+  function selectTemplate(t) {
+    setSelectedTemplate(t);
+    if (!t) { setItems([]); setSections([]); return; }
+    const editorItems = t.raw.map((it, i) => ({
+      id: i + 1, section: it.category ?? "Checklist", text: it.label ?? String(it),
+      defaultSeverity: it.defaultSeverity ?? "Minor", autoAssign: it.autoAssign ?? "Site Manager",
+    }));
+    setItems(editorItems);
+    setSections([...new Set(editorItems.map(i => i.section))].length ? [...new Set(editorItems.map(i => i.section))] : ["Checklist"]);
+    nextId.current = editorItems.length + 1;
+  }
+
+  async function createNew(kind = "checklist") {
+    try {
+      const { id } = await api.createChecklist({ name: kind === "gemba" ? "New Gemba Walk" : "New Checklist", items: [], kind });
+      loadTemplates(id);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function deactivate() {
+    if (!selectedTemplate) return;
+    try { await api.updateChecklist(selectedTemplate.id, { active: 0 }); loadTemplates(); }
+    catch (err) { setError(err.message); }
+  }
   const [newSectionName, setNewSectionName] = useState("");
   const [addingSection,  setAddingSection]  = useState(false);
   const [secFocused,     setSecFocused]     = useState(false);
@@ -208,9 +265,21 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
     setAddingSection(false);
   }
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  async function handleSave() {
+    if (!selectedTemplate) return;
+    try {
+      await api.updateChecklist(selectedTemplate.id, {
+        name: selectedTemplate.name,
+        siteId: selectedTemplate.siteId ?? null,
+        kind: selectedTemplate.kind,
+        frequencyDays: selectedTemplate.frequencyDays ?? null,
+        items: items.map(i => ({ id: `i${i.id}`, label: i.text, category: i.section,
+                                 defaultSeverity: i.defaultSeverity, autoAssign: i.autoAssign })),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+      loadTemplates(selectedTemplate.id);
+    } catch (err) { setError(err.message); }
   }
 
   return (
@@ -248,10 +317,14 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
             </div>
 
             <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-              {SEED_TEMPLATES.map((t, i) => (
-                <div key={t.id} className="template-row" onClick={() => setSelectedTemplate(t)} style={{
+              <div style={{ display: "flex", gap: 8, padding: "10px 12px", borderBottom: "1px solid #F0F4F2" }}>
+                <button onClick={() => createNew("checklist")} style={{ flex: 1, padding: "7px 0", background: C.foam, color: C.pine, border: `1px solid ${C.mint}`, borderRadius: 7, fontSize: ".76rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>+ Checklist</button>
+                <button onClick={() => createNew("gemba")} style={{ flex: 1, padding: "7px 0", background: C.foam, color: C.pine, border: `1px solid ${C.mint}`, borderRadius: 7, fontSize: ".76rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>+ Gemba</button>
+              </div>
+              {templates.map((t, i) => (
+                <div key={t.id} className="template-row" onClick={() => selectTemplate(t)} style={{
                   padding: "12px 14px",
-                  borderBottom: i < SEED_TEMPLATES.length - 1 ? "1px solid #F0F4F2" : "none",
+                  borderBottom: i < templates.length - 1 ? "1px solid #F0F4F2" : "none",
                   cursor: "pointer", transition: "background .12s",
                   background: selectedTemplate?.id === t.id ? C.foam : C.white,
                   borderLeft: selectedTemplate?.id === t.id ? `3px solid ${C.sage}` : "3px solid transparent",
@@ -271,9 +344,25 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
               <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 20px", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <div>
-                    <h2 style={{ fontSize: "1.05rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>{selectedTemplate.name}</h2>
+                    <input value={selectedTemplate.name}
+                      onChange={e => setSelectedTemplate(t => ({ ...t, name: e.target.value }))}
+                      style={{ fontSize: "1.05rem", fontWeight: 700, color: C.ink, marginBottom: 6, border: "1.5px solid transparent", borderRadius: 6, padding: "2px 6px", background: "transparent", fontFamily: "'DM Sans', sans-serif", width: "100%", maxWidth: 380, outline: "none" }}
+                      onFocus={e => e.target.style.borderColor = "#D0DEDB"}
+                      onBlur={e => e.target.style.borderColor = "transparent"} />
                     <div style={{ fontSize: ".78rem", color: C.mist }}>
-                      {selectedTemplate.site} · {selectedTemplate.dept} · {selectedTemplate.schedule} · Last used {selectedTemplate.lastUsed}
+                      {selectedTemplate.kind === 'gemba' ? 'Gemba walk template' : 'Inspection checklist'}
+                    </div>
+                    <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      <select value={selectedTemplate.siteId ?? ""} onChange={e => setSelectedTemplate(t => ({ ...t, siteId: e.target.value ? Number(e.target.value) : null }))}
+                        style={{ padding: "7px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontSize: ".8rem", color: C.ink, fontFamily: "'DM Sans', sans-serif", background: C.white }}>
+                        <option value="">All sites</option>
+                        {(BRAND.siteRecords ?? []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                      <select value={selectedTemplate.frequencyDays ?? ""} onChange={e => setSelectedTemplate(t => ({ ...t, frequencyDays: e.target.value ? Number(e.target.value) : null }))}
+                        style={{ padding: "7px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontSize: ".8rem", color: C.ink, fontFamily: "'DM Sans', sans-serif", background: C.white }}>
+                        {FREQ_OPTIONS.map(f => <option key={f.label} value={f.value}>{f.label}</option>)}
+                      </select>
+                      <button onClick={deactivate} style={{ padding: "7px 12px", background: "none", border: "1px solid #E4B4B4", color: C.red ?? "#C0392B", borderRadius: 7, fontSize: ".76rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Deactivate</button>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
