@@ -85,10 +85,10 @@ export default function S5aSiteManagerDashboard({
   const daysSinceRecordable = siteStats?.daysSince ?? 0;
 
   const kpis = [
-    { label: "Open incidents",   value: siteStats?.openIncidents ?? 0,       color: C.red    },
-    { label: "Open CAs",         value: siteStats?.openCAs ?? 0,             color: C.orange },
-    { label: "Open findings",    value: siteStats?.criticalFindings ?? 0,    color: C.gold   },
-    { label: "Training overdue", value: trainingOverdue ?? 0,                color: C.purple },
+    { label: "Open incidents",   value: siteStats?.openIncidents ?? 0,       color: C.red,    dest: "incidents" },
+    { label: "Open CAs",         value: siteStats?.openCAs ?? 0,             color: C.orange, dest: "cas"       },
+    { label: "Open findings",    value: siteStats?.criticalFindings ?? 0,    color: C.gold,   dest: "findings"  },
+    { label: "Training overdue", value: trainingOverdue ?? 0,                color: C.purple, dest: "training"  },
   ];
 
   const overdueCACount = OPEN_CAS.filter(c => c.overdue).length;
@@ -102,6 +102,8 @@ export default function S5aSiteManagerDashboard({
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes countUp { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:scale(1); } }
         .anim { animation: fadeUp .25s ease both; }
+        .kpi-tile:active { transform: scale(.97); }
+        .kpi-tile:hover { box-shadow: 0 4px 18px rgba(15,31,23,.13); }
         .kpi-val { animation: countUp .4s cubic-bezier(.4,0,.2,1) both; }
         .row-hover:hover { background: ${C.foam} !important; cursor: pointer; }
         .nav-btn:hover { background: ${C.foam} !important; }
@@ -166,16 +168,18 @@ export default function S5aSiteManagerDashboard({
         {/* ── KPI tiles — spec: value and label only, fixed height ── */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 8 }}>
           {kpis.map((kpi, i) => (
-            <div key={i} style={{
+            <button key={i} onClick={() => onNavigate?.(kpi.dest)} className="kpi-tile" style={{
               background: C.white, borderRadius: 10,
               boxShadow: "0 2px 12px rgba(15,31,23,.07)",
-              padding: "20px 22px", height: 90,
+              padding: "20px 22px", height: 90, cursor: "pointer",
               display: "flex", flexDirection: "column", justifyContent: "center",
-              borderTop: `3px solid ${kpi.color}`,
+              border: "none", borderTop: `3px solid ${kpi.color}`,
+              textAlign: "left", fontFamily: "'DM Sans', sans-serif",
+              transition: "transform .12s, box-shadow .12s",
             }}>
               <div className="kpi-val" style={{ fontSize: "1.75rem", fontWeight: 700, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-              <div style={{ fontSize: ".8rem", color: C.slate, marginTop: 4, fontWeight: 500 }}>{kpi.label}</div>
-            </div>
+              <div style={{ fontSize: ".8rem", color: C.slate, marginTop: 4, fontWeight: 500 }}>{kpi.label} →</div>
+            </button>
           ))}
         </div>
 

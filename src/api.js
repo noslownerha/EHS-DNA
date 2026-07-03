@@ -88,6 +88,16 @@ export const api = {
   listCompletions: () => req("/completions"),
   logCompletion: (c) => req("/completions", { method: "POST", body: c }),
 
+  // billing
+  billingConfig: () => req("/billing/config"),
+  updateBillingConfig: (patch) => req("/billing/config", { method: "PUT", body: patch }),
+  billingAdjustments: () => req("/billing/adjustments"),
+  createBillingAdjustment: (a) => req("/billing/adjustments", { method: "POST", body: a }),
+  deleteBillingAdjustment: (id) => req(`/billing/adjustments/${id}`, { method: "DELETE" }),
+  billingInvoices: () => req("/billing/invoices"),
+  generateInvoice: (period) => req("/billing/invoices/generate", { method: "POST", body: { period } }),
+  updateInvoice: (id, status) => req(`/billing/invoices/${id}`, { method: "PUT", body: { status } }),
+
   // triage
   listTriage: () => req("/triage"),
   createTriage: (t) => req("/triage", { method: "POST", body: t }),
