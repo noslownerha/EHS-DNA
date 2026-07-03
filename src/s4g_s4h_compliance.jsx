@@ -96,6 +96,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
   const [sfocused,   setSfocused]   = useState(false);
   const [search,     setSearch]     = useState("");
   const [reminderSent, setReminderSent] = useState(false);
+  const [cardFilter, setCardFilter] = useState(null); // below | overdue | expiring | current
 
   useEffect(() => {
     api.dashboardCompliance().then(setStaff).catch(err => console.error("Compliance load failed:", err.message));
@@ -109,9 +110,13 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
       if (filterSite && s.site !== filterSite) return false;
       if (filterDept && s.dept !== filterDept) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (cardFilter === "below"    && !(s.compliance < 80))   return false;
+      if (cardFilter === "overdue"  && !(s.overdue > 0))       return false;
+      if (cardFilter === "expiring" && !(s.expiring > 0))      return false;
+      if (cardFilter === "current"  && s.compliance !== 100)   return false;
       return true;
     }),
-    [filterSite, filterDept, search]
+    [filterSite, filterDept, search, cardFilter]
   );
 
   const overdueCount      = SEED_STAFF.reduce((n, s) => n + s.overdue, 0);
@@ -120,10 +125,10 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
 
   // KPI tile values
   const kpis = [
-    { label: "Below threshold",  value: SEED_STAFF.filter(s => s.compliance < 80).length, color: C.red,    note: "< 80% compliance" },
-    { label: "Overdue trainings",value: overdueCount,                                      color: C.gold,   note: `${overdueStaff} staff affected` },
-    { label: "Expiring soon",    value: expiringSoonCount,                                 color: C.purple, note: "Within 30 days" },
-    { label: "Fully current",    value: SEED_STAFF.filter(s => s.compliance === 100).length, color: C.sage, note: "100% complete" },
+    { label: "Below threshold",  value: SEED_STAFF.filter(s => s.compliance < 80).length, color: C.red,    note: "< 80% compliance", filter: "below"    },
+    { label: "Overdue trainings",value: overdueCount,                                      color: C.gold,   note: `${overdueStaff} staff affected`, filter: "overdue" },
+    { label: "Expiring soon",    value: expiringSoonCount,                                 color: C.purple, note: "Within 30 days", filter: "expiring" },
+    { label: "Fully current",    value: SEED_STAFF.filter(s => s.compliance === 100).length, color: C.sage, note: "100% complete", filter: "current"  },
   ];
 
   const avgCompliance = Math.round(SEED_STAFF.reduce((n, s) => n + s.compliance, 0) / SEED_STAFF.length);
@@ -144,6 +149,8 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
         input::placeholder { color: ${C.mist}; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .anim { animation: fadeUp .25s ease both; }
+        .kpi-tile:active { transform: scale(.97); }
+        .kpi-tile:hover { box-shadow: 0 4px 18px rgba(15,31,23,.13); }
         .staff-row:hover td { background: ${C.foam} !important; cursor: pointer; }
         select option { color: ${C.ink}; }
         .reminder-btn:hover { background: ${C.pine} !important; }
@@ -160,18 +167,24 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
 
         {/* Spec §14.3: 4 KPI tiles — value and label ONLY, fixed height, no actions inside */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 8 }}>
-          {kpis.map((kpi, i) => (
-            <div key={i} style={{
-              background: C.white, borderRadius: 10,
+          {kpis.map((kpi, i) => {
+            const active = cardFilter === kpi.filter;
+            return (
+            <button key={i} onClick={() => setCardFilter(f => f === kpi.filter ? null : kpi.filter)} className="kpi-tile" style={{
+              background: active ? kpi.color : C.white, borderRadius: 10,
               boxShadow: "0 2px 12px rgba(15,31,23,.07)",
-              padding: "20px 22px", height: 90,
+              padding: "20px 22px", height: 90, cursor: "pointer",
               display: "flex", flexDirection: "column", justifyContent: "center",
-              borderTop: `3px solid ${kpi.color}`,
+              border: "none", borderTop: `3px solid ${kpi.color}`,
+              textAlign: "left", fontFamily: "'DM Sans', sans-serif",
+              transition: "all .12s",
             }}>
-              <div style={{ fontSize: "1.75rem", fontWeight: 700, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-              <div style={{ fontSize: ".8rem", color: C.slate, marginTop: 4, fontWeight: 500 }}>{kpi.label}</div>
-            </div>
-          ))}
+              <div style={{ fontSize: "1.75rem", fontWeight: 700, color: active ? "#fff" : kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+              <div style={{ fontSize: ".8rem", color: active ? "rgba(255,255,255,.85)" : C.slate, marginTop: 4, fontWeight: 500 }}>
+                {kpi.label} {active ? "✕" : ""}
+              </div>
+            </button>
+          );})}
         </div>
 
         {/* Spec §14.3: "Send Reminders" action in the supporting context row BELOW tiles, never inside a tile */}
