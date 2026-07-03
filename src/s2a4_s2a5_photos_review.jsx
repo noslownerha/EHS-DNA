@@ -87,11 +87,15 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
     e.target.value = "";
   }
 
+  const [gpsCoords, setGpsCoords] = useState(null);
+  const [gpsError, setGpsError] = useState(null);
   function handleRequestGps() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(() => setGps(true), () => setGps(false));
-    }
-    setGps(true); // Simulated grant for demo
+    if (!navigator.geolocation) { setGpsError("Location not supported on this device"); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => { setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGps(true); },
+      err => setGpsError(err.code === 1 ? "Location permission denied" : "Could not get location"),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }
 
   function removePhoto(id) {
@@ -162,7 +166,7 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
               <span>📍</span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: ".85rem", color: C.pine }}>GPS location captured</div>
-                <div style={{ fontSize: ".72rem", color: C.mist }}>44.6823° N, 73.4529° W · auto-tagged on photos</div>
+                <div style={{ fontSize: ".72rem", color: C.mist }}>{gpsCoords ? `${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}` : "Captured"} · attached to this report</div>
               </div>
             </div>
           ) : (
@@ -177,7 +181,10 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
           )}
         </div>
 
-        {/* Floor plan overlay */}
+        {gpsError && <div style={{ fontSize: ".76rem", color: "#C0392B", margin: "-8px 0 14px 4px" }}>{gpsError}</div>}
+
+        {/* Floor plan overlay — hidden until per-site floor plan uploads exist */}
+        {false && (<>
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
@@ -197,7 +204,10 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
           </div>
         </div>
 
-        {/* Anonymous option */}
+        </>)}
+
+        {/* Anonymous submission removed by policy */}
+        {false && (<>
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16 }}>
           <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)}
@@ -210,10 +220,11 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome }) {
             </div>
           </label>
         </div>
+        </>)}
       </div>
 
       <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, padding: "14px 20px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
-        <button className="continue-btn" onClick={() => onContinue?.({ photos, gpsGranted, anonymous })} style={{
+        <button className="continue-btn" onClick={() => onContinue?.({ photos, gpsGranted, gpsCoords, anonymous: false })} style={{
           width: "100%", padding: "14px", background: C.sage, color: C.white,
           border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
           fontSize: ".95rem", fontWeight: 700, cursor: "pointer", transition: "all .18s",

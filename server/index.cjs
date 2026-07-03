@@ -118,6 +118,12 @@ app.put("/api/departments/:id", auth, requireRole(...ADMINISH), (req, res) => {
 });
 
 // Users (admin manage; no password in list responses)
+app.get("/api/users/directory", auth, (req, res) =>
+  res.json(db.prepare(`SELECT u.id, u.name, u.role, s.name AS site, d.name AS department
+                       FROM users u LEFT JOIN sites s ON s.id = u.site_id
+                       LEFT JOIN departments d ON d.id = u.department_id
+                       WHERE u.tenant_id = ? AND u.active = 1 ORDER BY u.name`).all(req.auth.tenant)));
+
 app.get("/api/users", auth, requireRole(...ADMINISH, "site_manager"), (req, res) =>
   res.json(db.prepare(`SELECT u.id, u.email, u.name, u.role, u.active, u.site_id, u.department_id,
                        s.name AS site, d.name AS department

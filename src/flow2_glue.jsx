@@ -109,7 +109,8 @@ function reducer(state, action) {
       return { ...state, draft: { ...state.draft, ...action.payload } };
 
     case "SAVE_WHO":
-      return { ...state, draft: { ...state.draft, involved: action.payload } };
+      return { ...state, draft: { ...state.draft, involved: action.payload,
+        dept: action.payload?.person?.dept ?? state.draft.dept } };
 
     case "SAVE_PHOTOS":
       return { ...state, draft: { ...state.draft, ...action.payload } };
@@ -130,7 +131,7 @@ function reducer(state, action) {
       // Replace client-generated id with the server's canonical ref
       return state.submitted
         ? { ...state,
-            submitted: { ...state.submitted, id: action.ref },
+            submitted: { ...state.submitted, id: action.ref, dbId: action.dbId },
             incidents: state.incidents.map(i => i.id === state.submitted.id ? { ...i, id: action.ref } : i) }
         : state;
 
@@ -176,7 +177,7 @@ export function IncidentProvider({
       type: d.incidentType, severity: d.severity, siteId: siteRec?.id ?? null,
       description: d.description, locationDetail: d.location,
       involved: d.involved ?? [], occurredAt: d.datetime ?? null,
-    }).then(({ ref }) => dispatch({ type: "SERVER_REF", ref }))
+    }).then(({ ref, id }) => dispatch({ type: "SERVER_REF", ref, dbId: id }))
       .catch(err => console.error("Incident save failed:", err.message));
   }, []);
   const viewIncident = useCallback(id   => dispatch({ type: "VIEW_INCIDENT", id }), []);
@@ -294,10 +295,12 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           incidentId={submitted?.id}
           incidentType={submitted?.type}
           severity={submitted?.severity}
-          notified={["Dana Kowalski (Site Manager)"]}
+          notified={[`Site manager and safety team${authUser?.site ? ` — ${authUser.site}` : ""} (per notification rules)`]}
           timestamp={submitted?.submittedAt ?? new Date()}
           onDone={() => { resetDraft(); onDone?.(); }}
           onViewIncident={() => viewIncident(submitted?.id)}
+          userRole={authUser?.role ?? "staff"}
+          incidentDbId={submitted?.dbId ?? null}
         />
       );
 

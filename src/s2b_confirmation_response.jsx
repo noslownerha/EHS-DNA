@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -139,7 +140,10 @@ export default function S2bConfirmationResponse({
   onDone,
   onViewIncident,
   onHome,
+  userRole = "staff",
+  incidentDbId = null,
 }) {
+  const canManageCAs = ["admin", "safety", "site_manager"].includes(userRole);
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
   const [checklist, setChecklist]= useState(DEFAULT_CHECKLIST.map((s, i) => ({ id: i, text: s, done: false })));
   const [newCA,     setNewCA]    = useState("");
@@ -166,6 +170,14 @@ export default function S2bConfirmationResponse({
 
   function handleConfirmCAs() {
     setConfirmed(true);
+    if (incidentDbId) {
+      cas.forEach(ca => api.createCA({
+        incidentId: incidentDbId,
+        title: ca.text ?? ca.title ?? String(ca),
+        priority: (ca.priority ?? "medium").toLowerCase(),
+        dueDate: ca.due ?? null,
+      }).catch(err => console.error("CA save failed:", err.message)));
+    }
   }
 
   const timeStr = timestamp.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -222,60 +234,6 @@ export default function S2bConfirmationResponse({
           </div>
         </div>
 
-        {/* ── Part 2: Corrective actions ── */}
-        <div className="anim a1" style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-            <div>
-              <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.ink }}>Corrective actions</h2>
-              <p style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>
-                Auto-suggested based on incident type. Edit, remove, or add before confirming.
-              </p>
-            </div>
-          </div>
-
-          {cas.map(ca => (
-            <CARow key={ca.id} ca={ca} onUpdate={updateCA} onRemove={removeCA} />
-          ))}
-
-          {/* Add CA inline */}
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input
-              value={newCA}
-              onChange={e => setNewCA(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addCA()}
-              onFocus={() => setCaFocused(true)}
-              onBlur={() => setCaFocused(false)}
-              placeholder="Add a corrective action…"
-              style={{
-                flex: 1, padding: "9px 12px",
-                border: `1.5px solid ${caFocused ? C.sage : "#D0DEDB"}`,
-                borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
-                fontSize: ".85rem", color: C.ink, outline: "none",
-                boxShadow: caFocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none",
-                transition: "all .18s",
-              }}
-            />
-            <button onClick={addCA} style={{
-              padding: "9px 14px", background: C.sage, color: C.white,
-              border: "none", borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
-              fontSize: ".82rem", fontWeight: 600, cursor: "pointer",
-            }}>Add</button>
-          </div>
-
-          <button
-            onClick={handleConfirmCAs}
-            style={{
-              width: "100%", marginTop: 12, padding: "12px",
-              background: confirmed ? C.sage + "22" : C.sage,
-              color: confirmed ? C.pine : C.white,
-              border: confirmed ? `1.5px solid ${C.mint}` : "none",
-              borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
-              fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
-              transition: "all .2s",
-            }}
-          >{confirmed ? "✓ Corrective actions confirmed" : `Confirm ${cas.length} corrective action${cas.length !== 1 ? "s" : ""}`}</button>
-        </div>
-
         {/* ── Part 3: Response checklist ── */}
         <div className="anim a2" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden", marginBottom: 14 }}>
           <div style={{ padding: "14px 16px", borderBottom: "1px solid #F0F4F2" }}>
@@ -319,6 +277,62 @@ export default function S2bConfirmationResponse({
             {checklist.filter(c => c.done).length}/{checklist.length} completed · progress auto-saved
           </div>
         </div>
+
+        {/* ── Corrective actions — elevated roles only ── */}
+        {canManageCAs && (
+          <div className="anim a1" style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <h2 style={{ fontSize: "1rem", fontWeight: 600, color: C.ink }}>Corrective actions</h2>
+                <p style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>
+                  Auto-suggested based on incident type. Edit, remove, or add before confirming.
+                </p>
+              </div>
+            </div>
+
+            {cas.map(ca => (
+              <CARow key={ca.id} ca={ca} onUpdate={updateCA} onRemove={removeCA} />
+            ))}
+
+            {/* Add CA inline */}
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <input
+                value={newCA}
+                onChange={e => setNewCA(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addCA()}
+                onFocus={() => setCaFocused(true)}
+                onBlur={() => setCaFocused(false)}
+                placeholder="Add a corrective action…"
+                style={{
+                  flex: 1, padding: "9px 12px",
+                  border: `1.5px solid ${caFocused ? C.sage : "#D0DEDB"}`,
+                  borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
+                  fontSize: ".85rem", color: C.ink, outline: "none",
+                  boxShadow: caFocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none",
+                  transition: "all .18s",
+                }}
+              />
+              <button onClick={addCA} style={{
+                padding: "9px 14px", background: C.sage, color: C.white,
+                border: "none", borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
+                fontSize: ".82rem", fontWeight: 600, cursor: "pointer",
+              }}>Add</button>
+            </div>
+
+            <button
+              onClick={handleConfirmCAs}
+              style={{
+                width: "100%", marginTop: 12, padding: "12px",
+                background: confirmed ? C.sage + "22" : C.sage,
+                color: confirmed ? C.pine : C.white,
+                border: confirmed ? `1.5px solid ${C.mint}` : "none",
+                borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
+                fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
+                transition: "all .2s",
+              }}
+            >{confirmed ? "✓ Corrective actions confirmed" : `Confirm ${cas.length} corrective action${cas.length !== 1 ? "s" : ""}`}</button>
+          </div>
+        )}
 
         {/* View full incident button */}
         <div className="anim a3" style={{ display: "flex", gap: 10 }}>

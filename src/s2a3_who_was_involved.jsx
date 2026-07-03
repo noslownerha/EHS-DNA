@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -10,16 +11,7 @@ const C = {
 };
 
 // Seed staff directory for lookup
-const STAFF_DIRECTORY = [
-  { id: 1,  first: "Sarah",  last: "Mitchell", site: "Moriah",      dept: "Bottling & Packaging",   role: "Staff / Trainee"   },
-  { id: 2,  first: "Marcus", last: "Webb",      site: "Moriah",      dept: "Warehouse",               role: "Staff / Trainee"   },
-  { id: 3,  first: "Tom",    last: "Rivera",    site: "Shoreham",    dept: "Facility Maintenance",             role: "Staff / Trainee"   },
-  { id: 4,  first: "Dana",   last: "Kowalski",  site: "Middlebury",  dept: "Production / Distilling", role: "Site Manager"      },
-  { id: 5,  first: "Priya",  last: "Nair",      site: "Brandenburg", dept: "Administration",          role: "Site Manager"      },
-  { id: 6,  first: "Mia",    last: "Chen",      site: "Middlebury",  dept: "Quality Control",         role: "Inspector"         },
-  { id: 7,  first: "Jake",   last: "Larson",    site: "Moriah",      dept: "Bottling & Packaging",    role: "Staff / Trainee"   },
-  { id: 8,  first: "Beth",   last: "Torres",    site: "Moriah",      dept: "Bottling & Packaging",    role: "Staff / Trainee"   },
-];
+let STAFF_DIRECTORY = [];  // populated from the live staff directory at mount
 
 function fullName(p) { return `${p.first} ${p.last}`; }
 
@@ -211,6 +203,18 @@ export default function S2a3WhoWasInvolved({
   onBack,
   onHome,
 }) {
+  const [, forceRender] = useState(0);
+  useEffect(() => {
+    api.staffDirectory().then(rows => {
+      STAFF_DIRECTORY = rows.map(u => {
+        const [first, ...rest] = (u.name ?? "").split(" ");
+        return { id: u.id, first, last: rest.join(" "), site: u.site ?? "—",
+                 dept: u.department ?? "—", role: u.role === "staff" ? "Staff / Trainee" : u.role.replace("_", " ") };
+      });
+      forceRender(n => n + 1);
+    }).catch(err => console.error("Directory load failed:", err.message));
+  }, []);
+
   const [mode,             setMode]          = useState("staff");   // "staff" | "visitor"
   const [selectedStaff,   setSelectedStaff]  = useState(null);
   const [visitorData,     setVisitorData]    = useState({ name: "", company: "", phone: "", email: "" });
