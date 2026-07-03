@@ -75,7 +75,7 @@ export default function S2a1IncidentType({
           {INCIDENT_TYPES.map(t => (
             <button key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
               padding: "16px 12px", width: "100%",
-              background: selectedType === t.id ? t.bg : C.white,
+              background: selectedType === t.id ? t.bg : "#EFF6F1",
               border: `2px solid ${selectedType === t.id ? t.color : "#C9D8D0"}`,
               borderRadius: 12, cursor: "pointer", transition: "all .15s",
               boxShadow: selectedType === t.id
@@ -105,11 +105,11 @@ export default function S2a1IncidentType({
           </div>
         </div>
 
-        <div style={{ height: 8, flexShrink: 0 }} />
+        <div style={{ height: 86, flexShrink: 0 }} />
       </div>
 
-      {/* Bottom CTA */}
-      <div style={{ padding: "12px 18px 14px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.06)", flexShrink: 0 }}>
+      {/* Bottom CTA — fixed above the tab bar so it is always visible */}
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: 58, zIndex: 90, padding: "10px 18px 12px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.08)" }}>
         <button className="continue-btn" onClick={() => selectedType && onContinue?.({ type: selectedType, site, datetime })} disabled={!selectedType} style={{
           width: "100%", padding: "14px",
           background: selectedType ? C.sage : "#B0C8BA",

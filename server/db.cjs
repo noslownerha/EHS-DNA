@@ -280,4 +280,47 @@ function seed() {
 }
 seed();
 
+// ── Backfill: add later-added defaults to databases created before they existed ─
+function ensureDefaults() {
+  const t1 = db.prepare("SELECT id FROM tenants WHERE id = 1").get();
+  if (!t1) return;
+
+  if (!db.prepare("SELECT tenant_id FROM billing_config WHERE tenant_id = 1").get()) {
+    db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact)
+                VALUES (1, 250, 75, 8, 0, 'ap@whistlepigrye.com')`).run();
+    console.log("Backfilled: billing_config defaults");
+  }
+
+  if (db.prepare("SELECT COUNT(*) n FROM checklists WHERE tenant_id = 1").get().n === 0) {
+    const clStmt = db.prepare(`INSERT INTO checklists (tenant_id, name, items, kind, frequency_days)
+                               VALUES (1, ?, ?, ?, ?)`);
+    const items = arr => JSON.stringify(arr.map((label, i) => ({ id: `i${i + 1}`, label })));
+    clStmt.run("Forklift / PIT Pre-Use", items([
+      "Tires & wheels in good condition", "Forks not bent or cracked", "Hydraulics — no leaks",
+      "Horn and lights working", "Brakes and steering responsive", "Seatbelt functional",
+      "Battery/fuel level adequate", "Data plate legible"]), "checklist", null);
+    clStmt.run("Fire Extinguisher Inspection", items([
+      "Extinguisher in designated location", "Access unobstructed", "Pressure gauge in green",
+      "Pin and tamper seal intact", "Hose/nozzle free of damage", "Inspection tag current"]), "checklist", 60);
+    clStmt.run("Eyewash Station Check", items([
+      "Station accessible and marked", "Flushing fluid flows from both heads", "Caps in place",
+      "Water clear (no discoloration)", "Activation within 1 second", "Inspection tag updated"]), "checklist", 180);
+    clStmt.run("AED Readiness Check", items([
+      "Status indicator shows ready", "Battery within expiry", "Pads sealed and within expiry",
+      "Case and signage intact", "Rescue kit present"]), "checklist", 30);
+    clStmt.run("Gemba Walk", items([
+      "Housekeeping / 5S condition", "PPE compliance observed", "Blocked exits or egress issues",
+      "Equipment guarding in place", "Spill or leak evidence", "Staff safety feedback collected"]), "gemba", null);
+    console.log("Backfilled: starter checklist catalog");
+  }
+
+  const hasRulesTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notification_rules'").get();
+  if (hasRulesTable && db.prepare("SELECT COUNT(*) n FROM notification_rules WHERE tenant_id = 1").get().n === 0) {
+    db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
+                VALUES (1, 'incident_injury', '["admin","safety"]', 1)`).run();
+    console.log("Backfilled: default injury notification rule");
+  }
+}
+ensureDefaults();
+
 module.exports = db;
