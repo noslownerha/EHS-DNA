@@ -20,20 +20,6 @@ const STATUS = {
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple },
 };
 
-const SEED_STAFF = [
-  { id: 1,  name: "Sarah Mitchell",  site: "Moriah",      dept: "Bottling & Packaging",    compliance: 78,  overdue: 2, expiring: 1, current: 5, total: 8  },
-  { id: 2,  name: "Jake Larson",     site: "Moriah",      dept: "Bottling & Packaging",    compliance: 62,  overdue: 3, expiring: 0, current: 5, total: 8  },
-  { id: 3,  name: "Beth Torres",     site: "Moriah",      dept: "Bottling & Packaging",    compliance: 100, overdue: 0, expiring: 0, current: 8, total: 8  },
-  { id: 4,  name: "Marcus Webb",     site: "Moriah",      dept: "Warehouse",               compliance: 88,  overdue: 1, expiring: 0, current: 7, total: 8  },
-  { id: 5,  name: "Carlos R.",       site: "Moriah",      dept: "Warehouse",               compliance: 50,  overdue: 4, expiring: 0, current: 4, total: 8  },
-  { id: 6,  name: "Tom Rivera",      site: "Shoreham",    dept: "Facility Maintenance",             compliance: 75,  overdue: 2, expiring: 1, current: 6, total: 9  },
-  { id: 7,  name: "Dana Kowalski",   site: "Middlebury",  dept: "Production / Distilling", compliance: 92,  overdue: 0, expiring: 1, current: 12,total: 13 },
-  { id: 8,  name: "Mia Chen",        site: "Middlebury",  dept: "Quality Control",         compliance: 100, overdue: 0, expiring: 0, current: 10,total: 10 },
-  { id: 9,  name: "Lena Park",       site: "Middlebury",  dept: "Production / Distilling", compliance: 85,  overdue: 1, expiring: 0, current: 11,total: 13 },
-  { id: 10, name: "Priya Nair",      site: "Brandenburg", dept: "Administration",          compliance: 100, overdue: 0, expiring: 0, current: 7, total: 7  },
-  { id: 11, name: "Drew Nash",       site: "Shoreham",    dept: "Bottling & Packaging",    compliance: 44,  overdue: 5, expiring: 0, current: 4, total: 9  },
-  { id: 12, name: "Ray Santos",      site: "Middlebury",  dept: "Production / Distilling", compliance: 69,  overdue: 2, expiring: 2, current: 9, total: 13 },
-];
 
 const STAFF_TRAININGS = [
   { id: 1, title: "Bottling Line Safety Orientation",   status: "overdue",       due: "Jun 10, 2024",  expiresAt: null           },

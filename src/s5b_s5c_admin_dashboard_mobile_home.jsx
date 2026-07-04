@@ -236,7 +236,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
 // ════════════════════════════════════════════════════════════════════════════
 export function S5cStaffMobileHome({
   onHome,
-  user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging", role: "staff" },
+  user = { name: "Staff", site: "Moriah", dept: "", role: "staff" },
   triageEnabled = true,   // driven by company triage config
   onTriage,               // () => void — launches Flow 0
   onReportIncident,       // () => void — launches Flow 2

@@ -16,24 +16,8 @@ const C = {
 // Seed data scoped to Moriah site
 const SITE = { name: "Moriah", location: "Mineville, NY", staffCount: 18, deptCount: 4 };
 
-const RECENT_INCIDENTS = [
-  { id: "INC-2024-0087", type: "Injury",       severity: "significant", reporter: "Sarah M.", date: "Jun 12", status: "open"   },
-  { id: "INC-2024-0082", type: "Vehicle",      severity: "significant", reporter: "Jake L.",  date: "May 20", status: "open"   },
-  { id: "INC-2024-0079", type: "Near Miss",    severity: "minor",       reporter: "Marcus W.",date: "May 14", status: "closed" },
-];
 
-const OPEN_CAS = [
-  { id: 1, desc: "Review incident with Sarah Mitchell",   assignee: "Dana K.",  due: "Jun 15", overdue: true  },
-  { id: 2, desc: "Conduct root cause analysis — Jun 12", assignee: "Mia C.",   due: "Jun 19", overdue: false },
-  { id: 3, desc: "Review vehicle inspection records",    assignee: "Dana K.",  due: "May 25", overdue: true  },
-  { id: 4, desc: "Assess loading dock leveller repair",  assignee: "Dana K.",  due: "Jul 15", overdue: false },
-];
 
-const OPEN_FINDINGS = [
-  { id: 1, desc: "Guard missing on conveyor line 3",         severity: "critical", ageDays: 2  },
-  { id: 2, desc: "Blocked emergency exit — pallet at door",  severity: "major",    ageDays: 4  },
-  { id: 3, desc: "Forklift horn inoperable — unit 4",        severity: "critical", ageDays: 5  },
-];
 
 const SEV_COLOR = {
   critical:    C.red, major: C.orange, significant: C.gold, minor: C.sage,
@@ -67,18 +51,43 @@ function SectionCard({ title, subtitle, children, action }) {
 export default function S5aSiteManagerDashboard({
   onHome,
   companyName = BRAND.company,
-  manager     = { name: "Dana Kowalski", site: "Moriah" },
+  manager     = { name: "Site Manager", site: "Moriah" },
   onNavigate, // (destination: string) => void
 }) {
   const [reminderSent, setReminderSent] = useState(false);
   const [siteStats, setSiteStats] = useState(null);
   const [trainingOverdue, setTrainingOverdue] = useState(null);
 
+  const [RECENT_INCIDENTS, setRecentIncidents] = useState([]);
+  const [OPEN_CAS, setOpenCAs] = useState([]);
+  const [OPEN_FINDINGS, setOpenFindings] = useState([]);
+
   useEffect(() => {
     Promise.all([api.dashboardSummary(), api.dashboardCompliance()]).then(([sites, compliance]) => {
       setSiteStats(sites.find(s => s.name === manager.site) ?? null);
       setTrainingOverdue(compliance.filter(c => c.site === manager.site).reduce((n, c) => n + c.overdue, 0));
     }).catch(err => console.error("Site dashboard load failed:", err.message));
+
+    Promise.all([api.listIncidents(), api.listCAs(), api.listFindings()]).then(([incs, cas, finds]) => {
+      const mine = rows => rows.filter(r => (r.site_name ?? "") === manager.site);
+      const typeLabel = { injury: "Injury", near_miss: "Near Miss", property: "Property", security: "Security" };
+      setRecentIncidents(mine(incs).slice(0, 4).map(i => ({
+        id: i.ref, type: typeLabel[i.type] ?? i.type, severity: i.severity ?? "minor",
+        reporter: i.reporter_name ?? "—",
+        date: (i.occurred_at ?? i.created_at ?? "").slice(5, 10), status: i.status,
+      })));
+      const incBySite = Object.fromEntries(incs.map(i => [i.id, i.site_name]));
+      setOpenCAs(cas.filter(c => c.status !== "done" && c.status !== "verified" && incBySite[c.incident_id] === manager.site)
+        .slice(0, 4).map(c => ({
+          id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned",
+          due: (c.due_date ?? "").slice(5, 10) || "—",
+          overdue: c.due_date && new Date(c.due_date) < new Date(),
+        })));
+      setOpenFindings(mine(finds).filter(f => f.status !== "resolved").slice(0, 4).map(f => ({
+        id: f.id, desc: f.description, severity: f.severity === "high" ? "critical" : f.severity ?? "minor",
+        ageDays: Math.max(0, Math.floor((Date.now() - new Date(f.created_at).getTime()) / 86400000)),
+      })));
+    }).catch(err => console.error("Site lists load failed:", err.message));
   }, [manager.site]);
 
   // Spec: days-since-recordable is a visible, motivational metric on site manager dashboards
