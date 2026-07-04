@@ -45,7 +45,7 @@ function Card({ title, right, children }) {
   );
 }
 
-export default function S5gBilling({ companyName, onHome }) {
+export default function S5gBilling({ companyName, onHome, tenantId = null, tenantName = null }) {
   const [cfg, setCfg]         = useState(null);
   const [adjs, setAdjs]       = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -55,7 +55,7 @@ export default function S5gBilling({ companyName, onHome }) {
   const [newAdj, setNewAdj]   = useState({ kind: "credit", amount: "", description: "", recurring: false });
 
   function loadAll() {
-    Promise.all([api.billingConfig(), api.billingAdjustments(), api.billingInvoices()])
+    Promise.all([api.billingConfig(tenantId), api.billingAdjustments(tenantId), api.billingInvoices(tenantId)])
       .then(([c, a, i]) => { setCfg(c); setAdjs(a); setInvoices(i); })
       .catch(err => setError(err.message));
   }
@@ -68,7 +68,7 @@ export default function S5gBilling({ companyName, onHome }) {
         basePrice: Number(cfg.base_price), perSite: Number(cfg.per_site),
         perUser: Number(cfg.per_user), autoApprove: !!cfg.auto_approve,
         billingContact: cfg.billing_contact,
-      });
+      }, tenantId);
       setSaved(true);
     } catch (err) { setError(err.message); }
   }
@@ -77,7 +77,7 @@ export default function S5gBilling({ companyName, onHome }) {
     e.preventDefault();
     setError(null);
     try {
-      await api.createBillingAdjustment({ ...newAdj, amount: Number(newAdj.amount) });
+      await api.createBillingAdjustment({ ...newAdj, amount: Number(newAdj.amount) }, tenantId);
       setNewAdj({ kind: "credit", amount: "", description: "", recurring: false });
       loadAll();
     } catch (err) { setError(err.message); }
@@ -85,19 +85,19 @@ export default function S5gBilling({ companyName, onHome }) {
 
   async function generate() {
     setError(null);
-    try { await api.generateInvoice(period); loadAll(); }
+    try { await api.generateInvoice(period, tenantId); loadAll(); }
     catch (err) { setError(err.message); }
   }
 
   async function move(inv, status) {
     setError(null);
-    try { await api.updateInvoice(inv.id, status); loadAll(); }
+    try { await api.updateInvoice(inv.id, status, tenantId); loadAll(); }
     catch (err) { setError(err.message); }
   }
 
   function openPrint(inv) {
     // print route needs the auth header — fetch then open as blob
-    fetch(`/api/billing/invoices/${inv.id}/print`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    fetch(`/api/billing/invoices/${inv.id}/print${tenantId ? `?tenantId=${tenantId}` : ""}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then(r => r.text())
       .then(html => {
         const w = window.open("", "_blank");
@@ -131,7 +131,7 @@ export default function S5gBilling({ companyName, onHome }) {
       } />
 
       <div style={{ maxWidth: 820, margin: "0 auto", padding: "26px 20px" }}>
-        <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Billing</h1>
+        <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Billing{tenantName ? ` — ${tenantName}` : ""}</h1>
         <p style={{ fontSize: ".84rem", color: C.mist, marginBottom: 20 }}>
           Charges are computed from configured active sites and users at generation time.
         </p>
@@ -175,7 +175,7 @@ export default function S5gBilling({ companyName, onHome }) {
                   {a.kind === "discount_pct" ? `${a.amount}%` : fmt$(a.amount)} · {a.recurring ? "recurring" : a.consumed_invoice_id ? "used" : "one-time"}
                 </span>
               </div>
-              <button style={btn("#EEF2F0", C.slate)} onClick={() => api.deleteBillingAdjustment(a.id).then(loadAll)}>Remove</button>
+              <button style={btn("#EEF2F0", C.slate)} onClick={() => api.deleteBillingAdjustment(a.id, tenantId).then(loadAll)}>Remove</button>
             </div>
           ))}
           <form onSubmit={addAdj} style={{ display: "grid", gridTemplateColumns: "auto 110px 1fr auto auto", gap: 8, marginTop: 14, alignItems: "center" }}>

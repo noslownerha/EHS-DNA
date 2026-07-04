@@ -29,7 +29,7 @@
  */
 
 import { BRAND } from "./constants.js";
-import { createContext, useContext, useReducer, useCallback } from "react";
+import { createContext, useContext, useReducer, useCallback, useState } from "react";
 
 import S5aSiteManagerDashboard                        from "./s5a_site_manager_dashboard";
 import { S5bCompanyAdminDashboard, S5cStaffMobileHome } from "./s5b_s5c_admin_dashboard_mobile_home";
@@ -37,6 +37,7 @@ import S5dReportBuilder                                from "./s5d_report_builde
 import S5eManageStaff                                  from "./s5e_manage_staff";
 import S5fCompanySettings                              from "./s5f_company_settings";
 import S5gBilling                                      from "./s5g_billing";
+import S5hOpsConsole                                   from "./s5h_ops_console";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen IDs
@@ -49,6 +50,7 @@ export const DASHBOARD_SCREENS = {
   STAFF_MGMT:   "s5e",
   SETTINGS:     "s5f",
   BILLING:      "s5g",
+  OPS:          "s5h",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,6 +135,7 @@ export function DashboardRouter({
   onHome,
 }) {
   const { state, navigate, back, user, companyName } = useDashboard();
+  const [billingTarget, setBillingTarget] = useState(null);
   const { screen } = state;
 
   // Shared cross-module navigation handler used by both desktop dashboards
@@ -142,6 +145,7 @@ export function DashboardRouter({
       case "staff":     return navigate(DASHBOARD_SCREENS.STAFF_MGMT);
       case "settings":  return navigate(DASHBOARD_SCREENS.SETTINGS);
       case "billing":   return navigate(DASHBOARD_SCREENS.BILLING);
+      case "ops":       return navigate(DASHBOARD_SCREENS.OPS);
       case "incidents": return onIncidents?.();
       case "findings":  return onFindings?.();
       case "cas":       return onCAs?.();
@@ -213,6 +217,17 @@ export function DashboardRouter({
         <S5gBilling
           onHome={onHome ?? onDone}
           companyName={companyName}
+          tenantId={billingTarget?.id ?? null}
+          tenantName={billingTarget?.name ?? null}
+        />
+      );
+
+    // ── s5h: EHS DNA operator console ────────────────────────────────────────
+    case DASHBOARD_SCREENS.OPS:
+      return (
+        <S5hOpsConsole
+          onHome={onHome ?? onDone}
+          onOpenBilling={(id, name) => { setBillingTarget({ id, name }); navigate(DASHBOARD_SCREENS.BILLING); }}
         />
       );
 

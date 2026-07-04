@@ -512,6 +512,50 @@ app.delete("/api/notification-rules/:id", auth, requireRole(...ADMINISH), (req, 
   res.json({ ok: true });
 });
 
+// ── Operator console (EHS DNA staff only) ────────────────────────────────────
+app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
+  const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
+  res.json(tenants.map(t => {
+    const sites = db.prepare("SELECT COUNT(*) n FROM sites WHERE tenant_id = ? AND active = 1").get(t.id).n;
+    const users = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0").get(t.id).n;
+    const cfg = db.prepare("SELECT base_price, per_site, per_user, auto_approve FROM billing_config WHERE tenant_id = ?").get(t.id);
+    const lastInv = db.prepare("SELECT ref, period, status, total FROM invoices WHERE tenant_id = ? ORDER BY period DESC LIMIT 1").get(t.id);
+    const est = cfg ? Math.round((cfg.base_price + sites * cfg.per_site + users * cfg.per_user) * 100) / 100 : null;
+    return { id: t.id, name: t.name, industry: t.industry, created: t.created_at,
+             sites, users, billing: cfg ?? null, estMonthly: est, lastInvoice: lastInv ?? null };
+  }));
+});
+
+app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
+  const { name, industry, adminEmail, adminName } = req.body || {};
+  if (!name || !adminEmail) return res.status(400).json({ error: "name and adminEmail required" });
+  const bcrypt2 = require("bcryptjs");
+  const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
+  try {
+    const tx = db.transaction(() => {
+      const tr = db.prepare(`INSERT INTO tenants (name, industry, tagline, triage_enabled)
+                             VALUES (?, ?, 'Safety & Operations Management', 0)`).run(name, industry ?? null);
+      const tid = tr.lastInsertRowid;
+      db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role)
+                  VALUES (?, ?, ?, ?, 'admin')`)
+        .run(tid, String(adminEmail).toLowerCase().trim(), bcrypt2.hashSync(tempPassword, 10), adminName ?? "Admin");
+      db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve)
+                  VALUES (?, 250, 75, 8, 0)`).run(tid);
+      db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
+                  VALUES (?, 'incident_injury', '["admin","safety"]', 1)`).run(tid);
+      const rc = db.prepare("INSERT INTO response_checklists (tenant_id, incident_type, items) VALUES (?, ?, ?)");
+      rc.run(tid, "injury", JSON.stringify(["Complete first aid log", "Notify shift supervisor",
+        "Preserve scene until photos are done", "Secure the area if hazard still present",
+        "Check in with the injured person within 24 hours"]));
+      return tid;
+    });
+    const tenantId = tx();
+    res.json({ tenantId, adminEmail, tempPassword });
+  } catch (e) {
+    res.status(409).json({ error: "Admin email already exists" });
+  }
+});
+
 // ── Billing module ────────────────────────────────────────────────────────────
 require("./billing.cjs")(app, db, auth, () => requireOperator);
 

@@ -105,15 +105,19 @@ export const api = {
   siteFloorplan: (siteId) => req(`/sites/${siteId}/floorplan`),
   updateSiteFloorplan: (siteId, floorplan) => req(`/sites/${siteId}/floorplan`, { method: "PUT", body: { floorplan } }),
 
-  // billing
-  billingConfig: () => req("/billing/config"),
-  updateBillingConfig: (patch) => req("/billing/config", { method: "PUT", body: patch }),
-  billingAdjustments: () => req("/billing/adjustments"),
-  createBillingAdjustment: (a) => req("/billing/adjustments", { method: "POST", body: a }),
-  deleteBillingAdjustment: (id) => req(`/billing/adjustments/${id}`, { method: "DELETE" }),
-  billingInvoices: () => req("/billing/invoices"),
-  generateInvoice: (period) => req("/billing/invoices/generate", { method: "POST", body: { period } }),
-  updateInvoice: (id, status) => req(`/billing/invoices/${id}`, { method: "PUT", body: { status } }),
+  // operator console
+  opTenants: () => req("/op/tenants"),
+  opCreateTenant: (t) => req("/op/tenants", { method: "POST", body: t }),
+
+  // billing (operator may pass tenantId to act on any account)
+  billingConfig: (tid) => req(`/billing/config${tid ? `?tenantId=${tid}` : ""}`),
+  updateBillingConfig: (patch, tid) => req(`/billing/config${tid ? `?tenantId=${tid}` : ""}`, { method: "PUT", body: patch }),
+  billingAdjustments: (tid) => req(`/billing/adjustments${tid ? `?tenantId=${tid}` : ""}`),
+  createBillingAdjustment: (a, tid) => req(`/billing/adjustments${tid ? `?tenantId=${tid}` : ""}`, { method: "POST", body: a }),
+  deleteBillingAdjustment: (id, tid) => req(`/billing/adjustments/${id}${tid ? `?tenantId=${tid}` : ""}`, { method: "DELETE" }),
+  billingInvoices: (tid) => req(`/billing/invoices${tid ? `?tenantId=${tid}` : ""}`),
+  generateInvoice: (period, tid) => req("/billing/invoices/generate", { method: "POST", body: { period, tenantId: tid } }),
+  updateInvoice: (id, status, tid) => req(`/billing/invoices/${id}${tid ? `?tenantId=${tid}` : ""}`, { method: "PUT", body: { status } }),
 
   // triage
   listTriage: () => req("/triage"),

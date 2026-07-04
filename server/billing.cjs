@@ -7,11 +7,16 @@
  */
 module.exports = function mountBilling(app, db, auth, requireRole) {
   const ADMIN = requireRole("admin");
+  // Operators can act on any tenant; everyone else is pinned to their own.
+  const tenantOf = (req) => {
+    const want = Number(req.query.tenantId ?? req.body?.tenantId);
+    return (req.auth.op && want) ? want : tenantOf(req);
+  };
   const money = n => Math.round(n * 100) / 100;
 
   // ── Config ──────────────────────────────────────────────────────────────
   app.get("/api/billing/config", auth, ADMIN, (req, res) =>
-    res.json(db.prepare("SELECT * FROM billing_config WHERE tenant_id = ?").get(req.auth.tenant) ?? {}));
+    res.json(db.prepare("SELECT * FROM billing_config WHERE tenant_id = ?").get(tenantOf(req)) ?? {}));
 
   app.put("/api/billing/config", auth, ADMIN, (req, res) => {
     const { basePrice, perSite, perUser, autoApprove, billingContact, notes } = req.body || {};
@@ -22,31 +27,31 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
                 WHERE tenant_id = ?`)
       .run(basePrice, perSite, perUser,
            autoApprove === undefined ? null : (autoApprove ? 1 : 0),
-           billingContact, notes, req.auth.tenant);
+           billingContact, notes, tenantOf(req));
     res.json({ ok: true });
   });
 
   // ── Adjustments (credits & discounts) ───────────────────────────────────
   app.get("/api/billing/adjustments", auth, ADMIN, (req, res) =>
-    res.json(db.prepare("SELECT * FROM billing_adjustments WHERE tenant_id = ? AND active = 1 ORDER BY created_at DESC").all(req.auth.tenant)));
+    res.json(db.prepare("SELECT * FROM billing_adjustments WHERE tenant_id = ? AND active = 1 ORDER BY created_at DESC").all(tenantOf(req))));
 
   app.post("/api/billing/adjustments", auth, ADMIN, (req, res) => {
     const { kind, amount, description, recurring } = req.body || {};
     if (!["credit", "discount_flat", "discount_pct"].includes(kind) || !(amount > 0))
       return res.status(400).json({ error: "kind (credit|discount_flat|discount_pct) and positive amount required" });
     const r = db.prepare("INSERT INTO billing_adjustments (tenant_id, kind, amount, description, recurring) VALUES (?, ?, ?, ?, ?)")
-      .run(req.auth.tenant, kind, amount, description ?? null, recurring ? 1 : 0);
+      .run(tenantOf(req), kind, amount, description ?? null, recurring ? 1 : 0);
     res.json({ id: r.lastInsertRowid });
   });
 
   app.delete("/api/billing/adjustments/:id", auth, ADMIN, (req, res) => {
-    db.prepare("UPDATE billing_adjustments SET active = 0 WHERE id = ? AND tenant_id = ?").run(req.params.id, req.auth.tenant);
+    db.prepare("UPDATE billing_adjustments SET active = 0 WHERE id = ? AND tenant_id = ?").run(req.params.id, tenantOf(req));
     res.json({ ok: true });
   });
 
   // ── Invoice generation ──────────────────────────────────────────────────
   app.post("/api/billing/invoices/generate", auth, ADMIN, (req, res) => {
-    const t = req.auth.tenant;
+    const t = tenantOf(req);
     const period = req.body?.period ?? new Date().toISOString().slice(0, 7); // YYYY-MM
     if (!/^\d{4}-\d{2}$/.test(period)) return res.status(400).json({ error: "period must be YYYY-MM" });
     if (db.prepare("SELECT id FROM invoices WHERE tenant_id = ? AND period = ?").get(t, period))
@@ -98,7 +103,7 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
 
   // ── Invoice list & status workflow ──────────────────────────────────────
   app.get("/api/billing/invoices", auth, ADMIN, (req, res) =>
-    res.json(db.prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY period DESC").all(req.auth.tenant)));
+    res.json(db.prepare("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY period DESC").all(tenantOf(req))));
 
   const TRANSITIONS = {
     draft:    ["approved", "void"],
@@ -108,7 +113,7 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
     void:     [],
   };
   app.put("/api/billing/invoices/:id", auth, ADMIN, (req, res) => {
-    const inv = db.prepare("SELECT * FROM invoices WHERE id = ? AND tenant_id = ?").get(req.params.id, req.auth.tenant);
+    const inv = db.prepare("SELECT * FROM invoices WHERE id = ? AND tenant_id = ?").get(req.params.id, tenantOf(req));
     if (!inv) return res.status(404).json({ error: "Invoice not found" });
     const next = req.body?.status;
     if (!TRANSITIONS[inv.status]?.includes(next))
@@ -121,7 +126,7 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
 
   // ── Printable invoice (browser print → PDF) ─────────────────────────────
   app.get("/api/billing/invoices/:id/print", auth, ADMIN, (req, res) => {
-    const inv = db.prepare("SELECT * FROM invoices WHERE id = ? AND tenant_id = ?").get(req.params.id, req.auth.tenant);
+    const inv = db.prepare("SELECT * FROM invoices WHERE id = ? AND tenant_id = ?").get(req.params.id, tenantOf(req));
     if (!inv) return res.status(404).send("Not found");
     const tenant = db.prepare("SELECT * FROM tenants WHERE id = ?").get(inv.tenant_id);
     const cfg = db.prepare("SELECT * FROM billing_config WHERE tenant_id = ?").get(inv.tenant_id);
