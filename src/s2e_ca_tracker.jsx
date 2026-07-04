@@ -13,17 +13,17 @@ const C = {
 
 // Seed CAs
 const SEED_CAS = [
-  { id: 1,  incidentId: "INC-2024-0087", desc: "Complete first aid log entry",                   assignee: "Dana Kowalski",   due: "2024-06-13", status: "overdue",  priority: "high",   site: "Moriah",      escalated: true  },
+  { id: 1,  incidentId: "INC-2024-0087", desc: "Complete first aid log entry",                   assignee: "Unassigned",   due: "2024-06-13", status: "overdue",  priority: "high",   site: "Moriah",      escalated: true  },
   { id: 2,  incidentId: "INC-2024-0087", desc: "Review incident with involved worker",           assignee: "Department Lead", due: "2024-06-15", status: "overdue",  priority: "medium", site: "Moriah",      escalated: false },
-  { id: 3,  incidentId: "INC-2024-0087", desc: "Conduct root cause analysis",                   assignee: "Mia Chen",       due: "2024-06-19", status: "on-track", priority: "high",   site: "Moriah",      escalated: false },
-  { id: 4,  incidentId: "INC-2024-0087", desc: "Review PPE adequacy for task",                  assignee: "Mia Chen",       due: "2024-06-17", status: "on-track", priority: "medium", site: "Moriah",      escalated: false },
-  { id: 5,  incidentId: "INC-2024-0082", desc: "Assess and document vehicle damage",            assignee: "Dana Kowalski",   due: "2024-05-21", status: "overdue",  priority: "medium", site: "Moriah",      escalated: true  },
+  { id: 3,  incidentId: "INC-2024-0087", desc: "Conduct root cause analysis",                   assignee: "Unassigned",       due: "2024-06-19", status: "on-track", priority: "high",   site: "Moriah",      escalated: false },
+  { id: 4,  incidentId: "INC-2024-0087", desc: "Review PPE adequacy for task",                  assignee: "Unassigned",       due: "2024-06-17", status: "on-track", priority: "medium", site: "Moriah",      escalated: false },
+  { id: 5,  incidentId: "INC-2024-0082", desc: "Assess and document vehicle damage",            assignee: "Unassigned",   due: "2024-05-21", status: "overdue",  priority: "medium", site: "Moriah",      escalated: true  },
   { id: 6,  incidentId: "INC-2024-0082", desc: "Review vehicle inspection records",             assignee: "Site Manager",    due: "2024-05-25", status: "overdue",  priority: "high",   site: "Moriah",      escalated: true  },
-  { id: 7,  incidentId: "INC-2024-0086", desc: "Document near-miss in safety log",              assignee: "Mia Chen",       due: "2024-06-11", status: "on-track", priority: "medium", site: "Middlebury",  escalated: false },
-  { id: 8,  incidentId: "INC-2024-0086", desc: "Identify and eliminate slipping hazard",        assignee: "Dana Kowalski",   due: "2024-06-13", status: "on-track", priority: "high",   site: "Middlebury",  escalated: false },
+  { id: 7,  incidentId: "INC-2024-0086", desc: "Document near-miss in safety log",              assignee: "Unassigned",       due: "2024-06-11", status: "on-track", priority: "medium", site: "Middlebury",  escalated: false },
+  { id: 8,  incidentId: "INC-2024-0086", desc: "Identify and eliminate slipping hazard",        assignee: "Unassigned",   due: "2024-06-13", status: "on-track", priority: "high",   site: "Middlebury",  escalated: false },
   { id: 9,  incidentId: "INC-2024-0084", desc: "Review ergonomics of workstation",              assignee: "Site Manager",    due: "2024-06-08", status: "on-track", priority: "low",    site: "Brandenburg", escalated: false },
   { id: 10, incidentId: "INC-2024-0085", desc: "Complete forklift inspection checklist",        assignee: "Marcus Webb",     due: "2024-06-06", status: "closed",   priority: "high",   site: "Moriah",      escalated: false },
-  { id: 11, incidentId: "INC-2024-0085", desc: "Retrain forklift operators",                   assignee: "Mia Chen",       due: "2024-06-10", status: "closed",   priority: "medium", site: "Moriah",      escalated: false },
+  { id: 11, incidentId: "INC-2024-0085", desc: "Retrain forklift operators",                   assignee: "Unassigned",       due: "2024-06-10", status: "closed",   priority: "medium", site: "Moriah",      escalated: false },
   { id: 12, incidentId: "INC-2024-0083", desc: "Notify environmental agency (OSHA requirement)",assignee: "Company Admin",   due: "2024-05-29", status: "closed",   priority: "high",   site: "Shoreham",    escalated: false },
 ];
 

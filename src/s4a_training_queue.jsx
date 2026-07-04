@@ -57,7 +57,7 @@ function ProgressBar({ pct }) {
 }
 
 export default function S4aTrainingQueue({ onHome,
-  user = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging" },
+  user = { name: "Staff", site: "Moriah", dept: "" },
   onOpen,
   onBack,
 }) {

@@ -62,7 +62,7 @@ function Avatar({ first, last, selected }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S4dGroupSessionLog({ onHome,
   userRole    = "trainer",
-  userName    = "Mia Chen",
+  userName    = "Trainer",
   onConfirm,
   onClose,
 }) {

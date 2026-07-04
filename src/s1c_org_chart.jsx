@@ -43,7 +43,7 @@ const SEED_ORG = [
     id: 2, name: "Middlebury", location: "Middlebury, VT", status: "Active", expanded: false,
     departments: [
       {
-        id: 21, emoji: "⚗️", name: "Production / Distilling", lead: "Dana Kowalski",
+        id: 21, emoji: "⚗️", name: "Production / Distilling", lead: "—",
         staff: [
           { id: 201, first: "Dana",   last: "Kowalski" },
           { id: 202, first: "Lena",   last: "Park"     },
@@ -73,7 +73,7 @@ const SEED_ORG = [
     id: 4, name: "Brandenburg", location: "Brandenburg, KY", status: "Active", expanded: false,
     departments: [
       {
-        id: 41, emoji: "🗂",  name: "Administration", lead: "Priya Nair",
+        id: 41, emoji: "🗂",  name: "Administration", lead: "—",
         staff: [
           { id: 401, first: "Priya",  last: "Nair"     },
         ],

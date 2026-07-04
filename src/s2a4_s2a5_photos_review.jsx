@@ -288,11 +288,11 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
 
 // Spec: locked recipients shown w/o checkbox; optional recipients shown with unchecked checkbox
 const LOCKED_RECIPIENTS = [
-  { name: "Dana Kowalski", role: "Site Manager", site: "Moriah" },
+
 ];
 const OPTIONAL_RECIPIENTS = [
-  { id: "safety",  name: "Mia Chen",   role: "Safety Officer",  site: "Moriah" },
-  { id: "erc",     name: "Priya Nair", role: "ERC",             site: "All sites" },
+  { id: "safety",  name: "Safety team",   role: "Per notification rules",  site: "" },
+  { id: "admins",  name: "Site & company admins", role: "Per notification rules", site: "" },
   { id: "dept",    name: "—",          role: "Department Lead",  site: "Moriah" },
 ];
 

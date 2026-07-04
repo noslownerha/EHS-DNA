@@ -339,7 +339,7 @@ const TRAINING_LIST = [
 
 export function S4cInPersonSignOff({ onHome,
   trainerRole = "trainer", // "trainer" | "safety" | "site_manager" | "admin"
-  trainer = { name: "Mia Chen", site: "Moriah" },
+  trainer = { name: "Trainer", site: "Moriah" },
   onBack,
   onComplete,
 }) {

@@ -288,9 +288,9 @@ const SEED_DETAIL = {
   assignee: "Facility Maintenance", due: "2024-06-12", status: "open",
   ageDays: 2, capex: false, capexNotes: "",
   photos: 2, gps: true,
-  loggedBy: "Mia Chen", loggedAt: "2024-06-12T10:15:00",
+  loggedBy: "—", loggedAt: null,
   escalationTimeline: [
-    { date: "Jun 12", event: "Finding logged by Mia Chen" },
+
     { date: "Jun 12", event: "Site Manager notified (Critical severity)" },
     { date: "Jun 14", event: "No activity — reminder sent to Facility Maintenance" },
   ],

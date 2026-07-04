@@ -128,7 +128,7 @@ const TrainingContext = createContext(null);
 
 export function TrainingProvider({
   children,
-  user        = { name: "Sarah Mitchell", site: "Moriah", dept: "Bottling & Packaging", role: "staff" },
+  user        = { name: "Staff", site: "Moriah", dept: "", role: "staff" },
   companyName = BRAND.company,
   initialScreen = TRAINING_SCREENS.QUEUE,
 }) {

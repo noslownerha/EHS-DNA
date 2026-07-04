@@ -135,7 +135,7 @@ export default function S2bConfirmationResponse({
   incidentId   = "INC-2024-0087",
   incidentType = "injury",
   severity     = "significant",
-  notified     = ["Dana Kowalski (Site Manager)"],
+  notified     = ["Site manager (per notification rules)"],
   timestamp    = new Date(),
   onDone,
   onViewIncident,

@@ -40,6 +40,21 @@ export default function S5eManageStaff({ companyName, onHome }) {
   const [form, setForm] = useState({ email: "", name: "", role: "staff", siteId: "" });
   const [saving, setSaving] = useState(false);
   const [lastCreated, setLastCreated] = useState(null); // { email, tempPassword }
+  const [editing, setEditing] = useState(null);
+
+  const depts = BRAND.departmentRecords ?? [];
+  async function saveEdit(e) {
+    e.preventDefault();
+    try {
+      await api.updateUser(editing.id, {
+        name: editing.name, role: editing.role,
+        siteId: editing.siteId ? Number(editing.siteId) : null,
+        departmentId: editing.departmentId ? Number(editing.departmentId) : null,
+      });
+      setEditing(null);
+      load();
+    } catch (err) { setError(err.message); }
+  }
 
   const sites = BRAND.siteRecords ?? [];
 
@@ -143,8 +158,8 @@ export default function S5eManageStaff({ companyName, onHome }) {
           </form>
         )}
 
-        <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse" }}>
             <thead>
               <tr>{["Name", "Email", "Role", "Site", "Department", "Status", ""].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
             </thead>
@@ -177,6 +192,15 @@ export default function S5eManageStaff({ companyName, onHome }) {
                       padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif", marginRight: 6,
                     }}>Reset password</button>
+                    <button onClick={() => setEditing({
+                      id: u.id, name: u.name, role: u.role, email: u.email,
+                      siteId: sites.find(s => s.name === u.site)?.id ?? "",
+                      departmentId: depts.find(d => d.name === u.department)?.id ?? "",
+                    })} style={{
+                      background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
+                      padding: "5px 12px", fontSize: ".76rem", color: C.pine, cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif", marginRight: 6,
+                    }}>Edit</button>
                     <button onClick={() => toggleActive(u)} style={{
                       background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
                       padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",
@@ -189,6 +213,37 @@ export default function S5eManageStaff({ companyName, onHome }) {
           </table>
         </div>
       </div>
+
+      {editing && (
+        <div onClick={() => setEditing(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,31,23,.45)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+          <form onClick={e => e.stopPropagation()} onSubmit={saveEdit} style={{
+            background: C.white, borderRadius: 12, padding: 22, width: "100%", maxWidth: 420,
+            boxShadow: "0 20px 60px rgba(0,0,0,.3)",
+          }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Edit staff member</h3>
+            <p style={{ fontSize: ".76rem", color: C.mist, marginBottom: 14 }}>{editing.email}</p>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input style={inputStyle} required value={editing.name} placeholder="Full name"
+                onChange={e => setEditing(x => ({ ...x, name: e.target.value }))} />
+              <select style={inputStyle} value={editing.role} onChange={e => setEditing(x => ({ ...x, role: e.target.value }))}>
+                {Object.entries(ROLE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+              <select style={inputStyle} value={editing.siteId} onChange={e => setEditing(x => ({ ...x, siteId: e.target.value }))}>
+                <option value="">No site</option>
+                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <select style={inputStyle} value={editing.departmentId} onChange={e => setEditing(x => ({ ...x, departmentId: e.target.value }))}>
+                <option value="">No department</option>
+                {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button type="submit" style={{ flex: 1, padding: "10px 0", background: C.sage, color: "#fff", border: "none", borderRadius: 7, fontSize: ".88rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Save</button>
+              <button type="button" onClick={() => setEditing(null)} style={{ padding: "10px 16px", background: "none", border: "1px solid #D0DEDB", borderRadius: 7, fontSize: ".85rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -63,8 +63,8 @@ const INITIAL_STATE = {
 
   // Contacts for notification display (loaded from org)
   contacts: {
-    "Site Manager":                        { name: "Dana Kowalski",  method: "SMS + app" },
-    "Emergency Response Coordinator (ERC)":{ name: "Priya Nair",     method: "SMS + email" },
+    "Site Manager":                        { name: "per notification rules", method: "in-app" },
+    "Emergency Response Coordinator (ERC)":{ name: "per notification rules", method: "in-app" },
   },
 };
 

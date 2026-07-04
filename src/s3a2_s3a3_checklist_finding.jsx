@@ -34,7 +34,7 @@ const SEED_ITEMS = [
   { id: 11, section: "Fire Safety", text: "Emergency exit routes clearly marked and unobstructed",   result: null },
 ];
 
-const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Mia Chen", "Dana Kowalski"];
+const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer"];
 
 // ── Due date shortcuts ────────────────────────────────────────────────────────
 const DUE_SHORTCUTS = [

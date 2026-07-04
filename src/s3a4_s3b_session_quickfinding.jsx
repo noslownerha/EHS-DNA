@@ -32,7 +32,7 @@ const CATEGORIES = [
   { id: "other",          label: "Other",            emoji: "📌" },
 ];
 
-const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Mia Chen"];
+const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer"];
 
 const DUE_SHORTCUTS = [
   { label: "Today",    days: 0 },
@@ -58,7 +58,7 @@ export function S3a4SessionComplete({ onHome,
     { id: 1, desc: "Wet floor near line 2 — no signage",      severity: "minor",    assignee: "Site Manager",  dueDate: "Jun 13" },
     { id: 2, desc: "Safety glasses left on conveyor — unit 3", severity: "noted",    assignee: "Department Lead", dueDate: "Jun 14" },
   ],
-  notified     = ["Dana Kowalski (Site Manager)"],
+  notified     = ["Site manager (per notification rules)"],
   onDone,
   onViewFinding,
 }) {
@@ -173,7 +173,7 @@ export function S3a4SessionComplete({ onHome,
 // due shortcuts, CapEx toggle in collapsed Additional details. Under 60 seconds.
 export function S3bQuickFinding({ onHome,
   site = "Moriah",
-  user = { name: "Mia Chen" },
+  user = { name: "Staff" },
   onSubmit,
   onBack,
 }) {

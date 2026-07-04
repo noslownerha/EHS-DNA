@@ -145,7 +145,7 @@ const InspectionContext = createContext(null);
 
 export function InspectionProvider({
   children,
-  user        = { name: "Mia Chen", site: "Moriah", role: "Inspector" },
+  user        = { name: "Staff", site: "Moriah", role: "Inspector" },
   companyName = BRAND.company,
   initialScreen = INSPECTION_SCREENS.START,
 }) {
