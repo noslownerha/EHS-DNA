@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -47,17 +48,13 @@ const MODES = [
 ];
 
 // Seed: due-today items that surface automatically
-const DUE_TODAY = [
-  { id: 1, name: "Bottling Line Safety Check", template: "Bottling & Packaging", site: "Moriah",     due: "Today" },
-  { id: 2, name: "Forklift Pre-Op Inspection", template: "Warehouse",            site: "Moriah",     due: "Today" },
-];
-
-// Seed: recent findings for feedback loop
-const RECENT_FINDINGS = [
-  { id: 1, category: "Housekeeping",  severity: "minor",    desc: "Wet floor near line 2 — no signage",    site: "Moriah",     ago: "2h" },
-  { id: 2, category: "Equipment",     severity: "major",    desc: "Forklift horn not working — unit 4",    site: "Moriah",     ago: "Yesterday" },
-  { id: 3, category: "PPE",           severity: "noted",    desc: "Safety glasses left on conveyor belt",  site: "Middlebury", ago: "2d" },
-];
+function timeAgo(ts) {
+  if (!ts) return "";
+  const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)}m`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h`;
+  return `${Math.floor(mins / 1440)}d`;
+}
 
 const SEV = {
   critical: { label: "Critical", color: C.red,    bg: C.redLt   },
@@ -81,6 +78,25 @@ export default function S3a1StartInspection({ onHome,
   onResume,       // (inspectionId) => void
   onViewFinding,  // (findingId) => void
 }) {
+  const [DUE_TODAY, setDueToday] = useState([]);
+  const [RECENT_FINDINGS, setRecentFindings] = useState([]);
+  useEffect(() => {
+    api.checklistSchedule().then(rows => {
+      setDueToday(rows
+        .filter(r => (r.overdue || r.dueSoon) && (!user?.site || r.site === user.site))
+        .slice(0, 3)
+        .map(r => ({ id: r.checklistId, name: r.checklist, template: r.kind === "gemba" ? "Gemba" : "Checklist",
+                     site: r.site, due: r.overdue ? `Overdue ${Math.abs(r.daysUntil)}d` : r.daysUntil === 0 ? "Due today" : `Due in ${r.daysUntil}d`,
+                     overdue: r.overdue })));
+    }).catch(() => {});
+    api.listFindings().then(rows => {
+      setRecentFindings(rows.filter(f => f.status !== "resolved").slice(0, 3).map(f => ({
+        id: f.id, category: "Finding", severity: f.severity ?? "minor",
+        desc: f.description, site: f.site_name ?? "—", ago: timeAgo(f.created_at),
+      })));
+    }).catch(() => {});
+  }, [user?.site]);
+
   const [selectedMode, setSelectedMode] = useState(null);
 
   function handleContinue() {
@@ -139,14 +155,14 @@ export default function S3a1StartInspection({ onHome,
         {DUE_TODAY.length > 0 && (
           <div className="anim" style={{ marginBottom: 20 }}>
             <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.orange, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>🗓</span> Due today
+              <span>🗓</span> Due & overdue
             </div>
             <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden" }}>
               {DUE_TODAY.map((item, i) => (
                 <div
                   key={item.id}
                   className="due-row"
-                  onClick={() => { setSelectedMode("checklist"); onResume?.(item.id); }}
+                  onClick={() => onMode?.("scheduled")}
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "12px 14px",
@@ -159,7 +175,7 @@ export default function S3a1StartInspection({ onHome,
                     <div style={{ fontSize: ".73rem", color: C.mist, marginTop: 2 }}>{item.template} · {item.site}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: ".72rem", color: C.orange, fontWeight: 600 }}>Due today</span>
+                    <span style={{ fontSize: ".72rem", color: item.overdue ? "#C0392B" : C.orange, fontWeight: 600 }}>{item.due}</span>
                     <span style={{ color: C.mist, fontSize: ".8rem" }}>→</span>
                   </div>
                 </div>
