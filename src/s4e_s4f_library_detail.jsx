@@ -223,8 +223,28 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
 // Spec §14.1: expiration derived from recurrence_months; status chips
 // ════════════════════════════════════════════════════════════════════════════
 export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, userRole = "admin" }) {
-  const training = SEED_LIBRARY.find(t => t.id === (trainingId ?? 1)) ?? SEED_LIBRARY[0];
-  const [completions, setCompletions] = useState(SEED_COMPLETIONS);
+  const [training, setTraining] = useState({ id: trainingId, title: "…", type: "cbt", groups: [], recurrence: null, version: "v1.0" });
+  const [completions, setCompletions] = useState([]);
+
+  useEffect(() => {
+    Promise.all([apiClient.listTrainings(), apiClient.listCompletions(), apiClient.staffDirectory()])
+      .then(([trs, comps, dir]) => {
+        const tr = trs.find(t => t.id === trainingId);
+        if (tr) setTraining({
+          id: tr.id, title: tr.title, type: tr.kind ?? "cbt",
+          groups: JSON.parse(tr.required_departments || "[]").length || JSON.parse(tr.required_users || "[]").length
+            ? ["Targeted"] : ["All Staff"],
+          recurrence: tr.frequency_months, version: "v1.0", passThreshold: null,
+        });
+        const byId = Object.fromEntries(dir.map(u => [u.id, u]));
+        setCompletions(comps.filter(c => c.training_id === trainingId).map(c => ({
+          id: c.id, staffName: byId[c.user_id]?.name ?? "—", site: byId[c.user_id]?.site ?? "—",
+          completedAt: (c.completed_at ?? "").slice(0, 10), score: c.score, passed: c.score == null || c.score >= 70,
+          expiresAt: c.expires_at ? c.expires_at.slice(0, 10) : null,
+          trainerName: c.method === "group" ? "Group session" : null, sessionId: c.session_ref ?? null,
+        })));
+      }).catch(err => console.error("Training detail load failed:", err.message));
+  }, [trainingId]);
 
   const canLogSession = ["trainer", "safety", "site_manager", "admin"].includes(userRole);
 
