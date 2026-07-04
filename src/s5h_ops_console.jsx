@@ -33,13 +33,16 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
 
   async function enterApp(t) {
     try {
-      const { token } = await api.opImpersonate(t.id);
+      // Save the operator's own token BEFORE impersonation swaps it
       sessionStorage.setItem("ehs_operator_token", localStorage.getItem("ehs_token"));
-      setToken(token);
-      const u = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
-      sessionStorage.setItem("ehs_user", JSON.stringify({ ...u, name: `${u.name} (support)`, role: "admin", supportTenant: t.name }));
+      sessionStorage.setItem("ehs_operator_user", sessionStorage.getItem("ehs_user"));
+      const user = await api.opImpersonate(t.id);   // stores the impersonation token itself
+      sessionStorage.setItem("ehs_user", JSON.stringify(user));
       window.location.reload();
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      sessionStorage.removeItem("ehs_operator_token");
+      setError(err.message);
+    }
   }
 
   const load = () => api.opTenants().then(setTenants).catch(err => setError(err.message));

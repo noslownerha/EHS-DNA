@@ -142,11 +142,9 @@ function AccountButton() {
           {sessionStorage.getItem("ehs_operator_token") && (
             <button onClick={() => {
               localStorage.setItem("ehs_token", sessionStorage.getItem("ehs_operator_token"));
+              sessionStorage.setItem("ehs_user", sessionStorage.getItem("ehs_operator_user") || "{}");
               sessionStorage.removeItem("ehs_operator_token");
-              const u = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
-              delete u.supportTenant;
-              u.name = (u.name || "").replace(" (support)", "");
-              sessionStorage.setItem("ehs_user", JSON.stringify(u));
+              sessionStorage.removeItem("ehs_operator_user");
               window.location.reload();
             }} style={{ ...menuItemStyle, color: "#2D5A3D", fontWeight: 700 }}>← Return to operator</button>
           )}

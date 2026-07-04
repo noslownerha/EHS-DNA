@@ -209,6 +209,7 @@ try { db.exec("ALTER TABLE users ADD COLUMN is_operator INTEGER DEFAULT 0"); } c
 try { db.exec("ALTER TABLE tenants ADD COLUMN active INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE sites ADD COLUMN floorplan TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN floor_pos TEXT"); } catch {}
+try { db.exec("ALTER TABLE tenants ADD COLUMN active INTEGER DEFAULT 1"); } catch {}
 db.exec(`CREATE TABLE IF NOT EXISTS response_checklists (
   tenant_id INTEGER NOT NULL REFERENCES tenants(id),
   incident_type TEXT NOT NULL,

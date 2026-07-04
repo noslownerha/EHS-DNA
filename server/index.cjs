@@ -25,7 +25,7 @@ app.post("/api/auth/login", (req, res) => {
     return res.status(401).json({ error: "Invalid email or password" });
   const tenantRow = db.prepare("SELECT active FROM tenants WHERE id = ?").get(user.tenant_id);
   if (tenantRow && tenantRow.active === 0 && !user.is_operator)
-    return res.status(403).json({ error: "This account has been suspended — contact EHS DNA support" });
+    return res.status(403).json({ error: "This account is suspended — contact EHS DNA support" });
   const token = jwt.sign(
     { uid: user.id, tenant: user.tenant_id, role: user.role, name: user.name, op: !!user.is_operator },
     SECRET, { expiresIn: TOKEN_TTL }
@@ -63,6 +63,22 @@ app.post("/api/auth/forgot", (req, res) => {
       `${user.email} requested a password reset. Use Manage Staff → Reset password and share the temporary password securely.`));
   }
   res.json({ ok: true });  // never reveal whether the email exists
+});
+
+app.post("/api/auth/forgot", (req, res) => {
+  const email = String(req.body?.email ?? "").toLowerCase().trim();
+  const user = email && db.prepare("SELECT * FROM users WHERE email = ? AND active = 1").get(email);
+  if (user) {
+    const admins = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND id != ?")
+      .all(user.tenant_id, user.id);
+    const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
+                             VALUES (?, ?, ?, ?, 'user', ?)`);
+    admins.forEach(a => stmt.run(user.tenant_id, a.id,
+      `🔑 Password reset requested`,
+      `${user.name} (${user.email}) requested a password reset. Use Manage Staff → Reset to issue a temporary password.`,
+      String(user.id)));
+  }
+  res.json({ ok: true }); // always ok — no account enumeration
 });
 
 app.post("/api/auth/change-password", auth, (req, res) => {
@@ -539,7 +555,7 @@ app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
     const cfg = db.prepare("SELECT base_price, per_site, per_user, auto_approve FROM billing_config WHERE tenant_id = ?").get(t.id);
     const lastInv = db.prepare("SELECT ref, period, status, total FROM invoices WHERE tenant_id = ? ORDER BY period DESC LIMIT 1").get(t.id);
     const est = cfg ? Math.round((cfg.base_price + sites * cfg.per_site + users * cfg.per_user) * 100) / 100 : null;
-    return { id: t.id, name: t.name, industry: t.industry, created: t.created_at, active: t.active !== 0,
+    return { id: t.id, name: t.name, industry: t.industry, created: t.created_at, active: t.active !== 0, active: t.active !== 0,
              sites, users, billing: cfg ?? null, estMonthly: est, lastInvoice: lastInv ?? null };
   }));
 });
@@ -600,6 +616,36 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
   } catch (e) {
     res.status(409).json({ error: "Admin email already exists" });
   }
+});
+
+app.put("/api/op/tenants/:id", auth, requireOperator, (req, res) => {
+  const { active } = req.body || {};
+  db.prepare("UPDATE tenants SET active = COALESCE(?, active) WHERE id = ?").run(active, req.params.id);
+  res.json({ ok: true });
+});
+
+app.get("/api/op/tenants/:id/users", auth, requireOperator, (req, res) =>
+  res.json(db.prepare(`SELECT u.id, u.email, u.name, u.role, u.active, s.name AS site
+                       FROM users u LEFT JOIN sites s ON s.id = u.site_id
+                       WHERE u.tenant_id = ? AND u.is_operator = 0 ORDER BY u.name`).all(req.params.id)));
+
+app.post("/api/op/users/:id/reset", auth, requireOperator, (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(bcrypt.hashSync(tempPassword, 10), user.id);
+  res.json({ email: user.email, tempPassword });
+});
+
+app.post("/api/op/impersonate", auth, requireOperator, (req, res) => {
+  const tenant = db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.body?.tenantId);
+  if (!tenant) return res.status(404).json({ error: "Tenant not found" });
+  const token = jwt.sign(
+    { uid: req.auth.uid, tenant: tenant.id, role: "admin", name: `${req.auth.name} (support)`, op: true },
+    SECRET, { expiresIn: "4h" }
+  );
+  res.json({ token, user: { id: req.auth.uid, name: `EHS DNA Support`, role: "admin",
+                            site: null, siteId: null, isOperator: true, supportTenant: tenant.name } });
 });
 
 // ── Billing module ────────────────────────────────────────────────────────────

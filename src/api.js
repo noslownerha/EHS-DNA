@@ -46,6 +46,15 @@ export const api = {
   },
   logout: () => setToken(null),
   forgotPassword: (email) => req("/auth/forgot", { method: "POST", body: { email } }),
+  opTenantUsers: (id) => req(`/op/tenants/${id}/users`),
+  opResetUserPassword: (id) => req(`/op/users/${id}/reset`, { method: "POST" }),
+  opSetTenantActive: (id, active) => req(`/op/tenants/${id}`, { method: "PUT", body: { active: active ? 1 : 0 } }),
+  opImpersonate: async (tenantId) => {
+    const out = await req("/op/impersonate", { method: "POST", body: { tenantId } });
+    setToken(out.token);
+    return out.user;
+  },
+  forgotPassword: (email) => req("/auth/forgot", { method: "POST", body: { email } }),
   changePassword: (current, next) => req("/auth/change-password", { method: "POST", body: { current, next } }),
 
   // config
