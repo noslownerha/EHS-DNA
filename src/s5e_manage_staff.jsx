@@ -167,6 +167,16 @@ export default function S5eManageStaff({ companyName, onHome }) {
                     }}>{u.active ? "Active" : "Inactive"}</span>
                   </td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", textAlign: "right" }}>
+                    <button onClick={async () => {
+                      try {
+                        const out = await api.updateUser(u.id, { resetPassword: true });
+                        setLastCreated({ email: u.email, tempPassword: out.tempPassword });
+                      } catch (err) { setError(err.message); }
+                    }} style={{
+                      background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
+                      padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif", marginRight: 6,
+                    }}>Reset password</button>
                     <button onClick={() => toggleActive(u)} style={{
                       background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
                       padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",

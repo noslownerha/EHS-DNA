@@ -137,6 +137,15 @@ export default function LandingPage({ onEnter }) {
         </form>
 
         <div style={{ marginTop: 28, textAlign: "center" }}>
+          <button type="button" onClick={async () => {
+            const em = email || window.prompt("Enter your account email:");
+            if (!em) return;
+            try { await api.forgotPassword(em); } catch {}
+            setError(null);
+            alert("Your administrator has been notified and will send you a temporary password.");
+          }} style={{ background: "none", border: "none", color: "rgba(168,213,181,.6)", fontSize: ".78rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+            Forgot password?
+          </button>
           <p style={{ fontSize: ".67rem", color: "rgba(255,255,255,.15)", letterSpacing: ".04em", lineHeight: 1.6 }}>
             Access is provisioned by your administrator
           </p>

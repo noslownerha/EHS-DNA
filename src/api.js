@@ -45,6 +45,7 @@ export const api = {
     return out.user;
   },
   logout: () => setToken(null),
+  forgotPassword: (email) => req("/auth/forgot", { method: "POST", body: { email } }),
   changePassword: (current, next) => req("/auth/change-password", { method: "POST", body: { current, next } }),
 
   // config
@@ -108,6 +109,10 @@ export const api = {
   // operator console
   opTenants: () => req("/op/tenants"),
   opCreateTenant: (t) => req("/op/tenants", { method: "POST", body: t }),
+  opTenantUsers: (id) => req(`/op/tenants/${id}/users`),
+  opResetPassword: (userId) => req(`/op/users/${userId}/reset-password`, { method: "POST" }),
+  opSetTenantStatus: (id, active) => req(`/op/tenants/${id}/status`, { method: "PUT", body: { active } }),
+  opImpersonate: (tenantId) => req("/op/impersonate", { method: "POST", body: { tenantId } }),
 
   // billing (operator may pass tenantId to act on any account)
   billingConfig: (tid) => req(`/billing/config${tid ? `?tenantId=${tid}` : ""}`),

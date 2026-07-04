@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
-import { api } from "./api.js";
+import { api, setToken } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C", mint: "#A8D5B5",
@@ -21,6 +21,26 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
   const [form, setForm] = useState({ name: "", industry: "", adminEmail: "", adminName: "" });
   const [created, setCreated] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [openUsers, setOpenUsers] = useState(null);   // tenantId whose users are expanded
+  const [userRows, setUserRows] = useState([]);
+  const [resetInfo, setResetInfo] = useState(null);   // { email, tempPassword }
+
+  async function toggleUsers(t) {
+    if (openUsers === t.id) { setOpenUsers(null); return; }
+    setUserRows(await api.opTenantUsers(t.id));
+    setOpenUsers(t.id);
+  }
+
+  async function enterApp(t) {
+    try {
+      const { token } = await api.opImpersonate(t.id);
+      sessionStorage.setItem("ehs_operator_token", localStorage.getItem("ehs_token"));
+      setToken(token);
+      const u = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
+      sessionStorage.setItem("ehs_user", JSON.stringify({ ...u, name: `${u.name} (support)`, role: "admin", supportTenant: t.name }));
+      window.location.reload();
+    } catch (err) { setError(err.message); }
+  }
 
   const load = () => api.opTenants().then(setTenants).catch(err => setError(err.message));
   useEffect(load, []);
@@ -113,11 +133,45 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <button onClick={() => enterApp(t)} style={{
+                padding: "7px 16px", background: C.forest, color: C.mint, border: "none",
+                borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+              }}>Enter app →</button>
+              <button onClick={() => toggleUsers(t)} style={{
+                padding: "7px 16px", background: "#EEF2F0", color: C.slate, border: "none",
+                borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+              }}>{openUsers === t.id ? "Hide users" : "Users"}</button>
+              <button onClick={async () => { await api.opSetTenantStatus(t.id, !t.active); load(); }} style={{
+                padding: "7px 16px", background: t.active ? C.redLt : C.foam, color: t.active ? C.red : C.pine,
+                border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+              }}>{t.active ? "Suspend" : "Reactivate"}</button>
               <button onClick={() => onOpenBilling?.(t.id, t.name)} style={{
                 padding: "7px 16px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`,
                 borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
               }}>Billing & invoices →</button>
             </div>
+            {!t.active && <div style={{ marginTop: 8, fontSize: ".74rem", color: C.red, fontWeight: 700 }}>⛔ Suspended — logins blocked</div>}
+            {openUsers === t.id && (
+              <div style={{ marginTop: 12, borderTop: "1px solid #F0F4F2", paddingTop: 10 }}>
+                {resetInfo && (
+                  <div style={{ marginBottom: 10, padding: "8px 12px", background: C.foam, borderRadius: 8, fontSize: ".78rem", color: C.ink }}>
+                    <b>{resetInfo.email}</b> → temp password: <span style={{ fontFamily: "'DM Mono', monospace", background: C.white, padding: "1px 6px", borderRadius: 4 }}>{resetInfo.tempPassword}</span>
+                  </div>
+                )}
+                {userRows.map(u => (
+                  <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: ".82rem" }}>
+                    <div>
+                      <b style={{ color: C.ink }}>{u.name}</b>
+                      <span style={{ color: C.mist, marginLeft: 8 }}>{u.email} · {u.role}{u.active ? "" : " · inactive"}</span>
+                    </div>
+                    <button onClick={async () => {
+                      const out = await api.opResetPassword(u.id);
+                      setResetInfo({ email: u.email, tempPassword: out.tempPassword });
+                    }} style={{ background: "none", border: "1px solid #D0DEDB", borderRadius: 6, padding: "4px 10px", fontSize: ".72rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Reset password</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

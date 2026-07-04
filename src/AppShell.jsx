@@ -139,6 +139,17 @@ function AccountButton() {
             <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#0F1F17" }}>{account.user.name}</div>
             <div style={{ fontSize: ".72rem", color: "#8FA3A0" }}>{account.user.email ?? account.user.role}</div>
           </div>
+          {sessionStorage.getItem("ehs_operator_token") && (
+            <button onClick={() => {
+              localStorage.setItem("ehs_token", sessionStorage.getItem("ehs_operator_token"));
+              sessionStorage.removeItem("ehs_operator_token");
+              const u = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
+              delete u.supportTenant;
+              u.name = (u.name || "").replace(" (support)", "");
+              sessionStorage.setItem("ehs_user", JSON.stringify(u));
+              window.location.reload();
+            }} style={{ ...menuItemStyle, color: "#2D5A3D", fontWeight: 700 }}>← Return to operator</button>
+          )}
           <button onClick={() => { setShowPw(true); setOpen(false); }} style={menuItemStyle}>Change password</button>
           <button onClick={() => { setOpen(false); account.onLogout?.(); }} style={{ ...menuItemStyle, color: "#C0392B" }}>Sign out</button>
         </div>
