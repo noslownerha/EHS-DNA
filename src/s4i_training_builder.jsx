@@ -17,7 +17,9 @@ const label = { fontSize: ".68rem", fontWeight: 600, letterSpacing: ".06em", tex
 const btn = (bg = C.sage, fg = "#fff") => ({ padding: "8px 16px", background: bg, color: fg, border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" });
 
 const FREQ = [
-  { label: "One-time (no recurrence)", value: "" },
+  { label: "On demand / one-time", value: "" },
+  { label: "Monthly", value: 1 },
+  { label: "Quarterly", value: 3 },
   { label: "Every 6 months", value: 6 },
   { label: "Annual", value: 12 },
   { label: "Every 2 years", value: 24 },
@@ -55,10 +57,15 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
   useEffect(() => load(), []);
 
   function hydrate(t) {
+    let c = null;
+    try { c = t.content ? JSON.parse(t.content) : null; } catch {}
     return {
       ...t,
       requiredDepartments: JSON.parse(t.required_departments || "[]"),
       requiredUsers: JSON.parse(t.required_users || "[]"),
+      slides: c?.slides ?? [],
+      questions: c?.questions ?? [],
+      passThreshold: c?.passThreshold ?? 80,
     };
   }
 
@@ -77,6 +84,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
         frequencyMonths: sel.frequency_months ? Number(sel.frequency_months) : null,
         requiredDepartments: sel.requiredDepartments,
         requiredUsers: sel.requiredUsers,
+        content: { slides: sel.slides, questions: sel.questions, passThreshold: Number(sel.passThreshold) || 80 },
       });
       setSaved(true); setTimeout(() => setSaved(false), 1500);
       load(sel.id);
@@ -168,6 +176,68 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
                   ? "Required for the selected departments and staff."
                   : "No targeting selected — this training is required for ALL staff."}
               </p>
+
+              {sel.kind === "cbt" && (
+                <div style={{ borderTop: "1px solid #F0F4F2", paddingTop: 16, marginBottom: 16 }}>
+                  <span style={label}>Course content — slides shown in order</span>
+                  {sel.slides.map((s, i) => (
+                    <div key={i} style={{ background: C.chalk, borderRadius: 10, padding: 12, marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                        <input style={{ ...input, fontWeight: 700 }} placeholder={`Slide ${i + 1} heading`} value={s.heading ?? ""}
+                          onChange={e => setSel(x => ({ ...x, slides: x.slides.map((v, j) => j === i ? { ...v, heading: e.target.value } : v) }))} />
+                        <button onClick={() => setSel(x => ({ ...x, slides: x.slides.filter((_, j) => j !== i) }))}
+                          style={{ ...btn(C.redLt, C.red), padding: "6px 12px" }}>✕</button>
+                      </div>
+                      <input style={{ ...input, marginBottom: 8 }} placeholder="Video URL (YouTube, Vimeo, or direct .mp4 — optional)" value={s.videoUrl ?? ""}
+                        onChange={e => setSel(x => ({ ...x, slides: x.slides.map((v, j) => j === i ? { ...v, videoUrl: e.target.value } : v) }))} />
+                      <textarea rows={3} style={{ ...input, resize: "vertical" }} placeholder="Written content (optional if video provided)" value={s.body ?? ""}
+                        onChange={e => setSel(x => ({ ...x, slides: x.slides.map((v, j) => j === i ? { ...v, body: e.target.value } : v) }))} />
+                    </div>
+                  ))}
+                  <button style={btn(C.foam, C.pine)} onClick={() => setSel(x => ({ ...x, slides: [...x.slides, { heading: "", body: "", videoUrl: "" }] }))}>+ Add slide</button>
+                </div>
+              )}
+
+              {sel.kind === "cbt" && (
+                <div style={{ borderTop: "1px solid #F0F4F2", paddingTop: 16, marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    <span style={label}>Quiz — optional; leave empty for review-and-acknowledge</span>
+                    {sel.questions.length > 0 && (
+                      <label style={{ fontSize: ".78rem", color: C.slate, display: "flex", alignItems: "center", gap: 6 }}>
+                        Pass threshold
+                        <input type="number" min="1" max="100" value={sel.passThreshold}
+                          onChange={e => setSel(x => ({ ...x, passThreshold: e.target.value }))}
+                          style={{ ...input, width: 70, padding: "6px 8px" }} />%
+                      </label>
+                    )}
+                  </div>
+                  {sel.questions.map((q, i) => (
+                    <div key={i} style={{ background: C.chalk, borderRadius: 10, padding: 12, marginBottom: 10, marginTop: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                        <input style={{ ...input, fontWeight: 700 }} placeholder={`Question ${i + 1}`} value={q.q ?? ""}
+                          onChange={e => setSel(x => ({ ...x, questions: x.questions.map((v, j) => j === i ? { ...v, q: e.target.value } : v) }))} />
+                        <button onClick={() => setSel(x => ({ ...x, questions: x.questions.filter((_, j) => j !== i) }))}
+                          style={{ ...btn(C.redLt, C.red), padding: "6px 12px" }}>✕</button>
+                      </div>
+                      {(q.choices ?? []).map((c, ci) => (
+                        <div key={ci} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          <input type="radio" name={`correct-${i}`} checked={q.correctIndex === ci} title="Correct answer"
+                            onChange={() => setSel(x => ({ ...x, questions: x.questions.map((v, j) => j === i ? { ...v, correctIndex: ci } : v) }))}
+                            style={{ accentColor: C.sage, width: 15, height: 15, flexShrink: 0 }} />
+                          <input style={input} placeholder={`Choice ${ci + 1}${q.correctIndex === ci ? " (correct)" : ""}`} value={c}
+                            onChange={e => setSel(x => ({ ...x, questions: x.questions.map((v, j) => j === i ? { ...v, choices: v.choices.map((cv, cj) => cj === ci ? e.target.value : cv) } : v) }))} />
+                          <button onClick={() => setSel(x => ({ ...x, questions: x.questions.map((v, j) => j === i ? { ...v, choices: v.choices.filter((_, cj) => cj !== ci), correctIndex: v.correctIndex >= ci && v.correctIndex > 0 ? v.correctIndex - 1 : v.correctIndex } : v) }))}
+                            style={{ background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: ".9rem" }}>✕</button>
+                        </div>
+                      ))}
+                      <button style={{ ...btn(C.white, C.slate), border: "1px solid #D0DEDB", padding: "5px 12px", fontSize: ".76rem" }}
+                        onClick={() => setSel(x => ({ ...x, questions: x.questions.map((v, j) => j === i ? { ...v, choices: [...(v.choices ?? []), ""] } : v) }))}>+ Choice</button>
+                    </div>
+                  ))}
+                  <button style={{ ...btn(C.foam, C.pine), marginTop: sel.questions.length ? 0 : 10 }}
+                    onClick={() => setSel(x => ({ ...x, questions: [...x.questions, { q: "", choices: ["", ""], correctIndex: 0 }] }))}>+ Add question</button>
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <button style={btn()} onClick={save}>Save</button>

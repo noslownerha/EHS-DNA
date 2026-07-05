@@ -77,6 +77,23 @@ const SEED_CBT = {
 // ════════════════════════════════════════════════════════════════════════════
 // S4b — CBT Player (mobile)
 // ════════════════════════════════════════════════════════════════════════════
+function SlideVideo({ url }) {
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/);
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  const embed = yt ? `https://www.youtube.com/embed/${yt[1]}`
+              : vimeo ? `https://player.vimeo.com/video/${vimeo[1]}` : null;
+  return (
+    <div style={{ marginBottom: 16, borderRadius: 10, overflow: "hidden", background: "#000" }}>
+      {embed ? (
+        <iframe src={embed} title="Training video" allowFullScreen
+          style={{ width: "100%", aspectRatio: "16/9", border: "none", display: "block" }} />
+      ) : (
+        <video src={url} controls style={{ width: "100%", display: "block", maxHeight: 360 }} />
+      )}
+    </div>
+  );
+}
+
 export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onBack }) {
   const [slideIndex,   setSlideIndex]   = useState(0);
   const [answers,      setAnswers]      = useState({});   // slideId → selectedIndex
@@ -195,7 +212,8 @@ export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onBack }
         {/* Content slide */}
         {slide.type === "content" && (
           <>
-            <p style={{ fontSize: ".92rem", color: C.ink, lineHeight: 1.7, marginBottom: 16 }}>{slide.body}</p>
+            {slide.videoUrl && <SlideVideo url={slide.videoUrl} />}
+            {slide.body && <p style={{ fontSize: ".92rem", color: C.ink, lineHeight: 1.7, marginBottom: 16, whiteSpace: "pre-wrap" }}>{slide.body}</p>}
 
             {/* Spec: company-specific example callout on every CBT slide */}
             {slide.example && (

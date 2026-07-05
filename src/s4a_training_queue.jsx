@@ -84,7 +84,7 @@ export default function S4aTrainingQueue({ onHome,
         else if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) status = "expiring_soon";
         else status = "current";
         return {
-          id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status,
+          id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status, content: tr.content,
           due: null, duration: tr.kind === "in_person" ? "In person" : "Self-serve",
           progress: comp ? 100 : 0, expiresAt: fmt(comp?.expires_at),
         };

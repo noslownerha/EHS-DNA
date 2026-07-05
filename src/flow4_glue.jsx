@@ -136,7 +136,33 @@ export function TrainingProvider({
 
   const navigate       = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);
   const back           = useCallback(() => dispatch({ type: "BACK" }), []);
-  const openTraining   = useCallback(training => dispatch({ type: "OPEN_TRAINING", training }), []);
+  const openTraining   = useCallback(item => {
+    let training = item;
+    if (item?.type === "cbt") {
+      let parsed = null;
+      try { parsed = item.content ? JSON.parse(item.content) : null; } catch {}
+      const contentSlides = (parsed?.slides ?? []).map((s, i) => ({
+        id: `c${i}`, type: "content", heading: s.heading || item.title,
+        body: s.body || "", videoUrl: s.videoUrl || null, example: s.example || null, image: null,
+      }));
+      const quizSlides = (parsed?.questions ?? []).map((q, i) => ({
+        id: `q${i}`, type: "knowledge_check", heading: `Question ${i + 1}`,
+        question: q.q, options: q.choices, correctIndex: q.correctIndex,
+        explanation: q.explanation || null,
+      }));
+      const slides = [...contentSlides, ...quizSlides];
+      training = {
+        ...item,
+        passThreshold: parsed?.passThreshold ?? 80,
+        slides: slides.length ? slides : [{
+          id: "ack", type: "content", heading: item.title,
+          body: "Review this training's material with your supervisor or trainer, then tap Finish to record your completion.",
+          example: null, image: null,
+        }],
+      };
+    }
+    dispatch({ type: "OPEN_TRAINING", training });
+  }, []);
   const viewTraining   = useCallback(id  => dispatch({ type: "VIEW_TRAINING", id }), []);
   const viewStaff      = useCallback(id  => dispatch({ type: "VIEW_STAFF",    id }), []);
   const openGroupLog   = useCallback(()  => dispatch({ type: "OPEN_GROUP_LOG"  }), []);
