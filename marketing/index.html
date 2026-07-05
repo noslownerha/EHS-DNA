@@ -20,9 +20,9 @@
   /* Nav */
   nav { position:sticky; top:0; z-index:50; background:var(--forest); box-shadow:0 2px 12px rgba(0,0,0,.15); }
   .nav-inner { display:flex; align-items:center; justify-content:space-between; height:60px; }
-  .logo { font-family:'DM Mono',monospace; font-weight:600; letter-spacing:.06em; color:var(--mint); font-size:1.05rem; display:flex; align-items:center; gap:8px; }
+  .logo { font-family:'DM Mono',monospace; font-weight:600; letter-spacing:.06em; color:var(--mint); font-size:1.05rem; display:flex; align-items:center; gap:8px; margin-right:28px; white-space:nowrap; flex-shrink:0; }
   .logo span { color:#fff; }
-  .nav-links { display:flex; gap:26px; align-items:center; }
+  .nav-links { display:flex; gap:22px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
   .nav-links a { color:rgba(255,255,255,.75); font-size:.9rem; font-weight:500; }
   .nav-links a:hover { color:#fff; }
   .btn { display:inline-block; padding:11px 26px; border-radius:9px; font-weight:700; font-size:.95rem; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; transition:all .15s; }
@@ -55,15 +55,6 @@
   .card h3 { font-size:1.02rem; font-weight:700; margin-bottom:8px; }
   .card p { font-size:.9rem; color:var(--slate); }
 
-  /* Pricing */
-  section.pricing { padding:80px 0; background:var(--chalk); }
-  .price-card { background:#fff; border-radius:16px; padding:38px; max-width:520px; margin:0 auto; box-shadow:0 10px 40px rgba(15,31,23,.08); text-align:center; border-top:4px solid var(--sage); }
-  .price-card .big { font-size:2.6rem; font-weight:800; color:var(--pine); }
-  .price-card .big small { font-size:1rem; color:var(--mist); font-weight:500; }
-  .price-card ul { list-style:none; margin:22px 0 28px; text-align:left; }
-  .price-card li { padding:7px 0; font-size:.92rem; color:var(--slate); }
-  .price-card li::before { content:"✓  "; color:var(--sage); font-weight:700; }
-  .anchor-note { text-align:center; font-size:.85rem; color:var(--mist); margin-top:16px; }
 
   /* Lead form */
   section.contact { padding:80px 0; }
@@ -88,7 +79,6 @@
     <div class="logo">🧬 <span>EHS</span>&nbsp;DNA</div>
     <div class="nav-links">
       <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
       <a href="#contact">Contact</a>
       <a class="btn btn-ghost" href="/app" style="padding:8px 20px;">Sign in</a>
     </div>
@@ -112,7 +102,6 @@
     <div class="stat"><b>7 modules</b><span>from triage to reporting</span></div>
     <div class="stat"><b>Minutes</b><span>from incident to logged record</span></div>
     <div class="stat"><b>1 dashboard</b><span>every site, every metric</span></div>
-    <div class="stat"><b>~50% less</b><span>than legacy EHS platforms</span></div>
   </div>
 </div>
 
@@ -131,25 +120,6 @@
   </div>
 </section>
 
-<section class="pricing" id="pricing">
-  <div class="wrap">
-    <h2 class="section" style="text-align:center;">Simple pricing</h2>
-    <p class="section-sub" style="text-align:center; margin-left:auto; margin-right:auto;">One flat annual price. Every module, every site, every user.</p>
-    <div class="price-card">
-      <div style="font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-bottom:8px;">Company license</div>
-      <div class="big">$6,500<small>/year</small></div>
-      <ul>
-        <li>Unlimited sites and users</li>
-        <li>All seven modules included</li>
-        <li>Guided onboarding with your real org data</li>
-        <li>Nightly backups &amp; audit-ready records</li>
-        <li>Email support from the people who built it</li>
-      </ul>
-      <a class="btn btn-primary" href="#contact" style="width:100%;">Request a demo</a>
-      <p class="anchor-note">Comparable legacy platforms quote $12,000+/year for 130 users.</p>
-    </div>
-  </div>
-</section>
 
 <section class="contact" id="contact">
   <div class="wrap">
