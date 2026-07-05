@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -24,7 +25,7 @@ const TYPE = {
   in_person: { label: "In-person", emoji: "👥", color: C.pine   },
 };
 
-const SEED_QUEUE = [
+const SEED_QUEUE_UNUSED = [
   { id: 1, title: "Bottling Line Safety Orientation",       type: "cbt",       status: "overdue",       due: "Jun 10, 2024",  duration: "~12 min",  progress: 0,    expiresAt: null       },
   { id: 2, title: "Forklift Operator Certification",        type: "in_person", status: "not_started",   due: "Jun 20, 2024",  duration: "4 hrs",    progress: 0,    expiresAt: null       },
   { id: 3, title: "Hazard Communication (HAZCOM)",          type: "cbt",       status: "expiring_soon", due: null,            duration: "~8 min",   progress: 100,  expiresAt: "Jul 5, 2024" },
@@ -61,6 +62,36 @@ export default function S4aTrainingQueue({ onHome,
   onOpen,
   onBack,
 }) {
+  const [SEED_QUEUE, setQueue] = useState([]);
+  useEffect(() => {
+    Promise.all([api.listTrainings(), api.listCompletions()]).then(([trs, comps]) => {
+      const me = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
+      const now = Date.now(), soon = now + 30 * 86400000;
+      const fmt = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+      setQueue(trs.filter(tr => {
+        if (!tr.active) return false;
+        const roles = JSON.parse(tr.required_roles || "[]");
+        const depts = JSON.parse(tr.required_departments || "[]");
+        const users = JSON.parse(tr.required_users || "[]");
+        return (roles.length === 0 && depts.length === 0 && users.length === 0)
+          || roles.includes(me.role) || users.includes(me.id) || depts.includes(me.departmentId);
+      }).map(tr => {
+        const comp = comps.filter(c => c.training_id === tr.id && c.user_id === me.id)
+          .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+        let status;
+        if (!comp) status = "not_started";
+        else if (comp.expires_at && new Date(comp.expires_at).getTime() < now) status = "expired";
+        else if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) status = "expiring_soon";
+        else status = "current";
+        return {
+          id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status,
+          due: null, duration: tr.kind === "in_person" ? "In person" : "Self-serve",
+          progress: comp ? 100 : 0, expiresAt: fmt(comp?.expires_at),
+        };
+      }));
+    }).catch(err => console.error("Queue load failed:", err.message));
+  }, []);
+
   const [filter, setFilter] = useState("all"); // "all" | "due" | "expiring"
 
   const filtered = SEED_QUEUE.filter(t => {

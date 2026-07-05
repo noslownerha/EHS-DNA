@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { BRAND, SITES } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -12,15 +14,31 @@ const C = {
 export default function StaffDashboard({ user, onHome, onNavigate }) {
   const site = SITES.find(s => s.name === user.site) ?? SITES[0];
 
-  // Bucket 3: consolidated tiles — Open Tasks combines flags + assigned CAs
-  const openTasks        = 2; // open flags + assigned CAs combined
-  const overdueTrainings = 2;
+  const [openTasks, setOpenTasks] = useState(0);
+  const [overdueTrainings, setOverdueTrainings] = useState(0);
+  const [recentActivity, setRecentActivity] = useState([]);
 
-  const recentActivity = [
-    { icon: "🚩", desc: "Your flag INC-2024-0012 was reviewed",   time: "2h ago",    nav: "flag"     },
-    { icon: "📚", desc: "HAZCOM training due in 5 days",          time: "Reminder",  nav: "training"  },
-    { icon: "✅", desc: "Action assigned: Review PPE for your role", time: "Yesterday", nav: "flag"   },
-  ];
+  useEffect(() => {
+    // My open work: incidents I reported that aren't closed
+    Promise.all([api.listIncidents().catch(() => []), api.dashboardCompliance().catch(() => null), api.listNotifications().catch(() => [])])
+      .then(([incs, compliance, notifs]) => {
+        const mine = incs.filter(i => i.reporter_name === user.name && i.status !== "closed");
+        setOpenTasks(mine.length);
+        const meRow = compliance?.find?.(c => c.id === user.id);
+        setOverdueTrainings(meRow?.overdue ?? 0);
+        const fmt = ts => {
+          const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+          if (mins < 60) return `${Math.max(1, mins)}m ago`;
+          if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
+          return `${Math.floor(mins / 1440)}d ago`;
+        };
+        setRecentActivity(notifs.slice(0, 4).map(n => ({
+          icon: n.title?.includes("🩹") ? "🩹" : n.title?.includes("🔑") ? "🔑" : "🔔",
+          desc: n.title?.replace(/^[^\w]+\s*/, "") ?? "Notification",
+          time: fmt(n.created_at), nav: n.link_kind === "incident" ? "flag" : "home",
+        })));
+      });
+  }, [user.id, user.name]);
 
   return (
     <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column" }}>

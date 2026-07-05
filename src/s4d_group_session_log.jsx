@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -13,7 +13,8 @@ const C = {
 // Department Lead is explicitly excluded.
 const PERMITTED_ROLES = ["trainer", "safety", "site_manager", "admin"];
 
-const ALL_STAFF = [
+let ALL_STAFF = [];
+const ALL_STAFF_UNUSED = [
   { id: 1,  first: "Sarah",  last: "Mitchell", dept: "Bottling & Packaging",    site: "Moriah",      group: "Bottling & Packaging" },
   { id: 2,  first: "Jake",   last: "Larson",    dept: "Bottling & Packaging",    site: "Moriah",      group: "Bottling & Packaging" },
   { id: 3,  first: "Beth",   last: "Torres",    dept: "Bottling & Packaging",    site: "Moriah",      group: "Bottling & Packaging" },
@@ -28,7 +29,8 @@ const ALL_STAFF = [
   { id: 12, first: "Drew",   last: "Nash",      dept: "Bottling & Packaging",    site: "Shoreham",    group: "Bottling & Packaging"  },
 ];
 
-const TRAINING_LIBRARY = [
+let TRAINING_LIBRARY = [];
+const TRAINING_LIBRARY_UNUSED = [
   { id: 1, title: "Annual Safety Refresher",             type: "in_person", recurrence_months: 12 },
   { id: 2, title: "Emergency Evacuation Drill Sign-Off", type: "in_person", recurrence_months: 6  },
   { id: 3, title: "Hazard Communication (HAZCOM)",       type: "in_person", recurrence_months: 12 },
@@ -36,9 +38,9 @@ const TRAINING_LIBRARY = [
   { id: 5, title: "Forklift Safety All-Hands",           type: "in_person", recurrence_months: 12 },
 ];
 
-const SITES  = [...new Set(ALL_STAFF.map(s => s.site))];
-const DEPTS  = [...new Set(ALL_STAFF.map(s => s.dept))];
-const GROUPS = [...new Set(ALL_STAFF.map(s => s.group))];
+const SITES  = () => [...new Set(ALL_STAFF.map(s => s.site))];
+const DEPTS  = () => [...new Set(ALL_STAFF.map(s => s.dept))];
+const GROUPS = () => [...new Set(ALL_STAFF.map(s => s.group))];
 
 function todayStr() {
   return new Date().toISOString().split("T")[0];
@@ -67,6 +69,19 @@ export default function S4dGroupSessionLog({ onHome,
   onClose,
 }) {
   const [training,     setTraining]     = useState(null);
+  const [, forceRender] = useState(0);
+  useEffect(() => {
+    Promise.all([api.staffDirectory(), api.listTrainings()]).then(([dir, trs]) => {
+      ALL_STAFF = dir.map(u => {
+        const [first, ...rest] = (u.name ?? "").split(" ");
+        return { id: u.id, first, last: rest.join(" "), dept: u.department ?? "—",
+                 site: u.site ?? "—", group: u.department ?? "—" };
+      });
+      TRAINING_LIBRARY = trs.filter(t => t.active && t.kind === "in_person")
+        .map(t => ({ id: t.id, title: t.title, type: "in_person", recurrence_months: t.frequency_months }));
+      forceRender(n => n + 1);
+    }).catch(err => console.error("Group log load failed:", err.message));
+  }, []);
   const [sessionDate,  setSessionDate]  = useState(todayStr());
   const [trainerName,  setTrainerName]  = useState(userName);
   const [notes,        setNotes]        = useState("");
@@ -129,7 +144,7 @@ export default function S4dGroupSessionLog({ onHome,
   function handleConfirm() {
     setConfirmed(true);
     const attendees = ALL_STAFF.filter(s => selected.has(s.id));
-    onConfirm?.({ training, sessionDate, trainerName, notes, attendees });
+    onConfirm?.({ training, trainingId: training?.id, attendeeIds: attendees.map(a => a.id), sessionDate, trainerName, notes, attendees });
   }
 
   const canConfirm = training && selected.size > 0 && trainerName.trim();

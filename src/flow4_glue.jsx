@@ -191,7 +191,15 @@ export function TrainingRouter({ onDone, onHome }) {
           onHome={onHome ?? onDone}
           userRole={user.role}
           userName={user.name}
-          onConfirm={data => { closeGroupLog(); }}
+          onConfirm={data => {
+            const trainingId = data?.trainingId ?? data?.training?.id;
+            const userIds = data?.attendeeIds ?? data?.attendees?.map(a => a.id ?? a) ?? [];
+            if (trainingId && userIds.length) {
+              api.logCompletion({ trainingId, userIds, method: "group" })
+                .catch(err => console.error("Group session save failed:", err.message));
+            }
+            closeGroupLog();
+          }}
           onClose={closeGroupLog}
         />
       </div>
@@ -221,11 +229,9 @@ export function TrainingRouter({ onDone, onHome }) {
           onHome={onHome ?? onDone}
           training={activeTraining ?? undefined}
           onComplete={({ score, passed }) => {
-            if (passed) {
-              api.listTrainings().then(trs => {
-                const match = trs.find(t => t.title === (activeTraining?.title ?? ""));
-                if (match) return api.logCompletion({ trainingId: match.id, method: "cbt", score });
-              }).catch(err => console.error("Completion log failed:", err.message));
+            if (passed && activeTraining?.id) {
+              api.logCompletion({ trainingId: activeTraining.id, method: "cbt", score })
+                .catch(err => console.error("Completion log failed:", err.message));
             }
             back();
           }}
