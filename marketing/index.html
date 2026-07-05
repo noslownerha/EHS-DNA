@@ -3,72 +3,97 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>EHS DNA — Safety & Operations Management for Multi-Site Manufacturers</title>
-<meta name="description" content="Incident reporting, inspections, training compliance, and emergency triage — one platform built for multi-site factories. A fraction of the cost of legacy EHS software." />
+<title>EHS DNA — Safety software your floor staff will actually use</title>
+<meta name="description" content="Incident reporting, inspections, and training compliance for multi-site manufacturers. Reports in under 2 minutes from any phone. Built by a plant operations VP, not a software committee." />
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
   :root {
     --forest:#1C3A2A; --pine:#2D5A3D; --sage:#4A8C5C; --mint:#A8D5B5;
     --foam:#E8F5EC; --ink:#0F1F17; --slate:#4A5568; --mist:#8FA3A0;
-    --chalk:#F4F7F5; --gold:#C8922A;
+    --chalk:#F4F7F5; --gold:#C8922A; --goldLt:#FDF3E3; --red:#C0392B;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'DM Sans',sans-serif; color:var(--ink); background:#fff; line-height:1.6; }
-  .wrap { max-width:1060px; margin:0 auto; padding:0 24px; }
+  html { scroll-behavior:smooth; }
+  body { font-family:'DM Sans',sans-serif; color:var(--ink); background:#fff; line-height:1.65; }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 22px; }
   a { color:var(--sage); text-decoration:none; }
+  h2.section { font-size:clamp(1.5rem,3.6vw,2.1rem); font-weight:800; letter-spacing:-.4px; line-height:1.2; }
+  .kicker { font-family:'DM Mono',monospace; font-size:.74rem; letter-spacing:.16em; text-transform:uppercase; color:var(--sage); margin-bottom:12px; display:block; }
 
-  /* Nav */
-  nav { position:sticky; top:0; z-index:50; background:var(--forest); box-shadow:0 2px 12px rgba(0,0,0,.15); }
-  .nav-inner { display:flex; align-items:center; justify-content:space-between; height:60px; }
-  .logo { font-family:'DM Mono',monospace; font-weight:600; letter-spacing:.06em; color:var(--mint); font-size:1.05rem; display:flex; align-items:center; gap:8px; margin-right:28px; white-space:nowrap; flex-shrink:0; }
-  .logo span { color:#fff; }
-  .nav-links { display:flex; gap:22px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
-  .nav-links a { color:rgba(255,255,255,.75); font-size:.9rem; font-weight:500; }
+  nav { position:sticky; top:0; z-index:50; background:var(--forest); box-shadow:0 2px 12px rgba(0,0,0,.18); }
+  .nav-inner { display:flex; align-items:center; justify-content:space-between; height:62px; gap:16px; }
+  .logo { font-family:'DM Mono',monospace; font-weight:600; letter-spacing:.06em; color:var(--mint); font-size:1.05rem; white-space:nowrap; flex-shrink:0; }
+  .logo b { color:#fff; }
+  .nav-links { display:flex; gap:20px; align-items:center; }
+  .nav-links a { color:rgba(255,255,255,.72); font-size:.88rem; font-weight:600; }
   .nav-links a:hover { color:#fff; }
-  .btn { display:inline-block; padding:11px 26px; border-radius:9px; font-weight:700; font-size:.95rem; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; transition:all .15s; }
-  .btn-primary { background:var(--sage); color:#fff; }
+  @media (max-width:640px){ .nav-links .hide-m { display:none; } }
+  .btn { display:inline-block; padding:13px 28px; border-radius:10px; font-weight:800; font-size:1rem; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; transition:all .15s; text-align:center; }
+  .btn-primary { background:var(--sage); color:#fff; box-shadow:0 4px 14px rgba(74,140,92,.35); }
   .btn-primary:hover { background:var(--pine); transform:translateY(-1px); }
-  .btn-ghost { background:transparent; color:var(--mint); border:1.5px solid rgba(168,213,181,.4); }
-  .btn-ghost:hover { border-color:var(--mint); color:#fff; }
+  .btn-nav { padding:9px 20px; font-size:.88rem; }
 
-  /* Hero */
-  .hero { background:linear-gradient(170deg, var(--forest) 0%, #12291D 100%); color:#fff; padding:88px 0 96px; }
-  .hero h1 { font-size:clamp(2rem, 5vw, 3.1rem); font-weight:800; line-height:1.15; letter-spacing:-.5px; max-width:760px; }
+  .hero { background:linear-gradient(168deg, var(--forest) 0%, #10251A 100%); color:#fff; padding:72px 0 78px; }
+  .hero h1 { font-size:clamp(2rem,5.5vw,3.2rem); font-weight:900; line-height:1.12; letter-spacing:-1px; max-width:800px; }
   .hero h1 em { color:var(--mint); font-style:normal; }
-  .hero p.sub { font-size:1.12rem; color:rgba(255,255,255,.65); max-width:620px; margin:22px 0 34px; }
-  .hero .cta-row { display:flex; gap:14px; flex-wrap:wrap; }
-  .hero .kicker { font-family:'DM Mono',monospace; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; color:var(--mint); margin-bottom:18px; }
+  .hero .sub { font-size:clamp(1rem,2.4vw,1.2rem); color:rgba(255,255,255,.68); max-width:640px; margin:20px 0 30px; }
+  .hero .cta-note { font-size:.8rem; color:rgba(255,255,255,.45); margin-top:12px; }
+  .hero-proof { display:flex; gap:26px; flex-wrap:wrap; margin-top:38px; }
+  .hero-proof div { font-size:.85rem; color:rgba(255,255,255,.65); }
+  .hero-proof b { display:block; font-size:1.25rem; color:var(--mint); font-weight:800; }
 
-  /* Stats bar */
-  .stats { background:var(--foam); padding:26px 0; }
-  .stats .wrap { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; text-align:center; }
-  .stat b { display:block; font-size:1.5rem; color:var(--pine); font-weight:800; }
-  .stat span { font-size:.83rem; color:var(--slate); }
+  .problem { padding:72px 0; background:var(--chalk); }
+  .prob-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; margin-top:34px; }
+  .prob { background:#fff; border-radius:12px; padding:22px; border-left:4px solid var(--red); }
+  .prob h3 { font-size:.98rem; font-weight:700; margin-bottom:6px; }
+  .prob p { font-size:.88rem; color:var(--slate); }
+  .pivot { text-align:center; font-size:1.05rem; color:var(--slate); max-width:620px; margin:44px auto 0; }
+  .pivot b { color:var(--ink); }
 
-  /* Features */
-  section.features { padding:80px 0; }
-  h2.section { font-size:2rem; font-weight:800; letter-spacing:-.3px; margin-bottom:10px; }
-  p.section-sub { color:var(--mist); margin-bottom:44px; max-width:560px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:22px; }
-  .card { background:var(--chalk); border-radius:14px; padding:26px; border:1px solid #E4EDE8; }
-  .card .icon { font-size:1.6rem; margin-bottom:12px; }
-  .card h3 { font-size:1.02rem; font-weight:700; margin-bottom:8px; }
-  .card p { font-size:.9rem; color:var(--slate); }
+  .how { padding:72px 0; }
+  .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-top:36px; }
+  .step { background:var(--foam); border-radius:14px; padding:26px 22px; position:relative; }
+  .step .num { position:absolute; top:-14px; left:20px; width:30px; height:30px; border-radius:50%; background:var(--sage); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+  .step h3 { font-size:1rem; font-weight:800; margin:8px 0 8px; }
+  .step p { font-size:.88rem; color:var(--slate); }
 
+  .features { padding:72px 0; background:var(--chalk); }
+  .feat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:36px; }
+  .feat { background:#fff; border-radius:14px; padding:24px; border:1px solid #E4EDE8; }
+  .feat .icon { font-size:1.5rem; margin-bottom:10px; }
+  .feat h3 { font-size:1rem; font-weight:800; margin-bottom:6px; }
+  .feat p { font-size:.88rem; color:var(--slate); }
+  .feat .out { display:inline-block; margin-top:12px; font-size:.76rem; font-weight:700; color:var(--pine); background:var(--foam); padding:4px 12px; border-radius:20px; }
 
-  /* Lead form */
-  section.contact { padding:80px 0; }
-  form.lead { max-width:520px; margin:0 auto; display:grid; gap:12px; }
-  form.lead input, form.lead textarea {
-    width:100%; padding:13px 15px; border:1.5px solid #D0DEDB; border-radius:9px;
-    font-family:'DM Sans',sans-serif; font-size:.95rem; color:var(--ink); outline:none;
+  .founder { padding:72px 0; }
+  .founder-card { background:linear-gradient(150deg,var(--forest),#153122); border-radius:18px; padding:clamp(26px,5vw,46px); color:#fff; }
+  .founder-card .kicker { color:var(--mint); }
+  .founder-card p { color:rgba(255,255,255,.78); font-size:1.02rem; max-width:720px; }
+  .founder-card p + p { margin-top:14px; }
+  .founder-card .sig { margin-top:22px; font-size:.85rem; color:var(--mint); font-weight:700; }
+
+  .faq { padding:72px 0; background:var(--chalk); }
+  .faq-list { margin-top:30px; max-width:760px; }
+  details { background:#fff; border-radius:10px; margin-bottom:10px; border:1px solid #E4EDE8; }
+  summary { padding:16px 20px; font-weight:700; font-size:.95rem; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+  summary::after { content:"+"; color:var(--sage); font-size:1.3rem; font-weight:400; }
+  details[open] summary::after { content:"–"; }
+  details p { padding:0 20px 16px; font-size:.9rem; color:var(--slate); }
+
+  .contact { padding:76px 0 84px; }
+  .form-card { max-width:520px; margin:34px auto 0; background:#fff; border-radius:16px; padding:30px; box-shadow:0 12px 44px rgba(15,31,23,.12); border-top:5px solid var(--sage); }
+  form.lead { display:grid; gap:12px; }
+  form.lead input, form.lead select {
+    width:100%; padding:14px 15px; border:1.5px solid #D0DEDB; border-radius:10px;
+    font-family:'DM Sans',sans-serif; font-size:1rem; color:var(--ink); outline:none; background:#fff;
   }
-  form.lead input:focus, form.lead textarea:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(74,140,92,.12); }
-  .form-msg { text-align:center; font-size:.9rem; padding:10px; border-radius:8px; display:none; }
-  .form-msg.ok { display:block; background:var(--foam); color:var(--pine); }
-  .form-msg.err { display:block; background:#FDECEA; color:#C0392B; }
+  form.lead input:focus, form.lead select:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(74,140,92,.14); }
+  .form-msg { text-align:center; font-size:.9rem; padding:11px; border-radius:9px; display:none; }
+  .form-msg.ok { display:block; background:var(--foam); color:var(--pine); font-weight:700; }
+  .form-msg.err { display:block; background:#FDECEA; color:var(--red); }
+  .form-note { text-align:center; font-size:.78rem; color:var(--mist); }
 
-  footer { background:var(--forest); color:rgba(255,255,255,.45); padding:34px 0; font-size:.83rem; }
+  footer { background:var(--forest); color:rgba(255,255,255,.45); padding:32px 0; font-size:.82rem; }
   footer .wrap { display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
 </style>
 </head>
@@ -76,70 +101,129 @@
 
 <nav>
   <div class="wrap nav-inner">
-    <div class="logo">🧬 <span>EHS</span>&nbsp;DNA</div>
+    <div class="logo">🧬 <b>EHS</b>&nbsp;DNA</div>
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#contact">Contact</a>
-      <a class="btn btn-ghost" href="/app" style="padding:8px 20px;">Sign in</a>
+      <a class="hide-m" href="#how">How it works</a>
+      <a class="hide-m" href="#features">What's inside</a>
+      <a class="hide-m" href="#faq">FAQ</a>
+      <a class="btn btn-primary btn-nav" href="#demo">Book a demo</a>
     </div>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap">
-    <div class="kicker">Safety & Operations Management</div>
-    <h1>EHS software built for <em>multi-site factories</em> — not enterprise bloat.</h1>
-    <p class="sub">Incident reporting, inspections, training compliance, corrective actions, and emergency triage. One platform your floor staff will actually use — on the phone already in their pocket.</p>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="#contact">Request a demo</a>
-      <a class="btn btn-ghost" href="#features">See what's inside</a>
+    <h1>Every incident reported.<br>Every action closed. <em>Zero spreadsheets.</em></h1>
+    <p class="sub">EHS DNA is safety management for multi-site manufacturers — incident reporting, inspections, corrective actions, and training compliance your floor staff will actually use, from the phone already in their pocket.</p>
+    <a class="btn btn-primary" href="#demo">Book a 20-minute demo</a>
+    <div class="cta-note">We'll set it up with your real sites and departments before the call.</div>
+    <div class="hero-proof">
+      <div><b>&lt; 2 min</b>from incident to logged report</div>
+      <div><b>1 dashboard</b>every site, live</div>
+      <div><b>Days</b>to launch, not months</div>
     </div>
   </div>
 </header>
 
-<div class="stats">
+<section class="problem">
   <div class="wrap">
-    <div class="stat"><b>7 modules</b><span>from triage to reporting</span></div>
-    <div class="stat"><b>Minutes</b><span>from incident to logged record</span></div>
-    <div class="stat"><b>1 dashboard</b><span>every site, every metric</span></div>
+    <span class="kicker">Sound familiar?</span>
+    <h2 class="section">Safety data scattered everywhere protects no one.</h2>
+    <div class="prob-grid">
+      <div class="prob"><h3>Incidents go unreported</h3><p>Paper forms and clunky portals mean near-misses never get written down — until one becomes a recordable.</p></div>
+      <div class="prob"><h3>Corrective actions vanish</h3><p>Fixes get promised in a meeting, live in someone's inbox, and quietly die. Nobody knows what's still open.</p></div>
+      <div class="prob"><h3>Training compliance is a mystery</h3><p>Who's overdue on forklift certs? LOTO? At which site? The answer lives in three spreadsheets, all outdated.</p></div>
+      <div class="prob"><h3>Audit prep is a fire drill</h3><p>Every inspection or customer audit means days of digging through binders, email threads, and shared drives.</p></div>
+    </div>
+    <p class="pivot">Enterprise EHS platforms solve this for Fortune 500s — with six-month rollouts, per-module pricing, and interfaces floor staff refuse to touch. <b>Multi-site manufacturers running lean deserve better.</b></p>
   </div>
-</div>
+</section>
 
-<section class="features" id="features">
+<section class="how" id="how">
   <div class="wrap">
-    <h2 class="section">Everything a safety program needs</h2>
-    <p class="section-sub">Purpose-built for manufacturers running multiple production sites with lean safety teams.</p>
-    <div class="grid">
-      <div class="card"><div class="icon">⛑️</div><h3>Emergency Triage</h3><p>Guided decision tree the moment something happens — call 911, nurse triage line, or first aid — with an automatic audit record and notifications.</p></div>
-      <div class="card"><div class="icon">🚩</div><h3>Incident Reporting</h3><p>A five-step mobile wizard staff finish in under two minutes. Photos, people involved, and location — straight into the incident log with OSHA classification workflow.</p></div>
-      <div class="card"><div class="icon">🛠️</div><h3>Corrective Actions</h3><p>Assign, track, escalate, and verify CAs across sites. Overdue items surface automatically on manager dashboards.</p></div>
-      <div class="card"><div class="icon">📋</div><h3>Inspections & Findings</h3><p>Custom checklists, quick-flag findings from the floor, and an aging tracker so nothing critical sits unresolved.</p></div>
-      <div class="card"><div class="icon">🎓</div><h3>Training Compliance</h3><p>CBT modules, in-person sign-offs, and group session logging — with per-person compliance rollups and expiry tracking built in.</p></div>
-      <div class="card"><div class="icon">📊</div><h3>Multi-Site Dashboards</h3><p>Days-since-recordable, open incidents, training gaps, and critical findings — per site and company-wide, live.</p></div>
+    <span class="kicker">How it works</span>
+    <h2 class="section">Live in days. Adopted in weeks.</h2>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>We load your operation</h3><p>Your sites, departments, staff, inspection checklists, and training matrix — configured before your first login, editable by you anytime after.</p></div>
+      <div class="step"><div class="num">2</div><h3>Staff report from their phones</h3><p>A guided two-minute wizard: what happened, who was involved, photos, location on your floor plan. No app store, no training class needed.</p></div>
+      <div class="step"><div class="num">3</div><h3>Nothing falls through</h3><p>The right people are notified instantly, corrective actions get owners and due dates, overdue items escalate, and every record is audit-ready.</p></div>
     </div>
   </div>
 </section>
 
-
-<section class="contact" id="contact">
+<section class="features" id="features">
   <div class="wrap">
-    <h2 class="section" style="text-align:center;">See it with your own sites in it</h2>
-    <p class="section-sub" style="text-align:center; margin-left:auto; margin-right:auto;">Tell us a little about your operation and we'll set up a walkthrough seeded with your site names and departments.</p>
-    <form class="lead" id="leadForm">
-      <input name="name" placeholder="Your name" required />
-      <input name="email" type="email" placeholder="Work email" required />
-      <input name="company" placeholder="Company" />
-      <textarea name="message" rows="3" placeholder="How many sites are you running?"></textarea>
-      <button class="btn btn-primary" type="submit">Request demo</button>
-      <div class="form-msg" id="formMsg"></div>
-    </form>
+    <span class="kicker">What's inside</span>
+    <h2 class="section">One platform for the whole safety program.</h2>
+    <div class="feat-grid">
+      <div class="feat"><div class="icon">🚩</div><h3>Incident reporting</h3><p>Injuries, near-misses, property damage, security events — captured in a guided mobile wizard with photos, GPS, and floor-plan pinpointing.</p><span class="out">More reports, caught earlier</span></div>
+      <div class="feat"><div class="icon">⛑️</div><h3>Emergency triage guidance</h3><p>The moment something happens, staff get a decision path: 911, nurse triage line, or first aid — with an automatic audit trail.</p><span class="out">Right care, fewer recordables</span></div>
+      <div class="feat"><div class="icon">🛠️</div><h3>Corrective action tracking</h3><p>Every action has an owner, a due date, and a status. Overdue items surface on manager dashboards until they're verified closed.</p><span class="out">Nothing dies in an inbox</span></div>
+      <div class="feat"><div class="icon">📋</div><h3>Inspections on a schedule</h3><p>Forklift pre-use, extinguishers, eyewash, AED, gemba walks — custom checklists per site with recurrence, due-date flags, and overdue escalation.</p><span class="out">Inspections that actually happen</span></div>
+      <div class="feat"><div class="icon">🎓</div><h3>Training compliance</h3><p>Assign courses by department or person, set recurrence, log group sessions, and see exactly who's current, expiring, or overdue — per site.</p><span class="out">Cert gaps visible instantly</span></div>
+      <div class="feat"><div class="icon">📊</div><h3>Multi-site command view</h3><p>Days-since-recordable, open incidents, overdue actions, and training gaps for every site on one live dashboard.</p><span class="out">Audit-ready, always</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="founder">
+  <div class="wrap">
+    <div class="founder-card">
+      <span class="kicker">Why we built it</span>
+      <h2 class="section" style="color:#fff; margin-bottom:16px;">Built on a plant floor, not in a boardroom.</h2>
+      <p>EHS DNA was built inside a working multi-site spirits manufacturer by the VP of Operations who ran it — four production sites, lean safety staffing, and every one of the problems above.</p>
+      <p>We evaluated the big-name platforms. The quotes were five figures, the rollouts were measured in quarters, and the interfaces guaranteed our floor teams would never open them. So we built the tool we actually needed: fast to launch, simple enough that a new hire can file a report on day one, and rigorous enough to stand up in an audit.</p>
+      <div class="sig">— The EHS DNA team</div>
+    </div>
+  </div>
+</section>
+
+<section class="faq" id="faq">
+  <div class="wrap">
+    <span class="kicker">Common questions</span>
+    <h2 class="section">The things you're probably wondering.</h2>
+    <div class="faq-list">
+      <details><summary>How long does implementation take?</summary><p>Days, not months. We pre-load your sites, departments, staff list, inspection checklists, and training matrix before your first login. Most companies are taking live reports within the first week.</p></details>
+      <details><summary>Will our floor staff actually use it?</summary><p>That's the entire design premise. Reporting is a guided wizard on any phone browser — no app install, under two minutes end to end. If a new hire can't use it on day one, we consider that our bug.</p></details>
+      <details><summary>What does it cost?</summary><p>Simple annual pricing scaled to your operation — a fraction of legacy enterprise platforms, with every module included. Tell us your site and headcount and we'll quote it on the demo call, no procurement maze.</p></details>
+      <details><summary>Is our data safe?</summary><p>Your data lives in an isolated tenant with encrypted connections (HTTPS), role-based access, and automatic nightly backups with 30-day retention. You own your data and can export it anytime.</p></details>
+      <details><summary>Can it handle multiple sites with different needs?</summary><p>It's built for exactly that. Checklists, floor plans, training schedules, and dashboards are all per-site — with a company-wide rollup for leadership.</p></details>
+      <details><summary>We already have spreadsheets and a process. Why switch?</summary><p>Spreadsheets don't notify anyone, don't escalate overdue items, don't work on a phone at the incident scene, and don't survive an audit gracefully. Keep your process — EHS DNA just makes it run itself.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="demo">
+  <div class="wrap">
+    <div style="text-align:center;">
+      <span class="kicker">Book a demo</span>
+      <h2 class="section">See it running with your sites in it.</h2>
+      <p style="color:var(--mist); margin-top:10px;">20 minutes. We'll pre-load your site names so it feels like yours from the first click.</p>
+    </div>
+    <div class="form-card">
+      <form class="lead" id="leadForm">
+        <input name="name" placeholder="Your name" required autocomplete="name" />
+        <input name="email" type="email" placeholder="Work email" required autocomplete="email" />
+        <input name="company" placeholder="Company" required autocomplete="organization" />
+        <select name="sites" required>
+          <option value="" disabled selected>How many sites do you operate?</option>
+          <option>1 site</option>
+          <option>2–3 sites</option>
+          <option>4–10 sites</option>
+          <option>10+ sites</option>
+        </select>
+        <button class="btn btn-primary" type="submit">Book my demo</button>
+        <div class="form-msg" id="formMsg"></div>
+        <p class="form-note">No spam, no drip campaign — a real person replies within one business day.</p>
+      </form>
+    </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
     <div>© 2026 EHS DNA</div>
-    <div>Built for multi-site manufacturers.</div>
+    <div>Safety software for multi-site manufacturers.</div>
   </div>
 </footer>
 
@@ -147,20 +231,21 @@
 document.getElementById("leadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target, msg = document.getElementById("formMsg");
-  const body = Object.fromEntries(new FormData(f).entries());
+  const data = Object.fromEntries(new FormData(f).entries());
+  const body = { name: data.name, email: data.email, company: data.company,
+                 message: "Sites: " + data.sites };
   msg.className = "form-msg";
   try {
     const res = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error((await res.json()).error || "Failed");
-    msg.textContent = "Thanks — we'll be in touch shortly.";
+    msg.textContent = "✓ Got it — we'll reach out within one business day.";
     msg.classList.add("ok");
     f.reset();
   } catch (err) {
-    msg.textContent = err.message === "Failed" ? "Something went wrong — email us instead." : err.message;
+    msg.textContent = err.message === "Failed" ? "Something went wrong — please try again." : err.message;
     msg.classList.add("err");
   }
 });

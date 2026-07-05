@@ -45,7 +45,12 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
     }
   }
 
-  const load = () => api.opTenants().then(setTenants).catch(err => setError(err.message));
+  const [leads, setLeads] = useState([]);
+  const [showLeads, setShowLeads] = useState(false);
+  const load = () => {
+    api.opTenants().then(setTenants).catch(err => setError(err.message));
+    api.opLeads().then(setLeads).catch(() => {});
+  };
   useEffect(load, []);
 
   async function handleCreate(e) {
@@ -84,6 +89,30 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
         </p>
 
         {error && <div style={{ marginBottom: 14, padding: "10px 14px", background: C.redLt, color: C.red, borderRadius: 8, fontSize: ".84rem" }}>{error}</div>}
+
+        {/* Sales leads from the marketing site */}
+        <div style={{ background: C.white, borderRadius: 12, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "16px 18px", marginBottom: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+            onClick={() => setShowLeads(s => !s)}>
+            <div style={{ fontSize: ".98rem", fontWeight: 700, color: C.ink }}>
+              🎯 Demo requests <span style={{ color: C.mist, fontWeight: 500 }}>({leads.length})</span>
+            </div>
+            <span style={{ color: C.sage, fontWeight: 700 }}>{showLeads ? "▾" : "▸"}</span>
+          </div>
+          {showLeads && (
+            <div style={{ marginTop: 10, borderTop: "1px solid #F0F4F2" }}>
+              {leads.length === 0 && <p style={{ padding: "12px 0", fontSize: ".82rem", color: C.mist }}>No leads yet — they'll appear here and in your bell the moment the form is submitted.</p>}
+              {leads.map(l => (
+                <div key={l.id} style={{ padding: "10px 0", borderBottom: "1px solid #F5F8F6", fontSize: ".84rem" }}>
+                  <b style={{ color: C.ink }}>{l.company || l.name || "—"}</b>
+                  <span style={{ color: C.slate, marginLeft: 8 }}>{l.name} · <a href={`mailto:${l.email}`} style={{ color: C.sage }}>{l.email}</a></span>
+                  {l.message && <span style={{ color: C.mist, marginLeft: 8 }}>{l.message}</span>}
+                  <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>{(l.created_at ?? "").slice(0, 16).replace("T", " ")}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {created && (
           <div style={{ marginBottom: 16, padding: "12px 16px", background: C.foam, borderRadius: 8, fontSize: ".85rem", color: C.ink }}>

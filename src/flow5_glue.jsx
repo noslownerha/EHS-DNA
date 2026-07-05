@@ -56,7 +56,8 @@ export const DASHBOARD_SCREENS = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Auto-routing helper: pick the right default screen for a given role
 // ─────────────────────────────────────────────────────────────────────────────
-export function defaultScreenForRole(role) {
+export function defaultScreenForRole(role, isOperator = false) {
+  if (isOperator && !sessionStorage.getItem("ehs_operator_token")) return DASHBOARD_SCREENS.OPS;
   if (role === "admin" || role === "company_admin") return DASHBOARD_SCREENS.ADMIN;
   if (role === "site_manager" || role === "safety")  return DASHBOARD_SCREENS.SITE_MANAGER;
   return DASHBOARD_SCREENS.STAFF_HOME;

@@ -97,6 +97,13 @@ app.post("/api/leads", (req, res) => {
   if (!email || !/.+@.+\..+/.test(email)) return res.status(400).json({ error: "Valid email required" });
   db.prepare("INSERT INTO leads (name, email, company, message) VALUES (?, ?, ?, ?)")
     .run((name ?? "").slice(0, 200), String(email).slice(0, 200), (company ?? "").slice(0, 200), (message ?? "").slice(0, 2000));
+  // Alert every operator in-app
+  const ops = db.prepare("SELECT id, tenant_id FROM users WHERE is_operator = 1 AND active = 1").all();
+  const nstmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
+                            VALUES (?, ?, ?, ?, 'lead', ?)`);
+  ops.forEach(o => nstmt.run(o.tenant_id, o.id,
+    `🎯 New demo request: ${(company ?? name ?? email).slice(0, 60)}`,
+    `${name ?? "—"} · ${email}${message ? ` · ${message.slice(0, 100)}` : ""}`, String(email).slice(0, 100)));
   res.json({ ok: true });
 });
 app.get("/api/leads", auth, requireOperator, (req, res) =>

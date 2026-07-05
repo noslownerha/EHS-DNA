@@ -117,6 +117,7 @@ export const api = {
 
   // operator console
   opTenants: () => req("/op/tenants"),
+  opLeads: () => req("/leads"),
   opCreateTenant: (t) => req("/op/tenants", { method: "POST", body: t }),
   opTenantUsers: (id) => req(`/op/tenants/${id}/users`),
   opResetPassword: (userId) => req(`/op/users/${userId}/reset-password`, { method: "POST" }),

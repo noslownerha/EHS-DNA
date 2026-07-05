@@ -104,7 +104,7 @@ export default function App() {
         }
         return (
           <MobileFrame>
-            <DashboardProvider user={userObj} companyName={COMPANY} initialScreen={defaultScreenForRole(currentUser.role)}>
+            <DashboardProvider user={userObj} companyName={COMPANY} initialScreen={defaultScreenForRole(currentUser.role, currentUser.isOperator)}>
               <DashboardRouter
                 onTriage={()        => handleTab("triage")}
                 onReportIncident={() => handleTab("flag")}
