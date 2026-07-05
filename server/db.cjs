@@ -187,6 +187,29 @@ CREATE TABLE IF NOT EXISTS invoices (
   approved_at TEXT, sent_at TEXT, paid_at TEXT,
   UNIQUE (tenant_id, period)
 );
+CREATE TABLE IF NOT EXISTS notification_rules (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  event TEXT NOT NULL,               -- incident_any | incident_injury | incident_critical
+  recipient_roles TEXT DEFAULT '[]',
+  recipient_users TEXT DEFAULT '[]',
+  email INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  title TEXT NOT NULL,
+  body TEXT,
+  link_kind TEXT,
+  link_ref TEXT,
+  emailed INTEGER DEFAULT 0,
+  read INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(tenant_id, user_id, read);
 CREATE TABLE IF NOT EXISTS leads (
   id INTEGER PRIMARY KEY,
   name TEXT, email TEXT NOT NULL, company TEXT, message TEXT,
