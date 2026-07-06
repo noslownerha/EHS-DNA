@@ -171,7 +171,8 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
             <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Site breakdown</h2>
             <p style={{ fontSize: ".75rem", color: C.mist }}>Click a site to open its dashboard</p>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["Site", "Days since recordable", "Open incidents", "Open CAs", "Critical findings", "Training compliance", ""].map((h, i) => (
@@ -215,6 +216,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
               ))}
             </tbody>
           </table>
+</div>
         </div>
       </div>
     </div>

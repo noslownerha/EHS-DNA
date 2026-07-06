@@ -163,7 +163,8 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
 
         {/* Library table */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["Training", "Type", "Groups", "Recurrence", "Completions", "Overdue", ""].map((h, i) => (
@@ -204,6 +205,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
               ))}
             </tbody>
           </table>
+</div>
         </div>
       </div>
     </div>
@@ -374,7 +376,8 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
               <p style={{ fontSize: ".75rem", color: C.mist, marginTop: 2 }}>{completions.length} records</p>
             </div>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["Staff member", "Site", "Completed", "Score", "Status", "Expires", "Trainer / Session"].map((h, i) => (
@@ -423,6 +426,7 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
               })}
             </tbody>
           </table>
+</div>
         </div>
       </div>
     </div>

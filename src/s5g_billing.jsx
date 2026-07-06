@@ -174,7 +174,7 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
               <button style={btn("#EEF2F0", C.slate)} onClick={() => api.deleteBillingAdjustment(a.id, tenantId).then(loadAll)}>Remove</button>
             </div>
           ))}
-          <form onSubmit={addAdj} style={{ display: "grid", gridTemplateColumns: "auto 110px 1fr auto auto", gap: 8, marginTop: 14, alignItems: "center" }}>
+          <form onSubmit={addAdj} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14, alignItems: "center" }}>
             <select style={{ ...input, width: 150 }} value={newAdj.kind} onChange={e => setNewAdj(a => ({ ...a, kind: e.target.value }))}>
               <option value="credit">Credit ($)</option>
               <option value="discount_flat">Discount ($)</option>

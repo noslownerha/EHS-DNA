@@ -220,7 +220,8 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
 
         {/* Staff compliance table */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["Name", "Site", "Department", "Compliance", "Overdue", "Expiring", ""].map((h, i) => (
@@ -254,6 +255,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
               ))}
             </tbody>
           </table>
+</div>
         </div>
       </div>
     </div>
@@ -348,7 +350,8 @@ export function S4hStaffComplianceDetail({ onHome, staffId, companyName, onBack 
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #E2EBE6" }}>
             <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Assigned trainings</h2>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["Training", "Status", "Due / Expires", "Action"].map((h, i) => (
@@ -385,6 +388,7 @@ export function S4hStaffComplianceDetail({ onHome, staffId, companyName, onBack 
               })}
             </tbody>
           </table>
+</div>
         </div>
       </div>
     </div>

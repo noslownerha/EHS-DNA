@@ -176,7 +176,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
         {error && <div style={{ marginBottom: 16, padding: "10px 14px", background: C.redLt, color: C.red, borderRadius: 8, fontSize: ".85rem" }}>{error}</div>}
 
         <Card title="Identity">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
             <div><label style={labelStyle}>Company name</label>
               <input style={inputStyle} value={cfg.company} onChange={e => set("company", e.target.value)} /></div>
             <div><label style={labelStyle}>Short name</label>
@@ -189,7 +189,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
         </Card>
 
         <Card title="Triage line">
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: 14, alignItems: "end" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "flex-end" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: ".88rem", color: C.ink, paddingBottom: 9 }}>
               <input type="checkbox" checked={!!cfg.triage?.enabled}
                 onChange={e => setTriage("enabled", e.target.checked)} style={{ width: 16, height: 16, accentColor: C.sage }} />
@@ -215,7 +215,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           <p style={{ fontSize: ".8rem", color: C.mist, marginBottom: 10 }}>
             Steps shown after an incident is submitted — one per line, per incident type.
           </p>
-          <select style={{ ...inputStyle, width: 220, marginBottom: 10 }} value={clType}
+          <select style={{ ...inputStyle, width: "100%", maxWidth: 220, marginBottom: 10 }} value={clType}
             onChange={e => { setClType(e.target.value); setClText((checklists[e.target.value] ?? []).join("\n")); setClSaved(false); }}>
             <option value="injury">Injury / Illness</option>
             <option value="near_miss">Near Miss / Risk</option>
@@ -259,7 +259,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           ))}
           <form onSubmit={addRule} style={{ marginTop: 14 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-              <select style={{ ...inputStyle, width: 220 }} value={newRule.event}
+              <select style={{ ...inputStyle, width: "100%", maxWidth: 220 }} value={newRule.event}
                 onChange={e => setNewRule(r => ({ ...r, event: e.target.value }))}>
                 {EVENTS.map(ev => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
               </select>
@@ -314,7 +314,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           <form onSubmit={addSite} style={{ display: "flex", gap: 10 }}>
             <input style={{ ...inputStyle, width: 180 }} placeholder="Site name" value={newSite.name}
               onChange={e => setNewSite(s => ({ ...s, name: e.target.value }))} />
-            <input style={{ ...inputStyle, width: 200 }} placeholder="Location (optional)" value={newSite.location}
+            <input style={{ ...inputStyle, width: "100%", maxWidth: 200 }} placeholder="Location (optional)" value={newSite.location}
               onChange={e => setNewSite(s => ({ ...s, location: e.target.value }))} />
             <button type="submit" style={{ padding: "9px 18px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600, cursor: "pointer" }}>+ Add site</button>
           </form>
@@ -325,7 +325,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
             {cfg.departments.map(d => chip(d.name, () => removeDept(d.id)))}
           </div>
           <form onSubmit={addDept} style={{ display: "flex", gap: 10 }}>
-            <input style={{ ...inputStyle, width: 260 }} placeholder="Department name" value={newDept}
+            <input style={{ ...inputStyle, width: "100%", maxWidth: 260 }} placeholder="Department name" value={newDept}
               onChange={e => setNewDept(e.target.value)} />
             <button type="submit" style={{ padding: "9px 18px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600, cursor: "pointer" }}>+ Add department</button>
           </form>

@@ -232,7 +232,8 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
 
         {/* Table */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["ID", "Type", "Site", "Severity", "Reported", "OSHA", "CAs", "Status", ""].map((h, i) => (
@@ -282,6 +283,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
               })}
             </tbody>
           </table>
+</div>
         </div>
       </div>
     </div>
@@ -514,7 +516,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
         </div>
 
         {/* Two-column layout */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 20, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start" }}>
 
           {/* Left: main details */}
           <div>

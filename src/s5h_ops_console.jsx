@@ -122,7 +122,7 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
         {showAdd && (
           <form onSubmit={handleCreate} style={{
             background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)",
-            padding: 20, marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12,
+            padding: 20, marginBottom: 18, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12,
           }}>
             <input required placeholder="Company name" value={form.name} style={input}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />

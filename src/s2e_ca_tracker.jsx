@@ -267,7 +267,8 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
 
         {/* CA table */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 {["Action", "Incident", "Assignee", "Priority", "Due date", "Site", ""].map((h, i) => (
@@ -290,6 +291,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
               ))}
             </tbody>
           </table>
+</div>
 
           {/* Escalation note */}
           {activeTab === "overdue" && escalatedCount > 0 && (
