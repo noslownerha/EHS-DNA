@@ -135,7 +135,7 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>Photos</div>
 
-          <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" style={{ display: "none" }} onChange={handleFileSelect} />
+          <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleFileSelect} />
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {photos.map(p => <PhotoThumb key={p.id} photo={p} onRemove={removePhoto} />)}

@@ -47,7 +47,29 @@ function MobileFrame({ children }) {
 
 const COMPANY = BRAND.company;
 
-export default function App() {
+import { Component } from "react";
+
+class CrashShield extends Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  render() {
+    if (!this.state.err) return this.props.children;
+    return (
+      <div style={{ fontFamily: "'DM Sans', sans-serif", padding: 24, maxWidth: 560, margin: "40px auto" }}>
+        <h2 style={{ color: "#C0392B", fontSize: "1.1rem" }}>Something went wrong on this screen</h2>
+        <p style={{ fontSize: ".85rem", color: "#4A5568", margin: "10px 0" }}>
+          Screenshot this and send it to support — then tap reload.
+        </p>
+        <pre style={{ background: "#F4F7F5", padding: 12, borderRadius: 8, fontSize: ".7rem", whiteSpace: "pre-wrap", color: "#0F1F17" }}>
+          {String(this.state.err?.message ?? this.state.err)}{"\n"}{(this.state.err?.stack ?? "").split("\n").slice(1, 5).join("\n")}
+        </pre>
+        <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: "10px 24px", background: "#4A8C5C", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Reload</button>
+      </div>
+    );
+  }
+}
+
+function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
   const [booting,     setBooting]     = useState(!!getToken());
@@ -201,4 +223,9 @@ export default function App() {
     </AppShell>
     </AccountContext.Provider>
   );
+}
+
+
+export default function AppWithShield() {
+  return <CrashShield><App /></CrashShield>;
 }

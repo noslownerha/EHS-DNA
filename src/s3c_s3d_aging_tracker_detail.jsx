@@ -502,7 +502,7 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
                 ))}
                 <label style={{ width: 100, height: 80, borderRadius: 8, border: "2px dashed #C8DDD2", background: C.chalk, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".75rem", color: C.sage, cursor: "pointer" }}>
                   + Add
-                  <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleAddPhoto} />
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleAddPhoto} />
                 </label>
               </div>
               {viewPhoto && (

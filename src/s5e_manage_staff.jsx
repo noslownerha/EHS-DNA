@@ -123,9 +123,10 @@ export default function S5eManageStaff({ companyName, onHome }) {
       const out = await api.createUser({
         email: form.email, name: form.name, role: form.role,
         siteId: form.siteId ? Number(form.siteId) : null,
+        departmentId: form.departmentId ? Number(form.departmentId) : null,
       });
       setLastCreated({ email: form.email, tempPassword: out.tempPassword });
-      setForm({ email: "", name: "", role: "staff", siteId: "" });
+      setForm({ email: "", name: "", role: "staff", siteId: "", departmentId: "" });
       setShowAdd(false);
       load();
     } catch (err) {
@@ -159,7 +160,7 @@ export default function S5eManageStaff({ companyName, onHome }) {
       <DesktopNav companyName={companyName} onHome={onHome} />
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Staff Accounts</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>{users.length} accounts</p>
@@ -172,7 +173,7 @@ export default function S5eManageStaff({ companyName, onHome }) {
           <button onClick={() => { setShowImport(true); setImportRows(null); setImportResult(null); }} style={{
             padding: "9px 16px", background: C.foam, color: C.pine, border: "1.5px solid #A8D5B5",
             borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".84rem", fontWeight: 700,
-            cursor: "pointer", marginLeft: 8,
+            cursor: "pointer",
           }}>📥 Bulk import</button>
         </div>
 
@@ -194,7 +195,7 @@ export default function S5eManageStaff({ companyName, onHome }) {
         {showAdd && (
           <form onSubmit={handleAdd} style={{
             background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)",
-            padding: 20, marginBottom: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12,
+            padding: 20, marginBottom: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12,
           }}>
             <input required type="email" placeholder="Email" value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={inputStyle} />
@@ -206,6 +207,10 @@ export default function S5eManageStaff({ companyName, onHome }) {
             <select value={form.siteId} onChange={e => setForm(f => ({ ...f, siteId: e.target.value }))} style={inputStyle}>
               <option value="">No site</option>
               {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <select value={form.departmentId ?? ""} onChange={e => setForm(f => ({ ...f, departmentId: e.target.value }))} style={inputStyle}>
+              <option value="">No department</option>
+              {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
             <button type="submit" disabled={saving} style={{
               gridColumn: "1 / -1", padding: "9px 20px", background: saving ? "#9BBBA6" : C.sage,
