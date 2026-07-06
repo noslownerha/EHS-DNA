@@ -1,6 +1,8 @@
 import { COLORS } from "./constants.js";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { printCertificate } from "./s4e_s4f_library_detail.jsx";
+import { BRAND } from "./constants.js";
 import { api } from "./api.js";
 
 const C = { ...COLORS };
@@ -79,6 +81,7 @@ export default function S4aTrainingQueue({ onHome,
         else status = "current";
         return {
           id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status, content: tr.content,
+          lastScore: comp?.score ?? null, lastCompletedAt: comp?.completed_at ? comp.completed_at.slice(0, 10) : null,
           due: null, duration: tr.kind === "in_person" ? "In person" : "Self-serve",
           progress: comp ? 100 : 0, expiresAt: fmt(comp?.expires_at),
         };
@@ -199,6 +202,17 @@ export default function S4aTrainingQueue({ onHome,
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <StatusPill status={t.status} />
                     <span style={{ fontSize: ".7rem", color: C.mist }}>{typeInfo.label} · {t.duration}</span>
+                    {(t.status === "current" || t.status === "expiring_soon") && t.lastCompletedAt && (
+                      <button onClick={e => { e.stopPropagation(); printCertificate({
+                        staffName: JSON.parse(sessionStorage.getItem("ehs_user") || "{}").name ?? "—",
+                        completedAt: t.lastCompletedAt, score: t.lastScore,
+                        expiresAt: t.expiresAt, passed: true,
+                      }, { title: t.title }, BRAND.company); }} style={{
+                        background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
+                        padding: "2px 9px", fontSize: ".68rem", color: C.pine, cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}>🏅 Certificate</button>
+                    )}
                   </div>
                   {t.due && (t.status === "overdue" || t.status === "not_started") && (
                     <div style={{ fontSize: ".7rem", color: t.status === "overdue" ? C.red : C.mist, marginTop: 3 }}>

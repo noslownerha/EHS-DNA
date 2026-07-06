@@ -38,7 +38,15 @@ function auth(req, res, next) {
   const h = req.headers.authorization || "";
   const token = h.startsWith("Bearer ") ? h.slice(7) : null;
   if (!token) return res.status(401).json({ error: "Not authenticated" });
-  try { req.auth = jwt.verify(token, SECRET); next(); }
+  try {
+    req.auth = jwt.verify(token, SECRET);
+    if (!req.auth.op) {
+      const tRow = db.prepare("SELECT active FROM tenants WHERE id = ?").get(req.auth.tenant);
+      if (tRow && tRow.active === 0)
+        return res.status(403).json({ error: "This account is suspended — contact EHS DNA support" });
+    }
+    next();
+  }
   catch { return res.status(401).json({ error: "Session expired" }); }
 }
 function requireRole(...roles) {
