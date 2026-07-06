@@ -82,7 +82,15 @@ export default function S4aTrainingQueue({ onHome,
         return {
           id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status, content: tr.content,
           lastScore: comp?.score ?? null, lastCompletedAt: comp?.completed_at ? comp.completed_at.slice(0, 10) : null,
-          due: null, duration: tr.kind === "in_person" ? "In person" : "Self-serve",
+          due: null,
+          duration: (() => {
+            if (tr.kind === "in_person") return "In person";
+            try {
+              const c = tr.content ? JSON.parse(tr.content) : null;
+              const n = (c?.slides?.length ?? 0) + (c?.questions?.length ?? 0);
+              return n ? `~${Math.max(3, n * 2)} min` : "Quick sign-off";
+            } catch { return "Self-serve"; }
+          })(),
           progress: comp ? 100 : 0, expiresAt: fmt(comp?.expires_at),
         };
       }));
