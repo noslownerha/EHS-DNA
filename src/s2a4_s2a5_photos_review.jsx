@@ -78,6 +78,7 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
   const [gpsGranted, setGps]       = useState(false);
   const [floorPlan,  setFloorPlan] = useState(false);
   const fileRef = useRef(null);
+  const cameraRef = useRef(null);
   const nextId  = useRef(1);
 
   async function compressPhoto(file) {
@@ -147,11 +148,27 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>Photos</div>
 
           <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleFileSelect} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFileSelect} />
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {photos.map(p => <PhotoThumb key={p.id} photo={p} onRemove={removePhoto} />)}
 
-            {/* Add photo button */}
+            {/* Take photo (camera) */}
+            <div
+              className="photo-add"
+              onClick={() => cameraRef.current?.click()}
+              style={{
+                width: 80, height: 80, borderRadius: 8,
+                border: "2px dashed #C8DDD2", background: C.chalk,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", transition: "all .15s", gap: 4,
+              }}
+            >
+              <span style={{ fontSize: "1.3rem" }}>📷</span>
+              <span style={{ fontSize: ".65rem", color: C.sage, fontWeight: 600 }}>Camera</span>
+            </div>
+
+            {/* Choose from library */}
             <div
               className="photo-add"
               onClick={() => fileRef.current?.click()}
@@ -162,8 +179,8 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
                 cursor: "pointer", transition: "all .15s", gap: 4,
               }}
             >
-              <span style={{ fontSize: "1.3rem" }}>📷</span>
-              <span style={{ fontSize: ".65rem", color: C.sage, fontWeight: 600 }}>Add</span>
+              <span style={{ fontSize: "1.3rem" }}>🖼️</span>
+              <span style={{ fontSize: ".65rem", color: C.sage, fontWeight: 600 }}>Library</span>
             </div>
           </div>
 

@@ -17,7 +17,7 @@
  *   </IncidentProvider>
  */
 
-import { createContext, useContext, useReducer, useCallback } from "react";
+import { createContext, useContext, useReducer, useCallback, useRef } from "react";
 import { BRAND } from "./constants.js";
 import { api } from "./api.js";
 
@@ -162,7 +162,8 @@ export function IncidentProvider({
   initialScreen  = INCIDENT_SCREENS.TYPE,
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
-  const stateRef = { current: state };  // always-fresh snapshot for async callbacks
+  const stateRef = useRef(state);       // always-fresh snapshot for async callbacks
+  stateRef.current = state;
 
 
   const navigate   = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);
