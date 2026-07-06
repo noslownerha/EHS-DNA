@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
+import { api } from "./api.js";
 
 const C = {
   forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
@@ -31,7 +32,7 @@ const QUARTERLY_DATA = {
   "Q3 2022": { incidents: 2, hours: 40900, trir: 0.98, prevYearTrir: null,  blsRate: 2.8 },
 };
 
-const SITES = ["All sites", "Moriah", "Middlebury", "Shoreham", "Brandenburg"];
+const SITES = () => ["All sites", ...(BRAND.siteRecords ?? []).map(s => s.name)];
 
 const SCHEDULED_CADENCES = ["Weekly", "Monthly", "Quarterly"];
 
@@ -180,13 +181,43 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   const [tab,         setTab]         = useState("trir");        // "trir" | "incidents" | "training"
 
   // Spec §15.3: completed periods only — not future or in-progress
-  const monthlyPeriods   = Object.keys(MONTHLY_DATA);
-  const quarterlyPeriods = Object.keys(QUARTERLY_DATA);
+  const [rawMonths, setRawMonths] = useState([]);
+  const [hoursNote, setHoursNote] = useState("");
+  useEffect(() => {
+    api.reportIncidentSummary().then(r => { setRawMonths(r.months ?? []); setHoursNote(r.hoursNote ?? ""); })
+      .catch(err => console.error("Report data load failed:", err.message));
+  }, []);
+
+  // Build MONTHLY/QUARTERLY from real data, honoring the site filter
+  const labelOf = ym => new Date(ym + "-15").toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const pick = m => {
+    if (site === "All sites") return { incidents: m.injuries, hours: m.estHours };
+    const s = m.sites.find(x => x.site === site);
+    return { incidents: s?.injuries ?? 0, hours: s?.estHours ?? 0 };
+  };
+  const trir = (inc, hrs) => hrs > 0 ? +((inc * 200000) / hrs).toFixed(2) : 0;
+
+  const MONTHLY_LIVE = Object.fromEntries(rawMonths.map(m => {
+    const { incidents, hours } = pick(m);
+    return [labelOf(m.month), { incidents, hours, trir: trir(incidents, hours), prevYearTrir: null, blsRate: 2.8 }];
+  }));
+  const QUARTERLY_LIVE = {};
+  rawMonths.forEach(m => {
+    const q = `Q${Math.floor((Number(m.month.slice(5, 7)) - 1) / 3) + 1} ${m.month.slice(0, 4)}`;
+    const { incidents, hours } = pick(m);
+    QUARTERLY_LIVE[q] = QUARTERLY_LIVE[q] ?? { incidents: 0, hours: 0, prevYearTrir: null, blsRate: 2.8 };
+    QUARTERLY_LIVE[q].incidents += incidents;
+    QUARTERLY_LIVE[q].hours += hours;
+  });
+  Object.values(QUARTERLY_LIVE).forEach(v => { v.trir = trir(v.incidents, v.hours); });
+
+  const monthlyPeriods   = Object.keys(MONTHLY_LIVE);
+  const quarterlyPeriods = Object.keys(QUARTERLY_LIVE);
   const periods          = frameType === "monthly" ? monthlyPeriods : quarterlyPeriods;
 
-  const chartData = frameType === "monthly" ? MONTHLY_DATA : QUARTERLY_DATA;
-  const blsRate   = 2.8; // From site_bls_rates for current effective year
-  const blsEntered = true; // Simulated — if false, overlay unavailable and user prompted
+  const chartData = frameType === "monthly" ? MONTHLY_LIVE : QUARTERLY_LIVE;
+  const blsRate   = 2.8; // BLS industry avg for beverage manufacturing
+  const blsEntered = true;
 
   // Scheduled report config
   const [scheduledCadence, setScheduledCadence] = useState("Monthly");
@@ -273,7 +304,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Site scope</div>
                 <select value={site} onChange={e => { setSite(e.target.value); setGenerated(false); }} style={{ width: "100%", ...inputStyle(false) }}>
-                  {SITES.map(s => <option key={s}>{s}</option>)}
+                  {SITES().map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
 

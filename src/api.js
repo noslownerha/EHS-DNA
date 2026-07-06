@@ -74,6 +74,7 @@ export const api = {
   // dashboard
   dashboardSummary: () => req("/dashboard/summary"),
   dashboardCompliance: () => req("/dashboard/compliance"),
+  reportIncidentSummary: () => req("/reports/incident-summary"),
 
   // incidents & CAs
   listIncidents: () => req("/incidents"),
