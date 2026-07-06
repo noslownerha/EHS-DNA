@@ -14,6 +14,7 @@ const inputStyle = {
 export default function LandingPage({ onEnter }) {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError]       = useState(null);
   const [busy, setBusy]         = useState(false);
 
@@ -113,11 +114,19 @@ export default function LandingPage({ onEnter }) {
             value={email} onChange={e => setEmail(e.target.value)}
             style={inputStyle}
           />
-          <input
-            type="password" required autoComplete="current-password" placeholder="Password"
-            value={password} onChange={e => setPassword(e.target.value)}
-            style={inputStyle}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPw ? "text" : "password"} required autoComplete="current-password" placeholder="Password"
+              value={password} onChange={e => setPassword(e.target.value)}
+              style={{ ...inputStyle, width: "100%", paddingRight: 48 }}
+            />
+            <button type="button" onClick={() => setShowPw(s => !s)}
+              aria-label={showPw ? "Hide password" : "Show password"} style={{
+                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer", fontSize: "1.05rem",
+                color: "rgba(255,255,255,.55)", padding: 4, lineHeight: 1,
+              }}>{showPw ? "🙈" : "👁️"}</button>
+          </div>
           {error && (
             <div style={{ fontSize: ".78rem", color: "#F0A5A5", background: "rgba(220,80,80,.12)", border: "1px solid rgba(220,80,80,.25)", borderRadius: 8, padding: "8px 12px" }}>
               {error}

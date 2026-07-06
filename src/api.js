@@ -64,6 +64,7 @@ export const api = {
   // org
   listUsers: () => req("/users"),
   staffDirectory: () => req("/users/directory"),
+  bulkCreateUsers: (rows) => req("/users/bulk", { method: "POST", body: { rows } }),
   createUser: (u) => req("/users", { method: "POST", body: u }),
   updateUser: (id, patch) => req(`/users/${id}`, { method: "PUT", body: patch }),
   createSite: (s) => req("/sites", { method: "POST", body: s }),

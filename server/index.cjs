@@ -188,6 +188,40 @@ app.put("/api/departments/:id", auth, requireRole(...ADMINISH), (req, res) => {
 });
 
 // Users (admin manage; no password in list responses)
+// Bulk staff creation from spreadsheet rows
+app.post("/api/users/bulk", auth, requireRole("admin", "safety", "site_manager"), (req, res) => {
+  const rows = req.body?.rows;
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: "rows array required" });
+  if (rows.length > 500) return res.status(400).json({ error: "Max 500 rows per import" });
+  const VALID_ROLES = ["admin", "safety", "site_manager", "trainer", "staff"];
+  const sites = db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1").all(req.auth.tenant);
+  const depts = db.prepare("SELECT id, name FROM departments WHERE tenant_id = ?").all(req.auth.tenant);
+  const norm = s => String(s ?? "").trim().toLowerCase();
+  const siteByName = Object.fromEntries(sites.map(s => [norm(s.name), s.id]));
+  const deptByName = Object.fromEntries(depts.map(d => [norm(d.name), d.id]));
+  const results = [];
+  for (const [i, r] of rows.entries()) {
+    const line = i + 2; // spreadsheet line (after header)
+    const name = String(r.name ?? "").trim();
+    const email = norm(r.email);
+    let role = norm(r.role) || "staff";
+    if (role === "site manager") role = "site_manager";
+    if (!name || !email || !email.includes("@")) { results.push({ line, email, error: "Missing/invalid name or email" }); continue; }
+    if (!VALID_ROLES.includes(role)) { results.push({ line, email, error: `Unknown role "${r.role}" — use staff, trainer, site_manager, safety, or admin` }); continue; }
+    const siteId = r.site ? siteByName[norm(r.site)] : null;
+    if (r.site && !siteId) { results.push({ line, email, error: `Unknown site "${r.site}"` }); continue; }
+    const deptId = r.department ? deptByName[norm(r.department)] : null;
+    if (r.department && !deptId) { results.push({ line, email, error: `Unknown department "${r.department}"` }); continue; }
+    if (db.prepare("SELECT id FROM users WHERE email = ?").get(email)) { results.push({ line, email, error: "Email already exists" }); continue; }
+    const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
+    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, department_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(req.auth.tenant, email, bcrypt.hashSync(tempPassword, 10), name, role, siteId, deptId);
+    results.push({ line, email, name, tempPassword });
+  }
+  res.json({ created: results.filter(r => !r.error).length, failed: results.filter(r => r.error).length, results });
+});
+
 app.get("/api/users/directory", auth, (req, res) =>
   res.json(db.prepare(`SELECT u.id, u.name, u.role, s.name AS site, d.name AS department
                        FROM users u LEFT JOIN sites s ON s.id = u.site_id

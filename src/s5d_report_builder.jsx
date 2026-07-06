@@ -472,6 +472,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                     showPrevYear={showPrevYear}
                     blsRate={blsRate}
                   />
+                  {hoursNote && <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 6, fontStyle: "italic" }}>{hoursNote}</div>}
 
                   {/* KPI summary below chart */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 22, paddingTop: 18, borderTop: "1px solid #E8EFec" }}>
