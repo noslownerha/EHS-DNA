@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3001;
 const SECRET = process.env.EHS_JWT_SECRET || "dev-secret-change-in-prod";
 const TOKEN_TTL = "12h";
 
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "15mb" }));
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 app.post("/api/auth/login", (req, res) => {
@@ -297,12 +297,12 @@ app.post("/api/incidents", auth, (req, res) => {
   if (type === "injury") events.push("incident_injury");
   if (severity === "critical" || severity === "serious") events.push("incident_critical");
   const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
-  notify(req.auth.tenant, events, {
+  const notified = notify(req.auth.tenant, events, {
     title: `${type === "injury" ? "Injury reported" : "Incident reported"}: ${ref}`,
     body: `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,
     linkKind: "incident", linkRef: ref,
   });
-  res.json({ id: r.lastInsertRowid, ref });
+  res.json({ id: r.lastInsertRowid, ref, notified: notified ?? null });
 });
 app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
   const { status, severity } = req.body || {};
@@ -543,7 +543,7 @@ function notify(tenantId, events, { title, body, linkKind, linkRef }) {
   try {
     const rules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId)
       .filter(r => events.includes(r.event));
-    if (!rules.length) return;
+    if (!rules.length) return { count: 0, email: false, events: [] };
     const recipients = new Set();
     let wantsEmail = false;
     for (const r of rules) {
@@ -565,7 +565,8 @@ function notify(tenantId, events, { title, body, linkKind, linkRef }) {
         body: JSON.stringify({ to: emails, subject: title, text: body ?? title }),
       }).catch(err => console.error("Email webhook failed:", err.message));
     }
-  } catch (e) { console.error("notify() failed:", e.message); }
+    return { count: recipients.size, email: wantsEmail, events: [...new Set(rules.map(r => r.event))] };
+  } catch (e) { console.error("notify() failed:", e.message); return null; }
 }
 
 app.get("/api/notifications", auth, (req, res) =>

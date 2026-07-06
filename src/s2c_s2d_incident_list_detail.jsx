@@ -429,6 +429,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
         description: row.description ?? i.description,
         location: row.location_detail ?? i.location,
         involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
+        photos: JSON.parse(row.photos || "[]"),
         cas: rowCAs.length ? rowCAs.map(c => ({
           id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned",
           due: c.due_date, status: c.status === "done" || c.status === "verified" ? "closed"
@@ -610,10 +611,16 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 24, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Photos</h2>
-                <span style={{ fontSize: ".78rem", color: C.mist }}>{incident.photos} attached</span>
+                <span style={{ fontSize: ".78rem", color: C.mist }}>{Array.isArray(incident.photos) ? incident.photos.length : incident.photos} attached</span>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                {Array.from({ length: incident.photos }).map((_, i) => (
+                {Array.isArray(incident.photos)
+                  ? incident.photos.map((ph, i) => (
+                      <img key={i} src={ph.dataUrl} alt={ph.name ?? `Photo ${i + 1}`} style={{
+                        width: 100, height: 80, borderRadius: 8, objectFit: "cover", border: "2px solid #E2EBE6",
+                      }} />
+                    ))
+                  : Array.from({ length: incident.photos }).map((_, i) => (
                   <div key={i} style={{
                     width: 100, height: 80, borderRadius: 8,
                     background: `hsl(${140 + i * 20}, 20%, 85%)`,

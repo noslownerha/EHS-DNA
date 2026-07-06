@@ -131,7 +131,7 @@ function reducer(state, action) {
       // Replace client-generated id with the server's canonical ref
       return state.submitted
         ? { ...state,
-            submitted: { ...state.submitted, id: action.ref, dbId: action.dbId },
+            submitted: { ...state.submitted, id: action.ref, dbId: action.dbId, notified: action.notified ?? null },
             incidents: state.incidents.map(i => i.id === state.submitted.id ? { ...i, id: action.ref } : i) }
         : state;
 
@@ -180,7 +180,8 @@ export function IncidentProvider({
       type: d.type, severity: d.severity, siteId: siteRec?.id ?? null,
       description: d.description, locationDetail: d.location, floorPos: d.floorPos ?? null,
       involved: d.involved ?? [], occurredAt: d.datetime ?? null,
-    }).then(({ ref, id }) => dispatch({ type: "SERVER_REF", ref, dbId: id }))
+      photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
+    }).then(({ ref, id, notified }) => dispatch({ type: "SERVER_REF", ref, dbId: id, notified }))
       .catch(err => { console.error("Incident save failed:", err.message); dispatch({ type: "SAVE_FAILED" }); });
   }, []);
   const viewIncident = useCallback(id   => dispatch({ type: "VIEW_INCIDENT", id }), []);
@@ -299,7 +300,13 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           incidentId={submitted?.id}
           incidentType={submitted?.type}
           severity={submitted?.severity}
-          notified={[`Site manager and safety team${user?.site ? ` — ${user.site}` : ""} (per notification rules)`]}
+          notified={
+            submitted?.notified
+              ? (submitted.notified.count > 0
+                  ? [`${submitted.notified.count} recipient${submitted.notified.count === 1 ? "" : "s"} notified in-app${submitted.notified.email ? " + email queued" : ""} — rules: ${(submitted.notified.events ?? []).join(", ")}`]
+                  : ["No active notification rules matched — configure in Settings → Notifications"])
+              : ["Confirming…"]
+          }
           timestamp={submitted?.submittedAt ?? new Date()}
           onDone={() => { resetDraft(); onDone?.(); }}
           onViewIncident={() => viewIncident(submitted?.id)}

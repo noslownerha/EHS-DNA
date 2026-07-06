@@ -80,15 +80,26 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
   const fileRef = useRef(null);
   const nextId  = useRef(1);
 
+  async function compressPhoto(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+      const MAX = 1280;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", 0.72);
+    } finally { URL.revokeObjectURL(url); }
+  }
+
   function handleFileSelect(e) {
     const files = Array.from(e.target.files);
-    const newPhotos = files.map(file => ({
-      id:  nextId.current++,
-      url: URL.createObjectURL(file),
-      gps: gpsGranted,
-      name: file.name,
-    }));
-    setPhotos(p => [...p, ...newPhotos]);
+    files.forEach(file => {
+      compressPhoto(file)
+        .then(dataUrl => setPhotos(p => [...p, { id: nextId.current++, url: dataUrl, dataUrl, gps: gpsGranted, name: file.name }]))
+        .catch(() => setPhotos(p => [...p, { id: nextId.current++, url: URL.createObjectURL(file), dataUrl: null, gps: gpsGranted, name: file.name }]));
+    });
     e.target.value = "";
   }
 
