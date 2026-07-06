@@ -136,7 +136,7 @@ function reducer(state, action) {
         : state;
 
     case "SAVE_FAILED":
-      return state.submitted ? { ...state, submitted: { ...state.submitted, saveFailed: true } } : state;
+      return state.submitted ? { ...state, submitted: { ...state.submitted, saveFailed: true, saveError: action.error ?? null } } : state;
 
     case "VIEW_INCIDENT":
       return { ...state, viewingId: action.id, screen: INCIDENT_SCREENS.DETAIL, history: [...state.history, state.screen] };
@@ -182,7 +182,7 @@ export function IncidentProvider({
       involved: d.involved ?? [], occurredAt: d.datetime ?? null,
       photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
     }).then(({ ref, id, notified }) => dispatch({ type: "SERVER_REF", ref, dbId: id, notified }))
-      .catch(err => { console.error("Incident save failed:", err.message); dispatch({ type: "SAVE_FAILED" }); });
+      .catch(err => { console.error("Incident save failed:", err.message); dispatch({ type: "SAVE_FAILED", error: `${err.status ?? ""} ${err.message}`.trim() }); });
   }, []);
   const viewIncident = useCallback(id   => dispatch({ type: "VIEW_INCIDENT", id }), []);
   const resetDraft = useCallback(()     => dispatch({ type: "RESET_DRAFT" }), []);
@@ -313,6 +313,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           userRole={user?.role ?? "staff"}
           incidentDbId={submitted?.dbId ?? null}
           saveState={submitted?.dbId ? "saved" : submitted?.saveFailed ? "failed" : "saving"}
+          saveError={submitted?.saveError ?? null}
         />
       );
 

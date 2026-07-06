@@ -138,6 +138,7 @@ export default function S2bConfirmationResponse({
   userRole = "staff",
   incidentDbId = null,
   saveState = "saved",   // "saving" | "saved" | "failed"
+  saveError = null,
 }) {
   const canManageCAs = ["admin", "safety", "site_manager"].includes(userRole);
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
@@ -240,6 +241,7 @@ export default function S2bConfirmationResponse({
           {saveState === "failed" && (
           <div style={{ background: "#FDEDEC", borderRadius: 8, padding: "10px 12px", textAlign: "left", fontSize: ".82rem", color: "#B3261E" }}>
             The server rejected or couldn't receive this report. It has NOT been saved and no one was notified. Check your connection and resubmit from the review screen.
+            {saveError && <div style={{ marginTop: 6, fontFamily: "'DM Mono', monospace", fontSize: ".75rem" }}>Error: {saveError}</div>}
           </div>
           )}
           {saveState === "saving" && (
