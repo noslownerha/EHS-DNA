@@ -78,7 +78,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
     const overdue = openCAs.some(c => c.due_date && new Date(c.due_date) < new Date());
     const hasAnyCA = liveCAs.some(c => c.incident_id === i.id);
     return {
-      id: i.ref, type: i.type, site: i.site_name ?? "—", dept: "—",
+      id: i.ref, type: i.type, site: i.site_name ?? "—", dept: i.department ?? "—",
       severity: i.severity ?? "minor", status: i.status,
       reporter: i.reporter_name ?? "—",
       date: (i.occurred_at ?? i.created_at ?? "").slice(0, 10),
@@ -419,6 +419,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
         description: row.description ?? i.description,
         location: row.location_detail ?? i.location,
         involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
+        dept: row.department ?? "—",
         photos: JSON.parse(row.photos || "[]"),
         cas: rowCAs.length ? rowCAs.map(c => ({
           id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned", serverStatus: c.status,
@@ -488,6 +489,9 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
     setIncident(i => ({ ...i, [field]: value }));
     if (field === "status" && dbId) {
       api.updateIncident(dbId, { status: value }).catch(err => console.error("Status update failed:", err.message));
+    }
+    if (field === "dept" && dbId) {
+      api.updateIncident(dbId, { department: value }).catch(err => console.error("Department update failed:", err.message));
     }
   }
 
@@ -599,7 +603,13 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
                   <div style={{ fontSize: ".9rem", color: C.ink }}>{new Date(incident.date).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.mist, marginBottom: 4 }}>Department</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.mist, marginBottom: 4 }}>Department</div>
+                    {canEdit && dbId && (
+                      <button onClick={() => { const v = window.prompt("Department", incident.dept === "—" ? "" : incident.dept); if (v !== null) updateField("dept", v.trim() || "—"); }}
+                        style={{ background: "none", border: "none", color: C.sage, fontSize: ".72rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Edit</button>
+                    )}
+                  </div>
                   <div style={{ fontSize: ".9rem", color: C.ink }}>{incident.dept}</div>
                 </div>
                 <div>

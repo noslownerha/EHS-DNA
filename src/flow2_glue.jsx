@@ -180,7 +180,7 @@ export function IncidentProvider({
     api.createIncident({
       type: d.type, severity: d.severity, siteId: siteRec?.id ?? null,
       description: d.description, locationDetail: d.location, floorPos: d.floorPos ?? null,
-      involved: d.involved ?? [], occurredAt: d.datetime ?? null,
+      involved: d.involved ?? [], occurredAt: d.datetime ?? null, department: d.dept ?? null,
       photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
     }).then(({ ref, id, notified }) => dispatch({ type: "SERVER_REF", ref, dbId: id, notified }))
       .catch(err => { console.error("Incident save failed:", err.message); dispatch({ type: "SAVE_FAILED", error: `${err.status ?? ""} ${err.message}`.trim() }); });

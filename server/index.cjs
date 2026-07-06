@@ -284,14 +284,14 @@ app.get("/api/incidents", auth, (req, res) =>
                        LEFT JOIN users u ON u.id = i.reported_by
                        WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)));
 app.post("/api/incidents", auth, (req, res) => {
-  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos } = req.body || {};
+  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department } = req.body || {};
   if (!type) return res.status(400).json({ error: "type required" });
   const ref = nextRef("INC", "incidents");
-  const r = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  const r = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(req.auth.tenant, ref, type, severity ?? null, siteId ?? null, description ?? null,
          locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
-         req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null);
+         req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null);
   // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
   const events = ["incident_any"];
   if (type === "injury") events.push("incident_injury");
@@ -312,9 +312,9 @@ app.put("/api/incidents/:id/response", auth, (req, res) => {
 });
 
 app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
-  const { status, severity } = req.body || {};
-  db.prepare("UPDATE incidents SET status = COALESCE(?, status), severity = COALESCE(?, severity), updated_at = datetime('now') WHERE id = ? AND tenant_id = ?")
-    .run(status, severity, req.params.id, req.auth.tenant);
+  const { status, severity, department } = req.body || {};
+  db.prepare("UPDATE incidents SET status = COALESCE(?, status), severity = COALESCE(?, severity), department = COALESCE(?, department), updated_at = datetime('now') WHERE id = ? AND tenant_id = ?")
+    .run(status, severity, department, req.params.id, req.auth.tenant);
   res.json({ ok: true });
 });
 
