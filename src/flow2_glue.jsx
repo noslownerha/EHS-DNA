@@ -296,11 +296,11 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           incidentId={submitted?.id}
           incidentType={submitted?.type}
           severity={submitted?.severity}
-          notified={[`Site manager and safety team${authUser?.site ? ` — ${authUser.site}` : ""} (per notification rules)`]}
+          notified={[`Site manager and safety team${user?.site ? ` — ${user.site}` : ""} (per notification rules)`]}
           timestamp={submitted?.submittedAt ?? new Date()}
           onDone={() => { resetDraft(); onDone?.(); }}
           onViewIncident={() => viewIncident(submitted?.id)}
-          userRole={authUser?.role ?? "staff"}
+          userRole={user?.role ?? "staff"}
           incidentDbId={submitted?.dbId ?? null}
         />
       );
