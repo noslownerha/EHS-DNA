@@ -280,19 +280,30 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
 // S2a5 — Review & Submit
 // ════════════════════════════════════════════════════════════════════════════
 
-// Spec: locked recipients shown w/o checkbox; optional recipients shown with unchecked checkbox
-const LOCKED_RECIPIENTS = [
-
-];
-const OPTIONAL_RECIPIENTS = [
-  { id: "safety",  name: "Safety team",   role: "Per notification rules",  site: "" },
-  { id: "admins",  name: "Site & company admins", role: "Per notification rules", site: "" },
-  { id: "dept",    name: "—",          role: "Department Lead",  site: "Moriah" },
-];
-
 export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack, onHome }) {
   const [optionalChecked, setOptionalChecked] = useState({});
   const [submitting,      setSubmitting]       = useState(false);
+
+  // Rules-driven recipient preview: resolve who will actually be notified
+  const [LOCKED_RECIPIENTS, setLocked] = useState([]);
+  useEffect(() => {
+    Promise.all([api.notificationRules().catch(() => []), api.staffDirectory().catch(() => [])])
+      .then(([rules, dir]) => {
+        const isInjury = (flowData.type ?? "injury") === "injury";
+        const events = ["incident_any", ...(isInjury ? ["incident_injury"] : [])];
+        const active = rules.filter(r => events.includes(r.event));
+        const roleSet = new Set(), idSet = new Set();
+        active.forEach(r => {
+          JSON.parse(r.recipient_roles || "[]").forEach(x => roleSet.add(x));
+          JSON.parse(r.recipient_users || "[]").forEach(x => idSet.add(x));
+        });
+        const people = dir.filter(u => roleSet.has(u.role) || idSet.has(u.id));
+        setLocked(people.length
+          ? people.map(u => ({ id: u.id, name: u.name, role: u.role.replace("_", " "), site: u.site ?? "" }))
+          : [{ id: "none", name: "No matching notification rules", role: "Configure in Company Settings", site: "" }]);
+      });
+  }, [flowData.type]);
+  const OPTIONAL_RECIPIENTS = [];
 
   const {
     type       = "injury",
