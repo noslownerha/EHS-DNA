@@ -78,6 +78,18 @@ export default function App() {
   }
 
   function handleHome() { setActiveTab("home"); }
+  useEffect(() => {
+    function onDeepLink(e) {
+      const { kind } = e.detail ?? {};
+      if (kind === "incident") { setFlagScreen(INCIDENT_SCREENS.LIST); handleTab("flag"); }
+      else if (kind === "training") handleTab("training");
+      else if (kind === "finding") handleTab("inspect");
+      else handleTab("home");
+    }
+    window.addEventListener("ehs:navigate", onDeepLink);
+    return () => window.removeEventListener("ehs:navigate", onDeepLink);
+  });
+
   function handleTab(tabId) {
     if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
     else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);

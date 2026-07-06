@@ -100,7 +100,9 @@ function NotificationBell() {
           </div>
           {items.length === 0 && <div style={{ padding: 18, fontSize: ".8rem", color: "#8FA3A0" }}>Nothing yet.</div>}
           {items.map(n => (
-            <div key={n.id} style={{ padding: "10px 14px", borderBottom: "1px solid #F5F8F6", background: n.read ? "#fff" : "#F3FAF5" }}>
+            <div key={n.id}
+              onClick={() => { if (n.link_kind) { setOpen(false); window.dispatchEvent(new CustomEvent("ehs:navigate", { detail: { kind: n.link_kind, ref: n.link_ref } })); } }}
+              style={{ padding: "10px 14px", borderBottom: "1px solid #F5F8F6", background: n.read ? "#fff" : "#F3FAF5", cursor: n.link_kind ? "pointer" : "default" }}>
               <div style={{ fontSize: ".82rem", fontWeight: 700, color: "#0F1F17" }}>{n.title}</div>
               {n.body && <div style={{ fontSize: ".76rem", color: "#4A5568", marginTop: 2 }}>{n.body}</div>}
               <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 3 }}>
