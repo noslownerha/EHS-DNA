@@ -48,7 +48,7 @@ function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
 }
 
 function pill(label, bg, color) {
-  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: bg, color }}>{label}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: bg, color }}>{label}</span>;
 }
 
 // ── Age bar ───────────────────────────────────────────────────────────────────

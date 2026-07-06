@@ -36,7 +36,7 @@ function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
 }
 
 function pill(label, bg, color) {
-  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: bg, color }}>{label}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: bg, color }}>{label}</span>;
 }
 
 function ComplianceBar({ pct, compact = false }) {
@@ -366,7 +366,7 @@ export function S4hStaffComplianceDetail({ onHome, staffId, companyName, onBack 
                   <tr key={t.id}>
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", fontWeight: 500, fontSize: ".88rem", color: C.ink }}>{t.title}</td>
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                      <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>
+                      <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: s.bg, color: s.color }}>{s.label}</span>
                     </td>
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".82rem", color: C.slate }}>
                       {t.due && <span style={{ color: t.status === "overdue" ? C.red : C.slate }}>Due {t.due}</span>}

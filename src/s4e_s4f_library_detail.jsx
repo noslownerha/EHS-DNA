@@ -50,7 +50,7 @@ function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
 }
 
 function pill(label, bg, color) {
-  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: bg, color }}>{label}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: bg, color }}>{label}</span>;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -401,7 +401,7 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
                       }
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                      <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>
+                      <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: s.bg, color: s.color }}>{s.label}</span>
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".8rem", color: comp.expiresAt ? C.slate : C.mist, whiteSpace: "nowrap" }}>
                       {comp.expiresAt ?? "—"}

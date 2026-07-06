@@ -401,7 +401,7 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".83rem", color: "rgba(255,255,255,.55)" }}>{enr.contact}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <span style={{
-                      padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600,
+                      padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap",
                       background: enr.type === "self_serve" ? C.tealLt + "30" : "rgba(244,162,97,.15)",
                       color: enr.type === "self_serve" ? C.teal : C.gold,
                     }}>
@@ -413,8 +413,8 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".78rem", color: "rgba(255,255,255,.35)" }}>{enr.submitted}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     {enr.status === "active"
-                      ? <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: C.greenLt + "20", color: C.green }}>Active</span>
-                      : <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: "rgba(244,162,97,.15)", color: C.gold }}>Pending</span>
+                      ? <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: C.greenLt + "20", color: C.green }}>Active</span>
+                      : <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: "rgba(244,162,97,.15)", color: C.gold }}>Pending</span>
                     }
                   </td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>

@@ -73,7 +73,7 @@ function StatusPill({ status }) {
     churned: { label: "Churned", bg: "#EEF1F0", color: C.slate },
   };
   const s = map[status] ?? map.active;
-  return <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>;
+  return <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: s.bg, color: s.color }}>{s.label}</span>;
 }
 
 function ModulePill({ id }) {
