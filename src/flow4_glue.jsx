@@ -326,6 +326,7 @@ export function TrainingRouter({ onDone, onHome }) {
             companyName={companyName}
             userRole={user.role}
             onBack={back}
+            onLogGroupSession={openGroupLog}
           />
         </>
       );

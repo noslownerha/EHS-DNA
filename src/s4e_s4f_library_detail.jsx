@@ -222,7 +222,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
 // S4f — Training Record Detail (desktop)
 // Spec §14.1: expiration derived from recurrence_months; status chips
 // ════════════════════════════════════════════════════════════════════════════
-export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, userRole = "admin" }) {
+export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, userRole = "admin", onLogGroupSession }) {
   const [training, setTraining] = useState({ id: trainingId, title: "…", type: "cbt", groups: [], recurrence: null, version: "v1.0" });
   const [completions, setCompletions] = useState([]);
 
@@ -303,7 +303,7 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
               </div>
             </div>
             {canLogSession && (
-              <button className="session-btn" onClick={() => {}} style={{
+              <button className="session-btn" onClick={onLogGroupSession} style={{
                 padding: "9px 18px", background: C.white, color: C.pine,
                 border: `1.5px solid ${C.mint}`, borderRadius: 7,
                 fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,

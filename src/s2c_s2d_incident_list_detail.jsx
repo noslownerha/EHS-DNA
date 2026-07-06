@@ -326,7 +326,7 @@ const SEED_DETAIL = {
 };
 
 // Spec §12.8: OSHA classification editable by Safety Officer and Company Admin only
-const USER_ROLE = "safety"; // "safety" | "admin" | "manager" | "staff"
+const USER_ROLE = JSON.parse(sessionStorage.getItem("ehs_user") || "{}").role ?? "staff";
 
 const OSHA_OPTIONS = [
   "Pending", "Non-recordable", "Recordable – First aid only",
@@ -390,6 +390,22 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
   const [incident, setIncident] = useState({ ...SEED_DETAIL, id: incidentId ?? SEED_DETAIL.id });
   const [dbId, setDbId] = useState(null); // server row id, needed for PUT calls
   const [floorRef, setFloorRef] = useState(null); // { plan, pos:{x,y} }
+  const [newCA, setNewCA] = useState("");
+
+  function handleAddCA(e) {
+    e.preventDefault();
+    const title = newCA.trim();
+    if (!title || !dbId) return;
+    api.createCA({ incidentId: dbId, title, priority: "medium" })
+      .then(() => {
+        setNewCA("");
+        setIncident(inc => ({ ...inc, cas: [...(inc.cas ?? []), {
+          id: `tmp-${Date.now()}`, desc: title, status: "on-track",
+          due: "—", assignee: "Unassigned",
+        }] }));
+      })
+      .catch(err => console.error("Add CA failed:", err.message));
+  }
   const [showClose, setShowClose] = useState(false);
 
   // Load the real incident + its CAs, overlaying server data onto the seed shape
@@ -635,6 +651,17 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
                   </div>
                 );
               })}
+              {["admin", "safety", "site_manager"].includes(USER_ROLE) && (
+                <form onSubmit={handleAddCA} style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <input value={newCA} onChange={e => setNewCA(e.target.value)} placeholder="Add a corrective action…"
+                    style={{ flex: 1, padding: "9px 11px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".84rem", color: C.ink, outline: "none" }} />
+                  <button type="submit" disabled={!newCA.trim()} style={{
+                    padding: "9px 16px", background: newCA.trim() ? C.sage : "#C8D8CE", color: "#fff",
+                    border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
+                    fontSize: ".82rem", fontWeight: 700, cursor: newCA.trim() ? "pointer" : "default",
+                  }}>Add</button>
+                </form>
+              )}
             </div>
 
             {/* Response checklist */}
