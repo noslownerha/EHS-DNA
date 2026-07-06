@@ -814,9 +814,11 @@ app.get("/api/dashboard/compliance", auth, (req, res) => {
 });
 
 const DIST = path.join(__dirname, "..", "dist");
-app.use(express.static(DIST));
+// Hashed assets cache forever; index.html must never be cached (stale-bundle white screens)
+app.use(express.static(DIST, { index: false, maxAge: "365d", immutable: true }));
 app.use((req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });
+  res.set("Cache-Control", "no-store, must-revalidate");
   res.sendFile(path.join(DIST, "index.html"));
 });
 

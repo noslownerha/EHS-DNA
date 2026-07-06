@@ -94,7 +94,7 @@ export default function S2a1IncidentType({
           </div>
           <div>
             <div style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>Date & time</div>
-            <input type="datetime-local" value={datetime} onChange={e => setDatetime(e.target.value)} style={{ width: "100%", padding: "9px 10px", border: "1.5px solid #D0DEDB", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, outline: "none" }} />
+            <input type="datetime-local" value={datetime} onChange={e => setDatetime(e.target.value)} style={{ width: "100%", padding: "9px 10px", border: "1.5px solid #D0DEDB", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, outline: "none", background: C.white }} />
             <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 4 }}>Defaults to now — edit if reporting after the fact</div>
           </div>
         </div>
