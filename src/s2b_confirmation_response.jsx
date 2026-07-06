@@ -137,6 +137,7 @@ export default function S2bConfirmationResponse({
   onHome,
   userRole = "staff",
   incidentDbId = null,
+  saveState = "saved",   // "saving" | "saved" | "failed"
 }) {
   const canManageCAs = ["admin", "safety", "site_manager"].includes(userRole);
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
@@ -215,9 +216,9 @@ export default function S2bConfirmationResponse({
           boxShadow: "0 1px 8px rgba(15,31,23,.06)",
           padding: "20px 18px", marginBottom: 14, textAlign: "center",
         }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>✅</div>
-          <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.pine, marginBottom: 6 }}>
-            Incident reported
+          <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>{saveState === "failed" ? "⚠️" : saveState === "saving" ? "⏳" : "✅"}</div>
+          <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: saveState === "failed" ? "#B3261E" : C.pine, marginBottom: 6 }}>
+            {saveState === "failed" ? "Report not saved" : saveState === "saving" ? "Saving report…" : "Incident reported"}
           </h1>
           <div style={{
             fontFamily: "'DM Mono', monospace", fontSize: ".85rem",
@@ -226,6 +227,7 @@ export default function S2bConfirmationResponse({
           <p style={{ fontSize: ".82rem", color: C.mist, lineHeight: 1.5, marginBottom: 12 }}>
             Submitted {timeStr}
           </p>
+          {saveState === "saved" && (
           <div style={{ background: C.foam, borderRadius: 8, padding: "10px 12px", textAlign: "left" }}>
             <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.sage, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>Notified</div>
             {notified.map((n, i) => (
@@ -234,6 +236,17 @@ export default function S2bConfirmationResponse({
               </div>
             ))}
           </div>
+          )}
+          {saveState === "failed" && (
+          <div style={{ background: "#FDEDEC", borderRadius: 8, padding: "10px 12px", textAlign: "left", fontSize: ".82rem", color: "#B3261E" }}>
+            The server rejected or couldn't receive this report. It has NOT been saved and no one was notified. Check your connection and resubmit from the review screen.
+          </div>
+          )}
+          {saveState === "saving" && (
+          <div style={{ background: C.foam, borderRadius: 8, padding: "10px 12px", textAlign: "left", fontSize: ".82rem", color: C.mist }}>
+            Sending to server — reference number will finalize in a moment.
+          </div>
+          )}
         </div>
 
         {/* ── Part 3: Response checklist ── */}

@@ -385,6 +385,7 @@ function EditableField({ label, value, onSave, multiline = false, canEdit = true
 export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, onHome }) {
   const [incident, setIncident] = useState({ ...SEED_DETAIL, id: incidentId ?? SEED_DETAIL.id });
   const [dbId, setDbId] = useState(null); // server row id, needed for PUT calls
+  const [phase, setPhase] = useState(incidentId ? "loading" : "ready"); // loading | ready | notfound
   const [floorRef, setFloorRef] = useState(null); // { plan, pos:{x,y} }
   const [newCA, setNewCA] = useState("");
 
@@ -409,8 +410,9 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
     if (!incidentId) return;
     Promise.all([api.listIncidents(), api.listCAs()]).then(([incs, cas]) => {
       const row = incs.find(i => i.ref === incidentId);
-      if (!row) return;
+      if (!row) { setPhase("notfound"); return; }
       setDbId(row.id);
+      setPhase("ready");
       if (row.floor_pos && row.site_id) {
         const pos = JSON.parse(row.floor_pos);
         api.siteFloorplan(row.site_id).then(r => {
@@ -434,8 +436,20 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
           priority: c.priority,
         })) : i.cas,
       }));
-    }).catch(err => console.error("Failed to load incident detail:", err.message));
+    }).catch(err => { console.error("Failed to load incident detail:", err.message); setPhase("notfound"); });
   }, [incidentId]);
+
+  if (phase === "loading") return (
+    <div style={{ padding: "60px 24px", textAlign: "center", color: "#7A8B82", fontSize: ".9rem" }}>Loading incident…</div>
+  );
+  if (phase === "notfound") return (
+    <div style={{ padding: "60px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: "2rem", marginBottom: 10 }}>🔎</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>Incident not found</div>
+      <div style={{ color: "#7A8B82", fontSize: ".85rem", marginBottom: 16 }}>{incidentId} isn't on the server — it may not have saved.</div>
+      <button onClick={onBack} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #CBD9D1", background: "#fff", fontWeight: 600 }}>← Back</button>
+    </div>
+  );
 
   const canEditOsha = USER_ROLE === "safety" || USER_ROLE === "admin";
   // Spec §12.8: once closed, read-only for standard users; Company Admin can edit for error correction
