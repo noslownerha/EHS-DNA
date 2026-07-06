@@ -1,12 +1,7 @@
+import { COLORS } from "./constants.js";
 import { useState } from "react";
 
-const C = {
-  dark: "#1A1A2E", mid: "#16213E", teal: "#00B4D8", tealLt: "#E0F7FC",
-  white: "#FFFFFF", ink: "#0F1F17", slate: "#4A5568", mist: "#8FA3A0",
-  chalk: "#F4F7F5", gold: "#F4A261", goldLt: "#FEF3E2",
-  green: "#2EC4B6", greenLt: "#E8FAF9", red: "#E74C3C", redLt: "#FEF0EF",
-  purple: "#6B3FA0", purpleLt: "#F3F0F9",
-};
+const C = { ...COLORS, gold: "#F4A261", goldLt: "#FEF3E2", red: "#E74C3C", redLt: "#FEF0EF" };
 
 function OpsNav({ title }) {
   return (

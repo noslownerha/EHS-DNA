@@ -1,28 +1,8 @@
+import { COLORS } from "./constants.js";
 import { useState } from "react";
 
 // ── Ops backend colour palette (spec §5.4) ───────────────────────────────────
-const C = {
-  // Ops backend palette
-  dark:   "#1A1A2E",
-  mid:    "#16213E",
-  teal:   "#00B4D8",
-  tealLt: "#E0F7FC",
-  // Shared
-  white:  "#FFFFFF",
-  ink:    "#0F1F17",
-  slate:  "#4A5568",
-  mist:   "#8FA3A0",
-  chalk:  "#F4F7F5",
-  gold:   "#F4A261",  // ops gold
-  goldLt: "#FEF3E2",
-  green:  "#2EC4B6",  // ops green
-  greenLt:"#E8FAF9",
-  red:    "#E74C3C",
-  redLt:  "#FEF0EF",
-  forest: "#1C3A2A",  // shared nav
-  sage:   "#4A8C5C",
-  mint:   "#A8D5B5",
-};
+const C = { ...COLORS, gold: "#F4A261", goldLt: "#FEF3E2", red: "#E74C3C", redLt: "#FEF0EF" };
 
 // ── Seed data ────────────────────────────────────────────────────────────────
 const ACCOUNTS = [

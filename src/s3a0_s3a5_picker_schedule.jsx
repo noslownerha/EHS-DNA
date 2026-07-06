@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
-import { BRAND } from "./constants.js";
+import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
 
-const C = {
-  forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C", mint: "#A8D5B5",
-  foam: "#E8F5EC", ink: "#0F1F17", slate: "#4A5568", mist: "#8FA3A0",
-  chalk: "#F4F7F5", white: "#FFFFFF", gold: "#C8922A", goldLt: "#FDF3E3",
-  red: "#C0392B", redLt: "#FDECEA",
-};
+const C = { ...COLORS };
 
 function Badge({ overdue, dueSoon, daysUntil }) {
   if (overdue) return <span style={{ fontSize: ".68rem", fontWeight: 700, background: C.redLt, color: C.red, padding: "3px 10px", borderRadius: 20 }}>Overdue {Math.abs(daysUntil)}d</span>;

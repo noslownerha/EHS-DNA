@@ -1,14 +1,10 @@
+import { COLORS } from "./constants.js";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
 import { getToken } from "./api.js";
 
-const C = {
-  forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C", mint: "#A8D5B5",
-  foam: "#E8F5EC", ink: "#0F1F17", slate: "#4A5568", mist: "#8FA3A0",
-  chalk: "#F4F7F5", white: "#FFFFFF", gold: "#C8922A", goldLt: "#FDF3E3",
-  red: "#C0392B", redLt: "#FDECEA", purple: "#7C5CBF",
-};
+const C = { ...COLORS, purple: "#7C5CBF" };
 
 const input = {
   width: "100%", padding: "9px 11px", border: "1.5px solid #D0DEDB", borderRadius: 7,

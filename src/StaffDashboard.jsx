@@ -1,15 +1,9 @@
 import { useState, useEffect } from "react";
-import { BRAND, SITES } from "./constants.js";
+import { BRAND, SITES, COLORS } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
 
-const C = {
-  forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
-  mint: "#A8D5B5", foam: "#E8F5EC", ink: "#0F1F17",
-  slate: "#4A5568", mist: "#8FA3A0", chalk: "#F4F7F5",
-  white: "#FFFFFF", gold: "#C8922A", goldLt: "#FDF3E3",
-  red: "#C0392B", redLt: "#FDECEA", orange: "#D4622A",
-};
+const C = { ...COLORS };
 
 export default function StaffDashboard({ user, onHome, onNavigate }) {
   const site = SITES.find(s => s.name === user.site) ?? SITES[0];

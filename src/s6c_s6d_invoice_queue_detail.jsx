@@ -1,13 +1,8 @@
+import { COLORS } from "./constants.js";
 import { useState } from "react";
 
 // Ops backend colour palette
-const C = {
-  dark: "#1A1A2E", mid: "#16213E", teal: "#00B4D8", tealLt: "#E0F7FC",
-  white: "#FFFFFF", ink: "#0F1F17", slate: "#4A5568", mist: "#8FA3A0",
-  chalk: "#F4F7F5", gold: "#F4A261", goldLt: "#FEF3E2",
-  green: "#2EC4B6", greenLt: "#E8FAF9", red: "#E74C3C", redLt: "#FEF0EF",
-  forest: "#1C3A2A", sage: "#4A8C5C", mint: "#A8D5B5",
-};
+const C = { ...COLORS, gold: "#F4A261", goldLt: "#FEF3E2", red: "#E74C3C", redLt: "#FEF0EF" };
 
 // Spec §16.3: YYMM-XXXX format
 // Spec §16.2: no invoice auto-sends without owner approval

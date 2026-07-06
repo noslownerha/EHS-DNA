@@ -1,11 +1,7 @@
+import { COLORS } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
 
-const C = {
-  forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C",
-  mint: "#A8D5B5", foam: "#E8F5EC", ink: "#0F1F17",
-  slate: "#4A5568", mist: "#8FA3A0", chalk: "#F4F7F5",
-  white: "#FFFFFF", red: "#C0392B", redLt: "#FDECEA",
-};
+const C = { ...COLORS };
 
 export default function S0aTriageEntry({
   user = { name: "Responder", site: "Moriah" },

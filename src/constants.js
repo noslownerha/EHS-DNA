@@ -1,3 +1,35 @@
+// ── Canonical color tokens — edit here to rebrand the entire app ─────────────
+export const COLORS = {
+  forest: "#1C3A2A",
+  pine: "#2D5A3D",
+  sage: "#4A8C5C",
+  mint: "#A8D5B5",
+  foam: "#E8F5EC",
+  ink: "#0F1F17",
+  slate: "#4A5568",
+  mist: "#8FA3A0",
+  chalk: "#F4F7F5",
+  white: "#FFFFFF",
+  dark: "#1A1A2E",
+  mid: "#16213E",
+  gold: "#C8922A",
+  goldLt: "#FDF3E3",
+  red: "#C0392B",
+  redLt: "#FDECEA",
+  alarm: "#B91C1C",
+  alarmLt: "#FEF2F2",
+  orange: "#D4622A",
+  orangeLt: "#FEF0E7",
+  green: "#2EC4B6",
+  greenLt: "#E8FAF9",
+  navy: "#1F4E79",
+  navyLt: "#D6E4F0",
+  purple: "#6B3FA0",
+  purpleLt: "#F3F0F9",
+  teal: "#00B4D8",
+  tealLt: "#E0F7FC",
+};
+
 // EHS DNA – Shared constants & demo seed data
 // Company: WhistlePig (Whiskey)
 // Round 1 review applied: buckets 1–4

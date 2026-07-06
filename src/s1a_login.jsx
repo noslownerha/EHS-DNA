@@ -1,23 +1,8 @@
 import { useState } from "react";
-import { BRAND } from "./constants.js";
+import { BRAND, COLORS } from "./constants.js";
 
 // ── Design tokens (matching wireframe exactly) ──────────────────────────────
-const C = {
-  forest:  "#1C3A2A",
-  pine:    "#2D5A3D",
-  sage:    "#4A8C5C",
-  mint:    "#A8D5B5",
-  foam:    "#E8F5EC",
-  ink:     "#0F1F17",
-  slate:   "#4A5568",
-  mist:    "#8FA3A0",
-  chalk:   "#F4F7F5",
-  white:   "#FFFFFF",
-  gold:    "#C8922A",
-  goldLt:  "#FDF3E3",
-  red:     "#C0392B",
-  redLt:   "#FDECEA",
-};
+const C = { ...COLORS };
 
 // ── Reusable micro-components ───────────────────────────────────────────────
 function Label({ children }) {

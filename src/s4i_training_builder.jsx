@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
-import { BRAND } from "./constants.js";
+import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
 
-const C = {
-  forest: "#1C3A2A", pine: "#2D5A3D", sage: "#4A8C5C", mint: "#A8D5B5",
-  foam: "#E8F5EC", ink: "#0F1F17", slate: "#4A5568", mist: "#8FA3A0",
-  chalk: "#F4F7F5", white: "#FFFFFF", red: "#C0392B", redLt: "#FDECEA",
-};
+const C = { ...COLORS };
 const input = {
   width: "100%", padding: "9px 11px", border: "1.5px solid #D0DEDB", borderRadius: 7,
   fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, outline: "none",
