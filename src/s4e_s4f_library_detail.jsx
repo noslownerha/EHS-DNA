@@ -215,6 +215,44 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
 // S4f — Training Record Detail (desktop)
 // Spec §14.1: expiration derived from recurrence_months; status chips
 // ════════════════════════════════════════════════════════════════════════════
+export function printCertificate(comp, training, companyName) {
+  const w = window.open("", "_blank", "width=900,height=650");
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><title>Certificate — ${comp.staffName}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=DM+Mono&display=swap');
+      body { font-family:'DM Sans',sans-serif; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#F4F7F5; }
+      .cert { width:820px; background:#fff; border:10px solid #1C3A2A; border-radius:6px; padding:60px 70px; text-align:center; position:relative; }
+      .inner { border:2px solid #A8D5B5; border-radius:4px; padding:40px 30px; }
+      .co { font-family:'DM Mono',monospace; letter-spacing:.2em; text-transform:uppercase; font-size:.75rem; color:#4A8C5C; }
+      h1 { font-size:2rem; font-weight:900; color:#0F1F17; margin:14px 0 4px; letter-spacing:-.5px; }
+      .sub { color:#8FA3A0; font-size:.85rem; margin-bottom:26px; }
+      .name { font-size:1.7rem; font-weight:700; color:#2D5A3D; margin:8px 0; }
+      .course { font-size:1.15rem; font-weight:700; color:#0F1F17; margin:6px 0 20px; }
+      .meta { display:flex; justify-content:center; gap:40px; font-size:.8rem; color:#4A5568; margin-top:24px; }
+      .meta b { display:block; color:#0F1F17; font-size:.92rem; }
+      .foot { margin-top:34px; font-size:.68rem; color:#8FA3A0; font-family:'DM Mono',monospace; }
+      @media print { body { background:#fff; } .cert { border-color:#1C3A2A; } }
+    </style></head><body>
+    <div class="cert"><div class="inner">
+      <div class="co">${companyName ?? "EHS DNA"}</div>
+      <h1>Certificate of Completion</h1>
+      <div class="sub">This certifies that</div>
+      <div class="name">${comp.staffName}</div>
+      <div class="sub">has successfully completed</div>
+      <div class="course">${training.title}</div>
+      <div class="meta">
+        <div><b>${comp.completedAt}</b>Completed</div>
+        ${comp.score != null ? `<div><b>${comp.score}%</b>Score</div>` : ""}
+        ${comp.expiresAt ? `<div><b>${comp.expiresAt}</b>Valid until</div>` : ""}
+      </div>
+      <div class="foot">Recorded in EHS DNA · verifiable in the training compliance log</div>
+    </div></div>
+    <script>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
+    </body></html>`);
+  w.document.close();
+}
+
 export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, userRole = "admin", onLogGroupSession }) {
   const [training, setTraining] = useState({ id: trainingId, title: "…", type: "cbt", groups: [], recurrence: null, version: "v1.0" });
   const [completions, setCompletions] = useState([]);
@@ -364,6 +402,15 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".8rem", color: comp.expiresAt ? C.slate : C.mist, whiteSpace: "nowrap" }}>
                       {comp.expiresAt ?? "—"}
+                    </td>
+                    <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", whiteSpace: "nowrap" }}>
+                      {comp.passed && (
+                        <button onClick={() => printCertificate(comp, training, companyName)} title="Print certificate" style={{
+                          background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
+                          padding: "4px 10px", fontSize: ".72rem", color: C.pine, cursor: "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}>🏅 Certificate</button>
+                      )}
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".78rem", color: C.mist }}>
                       {comp.sessionId

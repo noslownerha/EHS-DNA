@@ -724,6 +724,45 @@ app.get("/api/reports/incident-summary", auth, (req, res) => {
   res.json({ months: out, hoursNote: "Hours estimated from active headcount × 160/mo — replace with payroll hours when available" });
 });
 
+// ── Training due-date reminders (runs at boot + every 12h) ───────────────────
+function runTrainingReminders() {
+  try {
+    const soonMs = 14 * 86400000;
+    const rows = db.prepare(`
+      SELECT c.user_id, c.training_id, c.expires_at, t.title, t.tenant_id,
+             u.active AS user_active, u.is_operator
+      FROM completions c
+      JOIN trainings t ON t.id = c.training_id AND t.active = 1
+      JOIN users u ON u.id = c.user_id
+      WHERE c.expires_at IS NOT NULL
+        AND c.id IN (SELECT MAX(id) FROM completions GROUP BY user_id, training_id)
+    `).all().filter(r => r.user_active && !r.is_operator);
+    const now = Date.now();
+    const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
+                             VALUES (?, ?, ?, ?, 'training', ?)`);
+    const recent = db.prepare(`SELECT 1 FROM notifications
+                               WHERE user_id = ? AND link_kind = 'training' AND link_ref = ?
+                                 AND created_at > datetime('now', '-7 days') LIMIT 1`);
+    let sent = 0;
+    for (const r of rows) {
+      const exp = new Date(r.expires_at).getTime();
+      if (exp - now > soonMs) continue;
+      const ref = `reminder-${r.training_id}`;
+      if (recent.get(r.user_id, ref)) continue;
+      const days = Math.round((exp - now) / 86400000);
+      stmt.run(r.tenant_id, r.user_id,
+        days < 0 ? `⚠️ Training overdue: ${r.title}` : `📚 Training expiring: ${r.title}`,
+        days < 0 ? `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago — retake it from your Training queue.`
+                 : `Expires in ${days} day${days === 1 ? "" : "s"} — retake it from your Training queue to stay current.`,
+        ref);
+      sent++;
+    }
+    if (sent) console.log(`Training reminders sent: ${sent}`);
+  } catch (e) { console.error("Reminder run failed:", e.message); }
+}
+setTimeout(runTrainingReminders, 30000);
+setInterval(runTrainingReminders, 12 * 3600 * 1000);
+
 // ── Billing module ────────────────────────────────────────────────────────────
 require("./billing.cjs")(app, db, auth, () => requireOperator);
 
