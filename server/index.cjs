@@ -304,6 +304,13 @@ app.post("/api/incidents", auth, (req, res) => {
   });
   res.json({ id: r.lastInsertRowid, ref, notified: notified ?? null });
 });
+app.put("/api/incidents/:id/response", auth, (req, res) => {
+  const progress = Array.isArray(req.body?.progress) ? req.body.progress : [];
+  db.prepare("UPDATE incidents SET response_progress = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?")
+    .run(JSON.stringify(progress), req.params.id, req.auth.tenant);
+  res.json({ ok: true });
+});
+
 app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
   const { status, severity } = req.body || {};
   db.prepare("UPDATE incidents SET status = COALESCE(?, status), severity = COALESCE(?, severity), updated_at = datetime('now') WHERE id = ? AND tenant_id = ?")
@@ -318,7 +325,7 @@ app.get("/api/cas", auth, (req, res) =>
                        LEFT JOIN incidents i ON i.id = c.incident_id
                        LEFT JOIN users u ON u.id = c.assignee_id
                        WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant)));
-app.post("/api/cas", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
+app.post("/api/cas", auth, (req, res) => {
   const { incidentId, findingId, title, priority, assigneeId, dueDate } = req.body || {};
   if (!title) return res.status(400).json({ error: "title required" });
   const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, incident_id, finding_id, title, priority, assignee_id, due_date)

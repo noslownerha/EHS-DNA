@@ -118,7 +118,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
           !i.dept.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     }),
-    [search, filterSite, filterType, filterStatus]
+    [search, filterSite, filterType, filterStatus, SEED_INCIDENTS]
   );
 
   const sites = [...new Set(SEED_INCIDENTS.map(i => i.site))];
@@ -297,28 +297,18 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
 
 const SEED_DETAIL = {
   id: "INC-2024-0087",
-  type: "injury", site: "Moriah", dept: "Bottling & Packaging",
-  severity: "significant", status: "open",
+  type: "injury", site: "—", dept: "—",
+  severity: "minor", status: "open",
   reporter: "—", date: null,
-  description: "Staff member slipped on wet floor near bottling line 2. Landed on right wrist. Assessed by first aid kit, ice applied. Able to continue work with some discomfort.",
-  location: "Bottling line 2, east end",
+  description: "—",
+  location: "—",
   involved: "—",
-  photos: 2,
+  photos: [],
   osha: "Pending",
   oshaClassification: "",
-  triageId: "TRG-2024-0041",
-  cas: [
-    { id: 1, desc: "Complete first aid log entry",          assignee: "Unassigned",  due: "2024-06-13", status: "closed",   priority: "high"   },
-    { id: 2, desc: "Review incident with involved worker",  assignee: "Dept Lead",       due: "2024-06-15", status: "overdue",  priority: "medium" },
-    { id: 3, desc: "Conduct root cause analysis",           assignee: "Unassigned",       due: "2024-06-19", status: "on-track", priority: "high"   },
-    { id: 4, desc: "Review PPE adequacy for task",          assignee: "Unassigned",       due: "2024-06-17", status: "on-track", priority: "medium" },
-  ],
-  checklist: [
-    { id: 1, text: "Complete first aid log",         done: true  },
-    { id: 2, text: "Notify shift supervisor",         done: true  },
-    { id: 3, text: "Preserve scene photos",           done: false },
-    { id: 4, text: "Check in with injured worker",    done: false },
-  ],
+  triageId: null,
+  cas: [],
+  checklist: [],
 };
 
 // Spec §12.8: OSHA classification editable by Safety Officer and Company Admin only
@@ -408,7 +398,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
   // Load the real incident + its CAs, overlaying server data onto the seed shape
   useEffect(() => {
     if (!incidentId) return;
-    Promise.all([api.listIncidents(), api.listCAs()]).then(([incs, cas]) => {
+    Promise.all([api.listIncidents(), api.listCAs(), api.responseChecklists().catch(() => ({}))]).then(([incs, cas, tpls]) => {
       const row = incs.find(i => i.ref === incidentId);
       if (!row) { setPhase("notfound"); return; }
       setDbId(row.id);
@@ -431,11 +421,17 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
         involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
         photos: JSON.parse(row.photos || "[]"),
         cas: rowCAs.length ? rowCAs.map(c => ({
-          id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned",
+          id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned", serverStatus: c.status,
           due: c.due_date, status: c.status === "done" || c.status === "verified" ? "closed"
                : (c.due_date && new Date(c.due_date) < new Date()) ? "overdue" : "on-track",
           priority: c.priority,
-        })) : i.cas,
+        })) : [],
+        triageId: null,
+        checklist: (() => {
+          const items = Array.isArray(tpls[row.type]) ? tpls[row.type] : [];
+          const prog  = JSON.parse(row.response_progress || "[]");
+          return items.map((t, idx) => ({ id: idx, text: t, done: prog.includes(t) }));
+        })(),
       }));
     }).catch(err => { console.error("Failed to load incident detail:", err.message); setPhase("notfound"); });
   }, [incidentId]);
@@ -451,6 +447,38 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
       <button onClick={onBack} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #CBD9D1", background: "#fff", fontWeight: 600 }}>← Back</button>
     </div>
   );
+
+  function toggleChecklistItem(id) {
+    if (!dbId) return;
+    setIncident(inc => {
+      const next = inc.checklist.map(c => c.id === id ? { ...c, done: !c.done } : c);
+      api.saveResponseProgress(dbId, next.filter(c => c.done).map(c => c.text)).catch(() => {});
+      return { ...inc, checklist: next };
+    });
+  }
+
+  const CA_NEXT = { open: "in_progress", in_progress: "done" };
+  function advanceCA(ca) {
+    if (!dbId || ca.status === "closed") return;
+    const serverNow  = ca.serverStatus ?? "open";
+    const serverNext = CA_NEXT[serverNow] ?? "done";
+    api.updateCA(ca.id, { status: serverNext }).then(() => {
+      setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id !== ca.id ? c : {
+        ...c, serverStatus: serverNext,
+        status: serverNext === "done" ? "closed"
+              : (c.due && new Date(c.due) < new Date()) ? "overdue" : "on-track",
+      })}));
+    }).catch(err => console.error("CA update failed:", err.message));
+  }
+
+  const canClose = ["admin", "safety", "site_manager"].includes(USER_ROLE);
+  function toggleIncidentStatus() {
+    if (!dbId) return;
+    const next = incident.status === "closed" ? "open" : "closed";
+    api.updateIncident(dbId, { status: next })
+      .then(() => setIncident(inc => ({ ...inc, status: next })))
+      .catch(err => console.error("Status update failed:", err.message));
+  }
 
   const canEditOsha = USER_ROLE === "safety" || USER_ROLE === "admin";
   // Spec §12.8: once closed, read-only for standard users; Company Admin can edit for error correction
@@ -491,7 +519,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Incidents</button>
               <span style={{ color: "#D0DEDB" }}>/</span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.sage, fontWeight: 600 }}>{incident.id}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.sage, fontWeight: 600, whiteSpace: "nowrap" }}>{incident.id}</span>
             </div>
             <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink }}>
               {TYPE_EMOJI[incident.type]} {TYPE_LABELS[incident.type]} — {incident.site}
@@ -499,6 +527,13 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
             <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
               {pill(incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1), SEV_COLORS[incident.severity] + "18", SEV_COLORS[incident.severity])}
               {pill(incident.status === "open" ? "Open" : "Closed", incident.status === "open" ? C.foam : "#EEF1F0", incident.status === "open" ? C.pine : C.slate)}
+              {canClose && dbId && (
+                <button onClick={toggleIncidentStatus} style={{
+                  padding: "5px 12px", borderRadius: 7, border: `1.5px solid ${C.mint}`,
+                  background: C.white, color: C.pine, fontFamily: "'DM Sans', sans-serif",
+                  fontSize: ".76rem", fontWeight: 700, cursor: "pointer",
+                }}>{incident.status === "closed" ? "Reopen" : "Close incident"}</button>
+              )}
               {incident.triageId && (
                 <span style={{ fontSize: ".75rem", color: C.sage, fontStyle: "italic" }}>
                   🔗 Triage: {incident.triageId}
@@ -654,8 +689,8 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
               {incident.cas.map(ca => {
                 const s = CA_STATUS[ca.status] ?? CA_STATUS["on-track"];
                 return (
-                  <div key={ca.id} style={{
-                    padding: "10px 12px", marginBottom: 8,
+                  <div key={ca.id} onClick={() => advanceCA(ca)} title="Tap to advance status" style={{
+                    padding: "10px 12px", marginBottom: 8, cursor: ca.status === "closed" ? "default" : "pointer",
                     background: C.chalk, borderRadius: 8,
                     borderLeft: `3px solid ${s.color}`,
                   }}>
@@ -690,9 +725,9 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
                 </p>
               </div>
               {incident.checklist.map((item, i) => (
-                <div key={item.id} style={{
+                <div key={item.id} onClick={() => toggleChecklistItem(item.id)} style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "11px 18px",
+                  padding: "11px 18px", cursor: dbId ? "pointer" : "default",
                   borderBottom: i < incident.checklist.length - 1 ? "1px solid #F0F4F2" : "none",
                   background: item.done ? C.foam : C.white,
                 }}>

@@ -170,16 +170,22 @@ export default function S2bConfirmationResponse({
     setNewCA("");
   }
 
-  function toggleCheck(id) { setChecklist(cl => cl.map(c => c.id === id ? { ...c, done: !c.done } : c)); }
+  function toggleCheck(id) {
+    setChecklist(cl => {
+      const next = cl.map(c => c.id === id ? { ...c, done: !c.done } : c);
+      if (incidentDbId) api.saveResponseProgress(incidentDbId, next.filter(c => c.done).map(c => c.text)).catch(() => {});
+      return next;
+    });
+  }
 
   function handleConfirmCAs() {
     setConfirmed(true);
     if (incidentDbId) {
       cas.forEach(ca => api.createCA({
         incidentId: incidentDbId,
-        title: ca.text ?? ca.title ?? String(ca),
+        title: ca.description ?? ca.title ?? "Corrective action",
         priority: (ca.priority ?? "medium").toLowerCase(),
-        dueDate: ca.due ?? null,
+        dueDate: ca.dueDays ? new Date(Date.now() + ca.dueDays * 86400000).toISOString().slice(0, 10) : null,
       }).catch(err => console.error("CA save failed:", err.message)));
     }
   }

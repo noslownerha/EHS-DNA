@@ -74,7 +74,7 @@ export default function StaffDashboard({ user, onHome, onNavigate }) {
           {/* Top row: 2 tiles */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             {/* Open Tasks (combined flags + CAs) */}
-            <div className="tile" onClick={() => onNavigate("flag")} style={{
+            <div className="tile" onClick={() => window.dispatchEvent(new CustomEvent("ehs:navigate", { detail: { kind: "incident" } }))} style={{
               background: openTasks > 0 ? C.redLt : C.foam,
               border: `1.5px solid ${openTasks > 0 ? C.red + "33" : C.mint}`,
               borderRadius: 12, padding: "15px 14px",
