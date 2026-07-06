@@ -58,6 +58,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
     return {
       ...t,
       requiredDepartments: JSON.parse(t.required_departments || "[]"),
+      requiredRoles: JSON.parse(t.required_roles || "[]"),
       requiredUsers: JSON.parse(t.required_users || "[]"),
       slides: c?.slides ?? [],
       questions: c?.questions ?? [],
@@ -79,6 +80,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
         title: sel.title, kind: sel.kind,
         frequencyMonths: sel.frequency_months ? Number(sel.frequency_months) : null,
         requiredDepartments: sel.requiredDepartments,
+        requiredRoles: sel.requiredRoles,
         requiredUsers: sel.requiredUsers,
         content: { slides: sel.slides, questions: sel.questions, passThreshold: Number(sel.passThreshold) || 80 },
       });
@@ -95,7 +97,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
 
   const toggle = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
   const depts = BRAND.departmentRecords ?? [];
-  const targeted = sel && (sel.requiredDepartments.length || sel.requiredUsers.length);
+  const targeted = sel && (sel.requiredDepartments.length || sel.requiredUsers.length || sel.requiredRoles.length);
 
   return (
     <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", paddingBottom: 80 }}>
@@ -152,6 +154,13 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
               </div>
 
               <div style={{ marginBottom: 16 }}>
+                <span style={label}>Assigned roles</span>
+                <div style={{ marginBottom: 12 }}>
+                  {["staff", "trainer", "site_manager", "safety", "admin"].map(r => (
+                    <Chip key={r} text={r.replace("_", " ")} active={(sel.requiredRoles ?? []).includes(r)}
+                      onClick={() => setSel(s => ({ ...s, requiredRoles: toggle(s.requiredRoles ?? [], r) }))} />
+                  ))}
+                </div>
                 <span style={label}>Assigned departments</span>
                 <div>{depts.map(d => (
                   <Chip key={d.id} text={d.name} active={sel.requiredDepartments.includes(d.id)}
