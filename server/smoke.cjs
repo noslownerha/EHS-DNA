@@ -85,6 +85,19 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const site1c = hoursCleared.months.find(m => m.month === anyMonth).sites.find(s => s.siteId === 1);
   ok("zero hours reverts to estimate", site1c.hoursActual === false);
 
+  // Bulk hours: multiple site/month entries in one call, invalid entries skipped
+  const bmonth = trirSummary.months[trirSummary.months.length - 2].month;
+  const bulk = await fetch(`${B}/api/labor-hours/bulk`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ entries: [
+      { siteId: 1, month: bmonth, hours: 5000 },
+      { siteId: 2, month: bmonth, hours: 6000 },
+      { siteId: 1, month: "bad-month", hours: 100 },   // should skip
+    ] }) }).then(j);
+  ok("bulk applies and skips", bulk.applied === 2 && bulk.skipped === 1);
+  const afterBulk = await fetch(`${B}/api/labor-hours`, { headers: H() }).then(j);
+  ok("bulk persisted both", afterBulk.some(r => r.site_id === 1 && r.month === bmonth && r.hours === 5000)
+                          && afterBulk.some(r => r.site_id === 2 && r.month === bmonth && r.hours === 6000));
+
   const staff = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
     body: JSON.stringify({ email: "test.staff@whistlepig.com", name: "Test Staff", role: "staff", siteId: 1, password: "Staff!2026x" }) }).then(j);
   ok("user create", !!staff.id);

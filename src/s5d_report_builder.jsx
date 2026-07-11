@@ -177,10 +177,10 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   const [hoursNote, setHoursNote] = useState("");
   const [laborHours, setLaborHours] = useState([]); // [{site_id, month, hours}]
   const [showHoursEntry, setShowHoursEntry] = useState(false);
-  const [hoursSite, setHoursSite] = useState(null);
-  const [hoursValue, setHoursValue] = useState("");
   const [hoursSaved, setHoursSaved] = useState(false);
   const [hoursErr, setHoursErr] = useState("");
+  const [gridEdits, setGridEdits] = useState({});   // `${siteId}|${ym}` -> string (unsaved edits)
+  const [gridSaving, setGridSaving] = useState(false);
 
   function loadReport() {
     api.reportIncidentSummary().then(r => { setRawMonths(r.months ?? []); setHoursNote(r.hoursNote ?? ""); })
@@ -284,22 +284,25 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
 
   function exportReportPDF() { window.print(); }
 
-  // Map the selected monthly period label ("Jun 2024") back to its YYYY-MM.
-  const ymForPeriod = () => {
-    if (frameType !== "monthly") return null;
-    const m = recentMonths.find(x => labelOf(x.month) === period);
-    return m ? m.month : null;
+  // Saved actual hours lookup for grid pre-fill
+  const savedHoursMap = {};
+  laborHours.forEach(r => { savedHoursMap[`${r.site_id}|${r.month}`] = r.hours; });
+  const gridCellValue = (siteId, ym) => {
+    const key = `${siteId}|${ym}`;
+    if (key in gridEdits) return gridEdits[key];
+    return savedHoursMap[key] != null ? String(savedHoursMap[key]) : "";
   };
-  function saveHours() {
+  function saveGrid() {
     setHoursErr(""); setHoursSaved(false);
-    const ym = ymForPeriod();
-    const siteId = hoursSite ?? (BRAND.siteRecords ?? [])[0]?.id;
-    if (!ym || !siteId) { setHoursErr("Pick a monthly period and a site first."); return; }
-    const val = Number(hoursValue);
-    if (!Number.isFinite(val) || val < 0) { setHoursErr("Enter a valid number of hours."); return; }
-    api.setLaborHours(siteId, ym, val)
-      .then(() => { setHoursSaved(true); setHoursValue(""); loadReport(); setTimeout(() => setHoursSaved(false), 1800); })
-      .catch(err => setHoursErr(err.message || "Save failed"));
+    const entries = Object.entries(gridEdits)
+      .map(([key, v]) => { const [siteId, month] = key.split("|"); return { siteId: Number(siteId), month, hours: v === "" ? 0 : Number(v) }; })
+      .filter(e => Number.isFinite(e.hours) && e.hours >= 0);
+    if (!entries.length) { setHoursErr("No changes to save."); return; }
+    setGridSaving(true);
+    api.setLaborHoursBulk(entries)
+      .then(r => { setHoursSaved(true); setGridEdits({}); loadReport(); setTimeout(() => setHoursSaved(false), 1800); })
+      .catch(err => setHoursErr(err.message || "Bulk save failed"))
+      .finally(() => setGridSaving(false));
   }
 
   const inputStyle = focused => ({
@@ -552,29 +555,65 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                   }}>{showHoursEntry ? "− Hide hours entry" : "+ Enter actual payroll hours"}</button>
 
                   {showHoursEntry && (
-                    <div style={{ marginTop: 10, padding: "12px 14px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
-                      {frameType !== "monthly" ? (
-                        <div style={{ fontSize: ".76rem", color: C.mist }}>Switch to the monthly view to enter hours for a specific month.</div>
-                      ) : (
-                        <>
-                          <div style={{ fontSize: ".72rem", color: C.slate, marginBottom: 8 }}>
-                            Actual hours worked for <strong>{period}</strong> (overrides the headcount estimate for TRIR).
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                            <select value={hoursSite ?? (BRAND.siteRecords ?? [])[0]?.id ?? ""} onChange={e => setHoursSite(Number(e.target.value))}
-                              style={{ ...inputStyle(false), flex: "1 1 120px", minWidth: 110 }}>
-                              {(BRAND.siteRecords ?? []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
-                            <input type="number" min="0" inputMode="numeric" placeholder="Hours" value={hoursValue}
-                              onChange={e => setHoursValue(e.target.value)}
-                              style={{ ...inputStyle(false), flex: "1 1 90px", minWidth: 80, backgroundImage: "none", paddingRight: 12 }} />
-                            <button onClick={saveHours} style={{ padding: "9px 16px", background: C.sage, color: C.white, border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>Save</button>
-                          </div>
-                          {hoursErr && <div style={{ fontSize: ".72rem", color: C.red, marginTop: 6 }}>{hoursErr}</div>}
-                          {hoursSaved && <div style={{ fontSize: ".72rem", color: C.pine, marginTop: 6 }}>✓ Saved — TRIR updated.</div>}
-                          <div style={{ fontSize: ".68rem", color: C.mist, marginTop: 8 }}>Enter 0 to clear and revert to the estimate. Tip: sum all employees' hours for the month.</div>
-                        </>
-                      )}
+                    <div className="no-print" style={{ marginTop: 10, padding: "12px 14px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
+                      <div style={{ fontSize: ".72rem", color: C.slate, marginBottom: 4 }}>
+                        Actual hours worked per site per month — overrides the headcount estimate for TRIR.
+                      </div>
+                      <div style={{ fontSize: ".68rem", color: C.mist, marginBottom: 10 }}>
+                        Blank = use estimate. Enter 0 to force-clear. Sum all employees' hours for that month.
+                      </div>
+                      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", borderRadius: 6 }}>
+                        <table style={{ borderCollapse: "collapse", fontSize: ".76rem", minWidth: "100%" }}>
+                          <thead>
+                            <tr>
+                              <th style={{ position: "sticky", left: 0, background: C.chalk, zIndex: 1, textAlign: "left", padding: "6px 10px 6px 2px", color: C.mist, fontWeight: 600, whiteSpace: "nowrap" }}>Site</th>
+                              {recentMonths.map(m => (
+                                <th key={m.month} style={{ padding: "6px 4px", color: C.mist, fontWeight: 600, whiteSpace: "nowrap", textAlign: "center", minWidth: 62 }}>
+                                  {new Date(m.month + "-15").toLocaleDateString("en-US", { month: "short" })}<br />
+                                  <span style={{ fontSize: ".62rem", opacity: .7 }}>{m.month.slice(0, 4)}</span>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(BRAND.siteRecords ?? []).map(s => (
+                              <tr key={s.id}>
+                                <td style={{ position: "sticky", left: 0, background: C.chalk, zIndex: 1, padding: "4px 10px 4px 2px", fontWeight: 600, color: C.ink, whiteSpace: "nowrap" }}>{s.name}</td>
+                                {recentMonths.map(m => {
+                                  const key = `${s.id}|${m.month}`;
+                                  const edited = key in gridEdits;
+                                  return (
+                                    <td key={m.month} style={{ padding: 2 }}>
+                                      <input type="number" min="0" inputMode="numeric"
+                                        value={gridCellValue(s.id, m.month)}
+                                        onChange={e => setGridEdits(g => ({ ...g, [key]: e.target.value }))}
+                                        style={{
+                                          width: 58, padding: "6px 4px", textAlign: "center",
+                                          border: `1.5px solid ${edited ? C.sage : "#D9E4E0"}`,
+                                          background: edited ? "#F3F8F5" : C.white,
+                                          borderRadius: 5, fontFamily: "'DM Mono', monospace", fontSize: ".72rem",
+                                          color: C.ink, outline: "none",
+                                        }} />
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12 }}>
+                        <button onClick={saveGrid} disabled={gridSaving || !Object.keys(gridEdits).length} style={{
+                          padding: "9px 18px", background: (gridSaving || !Object.keys(gridEdits).length) ? C.sage + "80" : C.sage,
+                          color: C.white, border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
+                          fontSize: ".82rem", fontWeight: 700, cursor: (gridSaving || !Object.keys(gridEdits).length) ? "default" : "pointer",
+                        }}>{gridSaving ? "Saving…" : `Save all${Object.keys(gridEdits).length ? ` (${Object.keys(gridEdits).length})` : ""}`}</button>
+                        {Object.keys(gridEdits).length > 0 && (
+                          <button onClick={() => setGridEdits({})} style={{ background: "none", border: "none", color: C.mist, fontSize: ".76rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Discard changes</button>
+                        )}
+                      </div>
+                      {hoursErr && <div style={{ fontSize: ".72rem", color: C.red, marginTop: 6 }}>{hoursErr}</div>}
+                      {hoursSaved && <div style={{ fontSize: ".72rem", color: C.pine, marginTop: 6 }}>✓ Saved — TRIR updated.</div>}
                     </div>
                   )}
 

@@ -788,6 +788,26 @@ app.get("/api/labor-hours", auth, (req, res) => {
   res.json(rows);
 });
 
+app.put("/api/labor-hours/bulk", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
+  const entries = Array.isArray(req.body?.entries) ? req.body.entries : null;
+  if (!entries) return res.status(400).json({ error: "entries array required" });
+  const upsert = db.prepare(`INSERT INTO labor_hours (tenant_id, site_id, month, hours) VALUES (?, ?, ?, ?)
+              ON CONFLICT(tenant_id, site_id, month) DO UPDATE SET hours = ?, updated_at = datetime('now')`);
+  const del = db.prepare("DELETE FROM labor_hours WHERE tenant_id = ? AND site_id = ? AND month = ?");
+  let applied = 0, skipped = 0;
+  const tx = db.transaction(() => {
+    for (const e of entries) {
+      const siteId = e?.siteId, month = e?.month, h = Number(e?.hours);
+      if (!siteId || !/^\d{4}-\d{2}$/.test(String(month || "")) || !Number.isFinite(h) || h < 0) { skipped++; continue; }
+      if (h === 0) del.run(req.auth.tenant, siteId, month);
+      else upsert.run(req.auth.tenant, siteId, month, h, h);
+      applied++;
+    }
+  });
+  tx();
+  res.json({ ok: true, applied, skipped });
+});
+
 app.put("/api/labor-hours", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
   const { siteId, month, hours } = req.body || {};
   if (!siteId || !/^\d{4}-\d{2}$/.test(String(month || "")))

@@ -78,6 +78,7 @@ export const api = {
   reportIncidentSummary: () => req("/reports/incident-summary"),
   getLaborHours: () => req("/labor-hours"),
   setLaborHours: (siteId, month, hours) => req("/labor-hours", { method: "PUT", body: { siteId, month, hours } }),
+  setLaborHoursBulk: (entries) => req("/labor-hours/bulk", { method: "PUT", body: { entries } }),
 
   // incidents & CAs
   listIncidents: () => req("/incidents"),
