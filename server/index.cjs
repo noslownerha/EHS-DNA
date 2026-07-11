@@ -12,6 +12,10 @@ const db = require("./db.cjs");
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET = process.env.EHS_JWT_SECRET || "dev-secret-change-in-prod";
+if (process.env.NODE_ENV === "production" && SECRET === "dev-secret-change-in-prod") {
+  console.error("FATAL: EHS_JWT_SECRET is not set in production. Refusing to start with the default secret (tokens would be forgeable). Set it in /etc/ehs-dna.env and restart.");
+  process.exit(1);
+}
 const TOKEN_TTL = "12h";
 
 // Message shown to a blocked tenant, by suspension reason.

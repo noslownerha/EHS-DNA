@@ -262,6 +262,30 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ email: "ahren@whistlepig.com", password: "ChangeMe!2026" }) });
   ok("reactivate restores access", restored.status === 200);
 
+  // ── Cross-tenant isolation: tenant 1 must never see or touch tenant 2's data ──
+  // Provision a 2nd tenant via the operator API, then attack it with tenant 1's admin token.
+  const t2 = await fetch(`${B}/api/op/tenants`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ name: "Acme Distilling", industry: "Spirits", adminEmail: "admin@acme.test", adminName: "Acme Admin" }) }).then(j);
+  const t2Login = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "admin@acme.test", password: t2.tempPassword }) }).then(j);
+  const t2H = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${t2Login.token}` });
+  // Tenant 2 creates an incident
+  const t2inc = await fetch(`${B}/api/incidents`, { method: "POST", headers: t2H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", description: "ACME-SECRET-INJURY" }) }).then(j);
+  ok("2nd tenant provisioned + can create", !!t2Login.token && !!t2inc.id);
+  // Tenant 1 lists incidents — must NOT contain tenant 2's record
+  const t1incs = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  ok("tenant 1 cannot see tenant 2 incidents", !t1incs.some(i => i.description === "ACME-SECRET-INJURY"));
+  // Tenant 1 tries to MODIFY tenant 2's incident by id — write must not land
+  await fetch(`${B}/api/incidents/${t2inc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ description: "HACKED BY TENANT 1" }) });
+  const t2incAfter = await fetch(`${B}/api/incidents`, { headers: t2H() }).then(j);
+  const stillSafe = t2incAfter.find(i => i.id === t2inc.id);
+  ok("tenant 1 cannot modify tenant 2 incident", stillSafe && stillSafe.description === "ACME-SECRET-INJURY");
+  // Tenant 1 cannot see tenant 2 users
+  const t1users = await fetch(`${B}/api/users`, { headers: H() }).then(j);
+  ok("tenant 1 cannot see tenant 2 users", !t1users.some(u => u.email === "admin@acme.test"));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
