@@ -98,6 +98,12 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("compliance rollup", Array.isArray(compliance) && compliance.length === 2 &&
      staffRow && staffRow.current === 1 && staffRow.total === 12 && staffRow.compliance === Math.round(100 / 12));
 
+  // Site rollup must use the same expiry-aware definition: staff is 1/12 current, so their
+  // site cannot read 100% compliant (old proxy would have, off a single recent completion).
+  const staffSite = staffRow.site;
+  const siteSummary = summary.find(s => s.name === staffSite);
+  ok("site rollup expiry-aware", siteSummary && siteSummary.compliance < 100);
+
   const lead = await fetch(`${B}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Test Lead", email: "lead@example.com", company: "Acme" }) }).then(j);
   const badLead = await fetch(`${B}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" },

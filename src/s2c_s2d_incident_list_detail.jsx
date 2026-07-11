@@ -418,6 +418,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
         date: row.occurred_at ?? row.created_at ?? i.date,
         description: row.description ?? i.description,
         location: row.location_detail ?? i.location,
+        osha: row.osha_classification ?? "Pending",
         involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
         dept: row.department ?? "—",
         photos: JSON.parse(row.photos || "[]"),
@@ -492,6 +493,15 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
     }
     if (field === "dept" && dbId) {
       api.updateIncident(dbId, { department: value }).catch(err => console.error("Department update failed:", err.message));
+    }
+    if (field === "description" && dbId) {
+      api.updateIncident(dbId, { description: value }).catch(err => console.error("Description update failed:", err.message));
+    }
+    if (field === "location" && dbId) {
+      api.updateIncident(dbId, { locationDetail: value }).catch(err => console.error("Location update failed:", err.message));
+    }
+    if (field === "osha" && dbId) {
+      api.updateIncident(dbId, { oshaClassification: value }).catch(err => console.error("OSHA update failed:", err.message));
     }
   }
 
