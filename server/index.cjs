@@ -14,15 +14,69 @@ const PORT = process.env.PORT || 3001;
 const SECRET = process.env.EHS_JWT_SECRET || "dev-secret-change-in-prod";
 const TOKEN_TTL = "12h";
 
+// ── Login rate limiting ──────────────────────────────────────────────────────
+// Two layers, no external deps:
+//   (a) in-memory sliding window per IP+email — blocks rapid bursts (resets on restart)
+//   (b) SQLite failure counter per email — survives restarts, enforces a cooldown
+//       after sustained failures so a deploy can't reset an attacker's progress.
+const RL_WINDOW_MS   = 15 * 60 * 1000;  // 15 min window
+const RL_MAX_BURST   = 10;              // attempts per window per IP+email
+const RL_LOCK_FAILS  = 8;               // persistent failures before cooldown
+const RL_LOCK_MS     = 15 * 60 * 1000;  // cooldown duration
+const rlBurst = new Map();              // key -> [timestamps]
+
+try { db.exec(`CREATE TABLE IF NOT EXISTS login_failures (
+  email TEXT PRIMARY KEY, fails INTEGER DEFAULT 0, locked_until TEXT )`); } catch {}
+
+function loginRateLimit(req, res, next) {
+  const ip    = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "?";
+  const email = String(req.body?.email || "").toLowerCase().trim();
+  const now   = Date.now();
+
+  // (a) burst window
+  const key = `${ip}|${email}`;
+  const hits = (rlBurst.get(key) || []).filter(t => now - t < RL_WINDOW_MS);
+  if (hits.length >= RL_MAX_BURST) {
+    res.set("Retry-After", String(Math.ceil(RL_WINDOW_MS / 1000)));
+    return res.status(429).json({ error: "Too many attempts. Please wait a few minutes and try again." });
+  }
+  hits.push(now); rlBurst.set(key, hits);
+
+  // (b) persistent per-account lockout
+  if (email) {
+    const row = db.prepare("SELECT fails, locked_until FROM login_failures WHERE email = ?").get(email);
+    if (row?.locked_until && new Date(row.locked_until).getTime() > now) {
+      res.set("Retry-After", String(Math.ceil((new Date(row.locked_until).getTime() - now) / 1000)));
+      return res.status(429).json({ error: "Account temporarily locked after repeated failed attempts. Try again later." });
+    }
+  }
+  req._rlEmail = email;
+  next();
+}
+
+function recordLoginResult(email, success) {
+  if (!email) return;
+  if (success) { db.prepare("DELETE FROM login_failures WHERE email = ?").run(email); return; }
+  const row = db.prepare("SELECT fails FROM login_failures WHERE email = ?").get(email);
+  const fails = (row?.fails || 0) + 1;
+  const lock  = fails >= RL_LOCK_FAILS ? new Date(Date.now() + RL_LOCK_MS).toISOString() : null;
+  db.prepare(`INSERT INTO login_failures (email, fails, locked_until) VALUES (?, ?, ?)
+              ON CONFLICT(email) DO UPDATE SET fails = ?, locked_until = ?`)
+    .run(email, fails, lock, fails, lock);
+}
+
 app.use(express.json({ limit: "15mb" }));
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", loginRateLimit, (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "Email and password required" });
   const user = db.prepare("SELECT * FROM users WHERE email = ? AND active = 1").get(String(email).toLowerCase().trim());
-  if (!user || !bcrypt.compareSync(password, user.password_hash))
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    recordLoginResult(req._rlEmail, false);
     return res.status(401).json({ error: "Invalid email or password" });
+  }
+  recordLoginResult(req._rlEmail, true);
   const tenantRow = db.prepare("SELECT active FROM tenants WHERE id = ?").get(user.tenant_id);
   if (tenantRow && tenantRow.active === 0 && !user.is_operator)
     return res.status(403).json({ error: "This account is suspended — contact EHS DNA support" });

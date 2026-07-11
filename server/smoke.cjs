@@ -25,6 +25,16 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const noTok = await fetch(`${B}/api/incidents`);
   ok("no-token rejected", noTok.status === 401);
 
+  // Rate limiting: hammer a throwaway email; burst cap (10) must eventually 429.
+  let got429 = false;
+  for (let i = 0; i < 14; i++) {
+    const r = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "attacker@nowhere.test", password: "guess" + i }) });
+    if (r.status === 429) { got429 = true; break; }
+  }
+  ok("login rate limit trips", got429);
+
+
   const cfg = await fetch(`${B}/api/config`, { headers: H() }).then(j);
   ok("config", cfg.company === "WhistlePig Whiskey" && cfg.sites.length === 4 && cfg.departments.length === 6);
 
