@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
+import { parseCSV, downloadCSV, readFileText } from "./csv.js";
 
 const C = { ...COLORS };
 
@@ -233,6 +234,40 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
     setItems(its => [...its, newItem]);
   }
 
+  const [importMsg, setImportMsg] = useState("");
+  function downloadChecklistTemplate() {
+    downloadCSV("checklist-items-template.csv",
+      ["section", "text", "severity", "assign"],
+      [["PPE", "All workers wearing hard hats in active zones", "Major", "Site Manager"],
+       ["Housekeeping", "Floor clear of slip/trip hazards", "Minor", "Department Lead"]]);
+  }
+  async function importChecklistCSV(file) {
+    setImportMsg("");
+    if (!selectedTemplate) { setImportMsg("Select or create a template first."); return; }
+    try {
+      const text = await readFileText(file);
+      const { headers, rows } = parseCSV(text);
+      if (!headers.map(h => h.toLowerCase()).includes("text")) { setImportMsg('CSV must include a "text" column.'); return; }
+      const VALID_SEV = ["Critical", "Major", "Minor", "Noted"];
+      const added = [], newSections = new Set(sections);
+      rows.forEach(r => {
+        const o = {}; Object.keys(r).forEach(k => { o[k.toLowerCase()] = r[k]; });
+        const t = String(o.text ?? "").trim();
+        if (!t) return;
+        const section = String(o.section ?? "").trim() || "General";
+        let sev = String(o.severity ?? "").trim();
+        sev = VALID_SEV.find(v => v.toLowerCase() === sev.toLowerCase()) || "Minor";
+        const assign = String(o.assign ?? "").trim() || "Site Manager";
+        added.push({ id: nextId.current++, section, text: t, defaultSeverity: sev, autoAssign: assign });
+        newSections.add(section);
+      });
+      if (!added.length) { setImportMsg("No valid rows found."); return; }
+      setSections([...newSections]);
+      setItems(its => [...its, ...added]);   // APPEND — never replaces existing items
+      setImportMsg(`Added ${added.length} item${added.length === 1 ? "" : "s"}. Review, then Save template.`);
+    } catch (e) { setImportMsg(e.message || "Import failed"); }
+  }
+
   function moveItem(section, index, dir) {
     const sectionItems = items.filter(i => i.section === section);
     const target = index + dir;
@@ -431,9 +466,22 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
 
       {/* Fixed save bar */}
       <div style={{ position: "fixed", bottom: 58, left: 0, right: 0, background: C.white, borderTop: "1px solid #E2EBE6", padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 50, boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
-        <span style={{ fontSize: ".8rem", color: C.mist }}>
-          {items.length} items · {sections.length} sections
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <span style={{ fontSize: ".8rem", color: C.mist }}>
+            {items.length} items · {sections.length} sections
+          </span>
+          {selectedTemplate && (
+            <>
+              <button onClick={downloadChecklistTemplate} style={{ background: "none", border: "none", color: C.sage, fontSize: ".76rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Get template</button>
+              <label style={{ color: C.sage, fontSize: ".76rem", fontWeight: 600, cursor: "pointer" }}>
+                Import items
+                <input type="file" accept=".csv" style={{ display: "none" }}
+                  onChange={e => e.target.files[0] && importChecklistCSV(e.target.files[0])} />
+              </label>
+              {importMsg && <span style={{ fontSize: ".72rem", color: C.pine }}>{importMsg}</span>}
+            </>
+          )}
+        </div>
         <button className="save-btn" onClick={handleSave} disabled={saved} style={{
           padding: "10px 24px", background: saved ? C.sage + "99" : C.sage, color: C.white,
           border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif",

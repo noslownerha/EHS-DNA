@@ -1,6 +1,8 @@
 import { COLORS } from "./constants.js";
 import { useState, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
+import { parseCSV, downloadCSV, readFileText } from "./csv.js";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = { ...COLORS };
@@ -157,50 +159,107 @@ function SiteBadge({ site }) {
 }
 
 // ── CSV dropzone ─────────────────────────────────────────────────────────────
-function CsvDropzone({ onImport }) {
+function CsvDropzone({ onImported }) {
   const [dragging, setDragging] = useState(false);
   const [file, setFile]         = useState(null);
+  const [busy, setBusy]         = useState(false);
+  const [result, setResult]     = useState(null); // { created, failed, results }
+  const [err, setErr]           = useState("");
   const fileRef                 = useRef(null);
 
-  function handleFile(f) { setFile(f.name); if (onImport) onImport(f.name); }
+  async function handleFile(f) {
+    setErr(""); setResult(null); setFile(f.name); setBusy(true);
+    try {
+      const text = await readFileText(f);
+      const { headers, rows } = parseCSV(text);
+      const need = ["name", "email"];
+      const lower = headers.map(h => h.toLowerCase());
+      if (!need.every(h => lower.includes(h))) {
+        setErr(`CSV must include columns: ${need.join(", ")} (found: ${headers.join(", ") || "none"})`);
+        setBusy(false); return;
+      }
+      if (!rows.length) { setErr("No data rows found."); setBusy(false); return; }
+      // normalize keys to lowercase for the API
+      const norm = rows.map(r => {
+        const o = {};
+        Object.keys(r).forEach(k => { o[k.toLowerCase()] = r[k]; });
+        return o;
+      });
+      const res = await api.bulkCreateUsers(norm);
+      setResult(res);
+      if (onImported) onImported(res);
+    } catch (e) {
+      setErr(e.message || "Import failed");
+    } finally { setBusy(false); }
+  }
+
+  function downloadTemplate(e) {
+    e.stopPropagation();
+    downloadCSV("staff-import-template.csv",
+      ["name", "email", "role", "site", "department"],
+      [["Jane Doe", "jane@example.com", "staff", "Moriah", "Bottling & Packaging"]]);
+  }
 
   return (
-    <div
-      onClick={() => fileRef.current?.click()}
-      onDragOver={e => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-      style={{
-        border: `2px dashed ${dragging ? C.sage : C.mint}`, borderRadius: 10,
-        padding: "20px 16px", textAlign: "center", cursor: "pointer",
-        background: dragging ? C.foam : C.chalk, transition: "all .18s",
-      }}
-    >
-      <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
-        onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
-      <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>👥</div>
-      {file ? (
-        <>
-          <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.pine }}>✓ {file}</div>
-          <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 3 }}>Click to choose different file</div>
-        </>
-      ) : (
-        <>
-          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>Import staff list</div>
-          <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 3 }}>CSV with name, email, site, department</div>
-        </>
-      )}
-      <div style={{ margin: "10px 0", fontSize: ".7rem", color: C.mist, display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />or<div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />
-      </div>
-      <button
-        onClick={e => e.stopPropagation()}
+    <div>
+      <div
+        onClick={() => fileRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
         style={{
+          border: `2px dashed ${dragging ? C.sage : C.mint}`, borderRadius: 10,
+          padding: "20px 16px", textAlign: "center", cursor: "pointer",
+          background: dragging ? C.foam : C.chalk, transition: "all .18s",
+        }}
+      >
+        <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
+          onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
+        <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>👥</div>
+        {busy ? (
+          <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.pine }}>Importing…</div>
+        ) : file ? (
+          <>
+            <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.pine }}>✓ {file}</div>
+            <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 3 }}>Click to choose a different file</div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>Import staff list</div>
+            <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 3 }}>CSV with name, email, role, site, department</div>
+          </>
+        )}
+        <div style={{ margin: "10px 0", fontSize: ".7rem", color: C.mist, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />or<div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />
+        </div>
+        <button onClick={downloadTemplate} style={{
           padding: "5px 14px", background: C.white, color: C.pine,
           border: `1.5px solid ${C.mint}`, borderRadius: 6,
           fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 600, cursor: "pointer",
-        }}
-      >Download template</button>
+        }}>Download template</button>
+      </div>
+
+      {err && <div style={{ marginTop: 10, padding: "9px 12px", background: C.redLt, color: C.red, borderRadius: 8, fontSize: ".8rem" }}>{err}</div>}
+
+      {result && (
+        <div style={{ marginTop: 10, padding: "10px 12px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
+          <div style={{ fontSize: ".82rem", fontWeight: 600, color: C.pine }}>
+            {result.created} added{result.failed ? `, ${result.failed} skipped` : ""}
+          </div>
+          {result.results.filter(r => r.error).length > 0 && (
+            <div style={{ marginTop: 6, maxHeight: 140, overflowY: "auto" }}>
+              {result.results.filter(r => r.error).map((r, i) => (
+                <div key={i} style={{ fontSize: ".72rem", color: C.red }}>Line {r.line}{r.email ? ` (${r.email})` : ""}: {r.error}</div>
+              ))}
+            </div>
+          )}
+          {result.results.some(r => r.tempPassword) && (
+            <div style={{ marginTop: 8, fontSize: ".7rem", color: C.mist }}>
+              Temporary passwords were generated — new staff will be prompted to reset on first login.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -303,7 +362,7 @@ function AddPersonForm({ sites, departments, onAdd }) {
       >Add person</button>
 
       <Divider />
-      <CsvDropzone onImport={name => console.log("Import:", name)} />
+      <CsvDropzone onImported={() => {}} />
     </div>
   );
 }

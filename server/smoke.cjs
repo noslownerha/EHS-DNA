@@ -211,6 +211,30 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const rules = await fetch(`${B}/api/notification-rules`, { headers: H() }).then(j);
   ok("default rule seeded", rules.length === 1 && rules[0].event === "incident_injury");
 
+  // ── Bulk imports (run last: they change site/user counts) ──
+  const ub = await fetch(`${B}/api/users/bulk`, { method: "POST", headers: H(),
+    body: JSON.stringify({ rows: [
+      { name: "Bulk One", email: "bulk1@whistlepig.com", role: "staff", site: "Moriah" },
+      { name: "Bulk Two", email: "bulk2@whistlepig.com", role: "trainer" },
+      { name: "Dupe", email: "test.staff@whistlepig.com", role: "staff" },  // existing → skip
+      { name: "NoEmail", email: "", role: "staff" },                        // invalid → skip
+    ] }) }).then(j);
+  ok("bulk users adds + skips", ub.created === 2 && ub.failed === 2);
+  // The dupe row must not have overwritten the existing user's record.
+  const dupeResult = ub.results.find(r => r.email === "test.staff@whistlepig.com");
+  ok("bulk did not overwrite existing user", dupeResult && dupeResult.error === "Email already exists");
+
+  const sb = await fetch(`${B}/api/sites/bulk`, { method: "POST", headers: H(),
+    body: JSON.stringify({ rows: [
+      { name: "New Depot", location: "Albany, NY" },
+      { name: "Moriah", location: "should be skipped" },  // existing → skip
+      { name: "", location: "x" },                         // invalid → skip
+    ] }) }).then(j);
+  ok("bulk sites adds + skips", sb.created === 1 && sb.failed === 2);
+  const sitesNow = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  const moriah = (sitesNow.sites ?? []).find(s => s.name === "Moriah");
+  ok("bulk did not overwrite existing site", moriah && moriah.location === "Moriah, NY");
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

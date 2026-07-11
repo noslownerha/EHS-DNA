@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
+import { parseCSV, downloadCSV, readFileText } from "./csv.js";
 import { api } from "./api.js";
 
 const C = { ...COLORS };
@@ -303,6 +304,42 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
       .then(r => { setHoursSaved(true); setGridEdits({}); loadReport(); setTimeout(() => setHoursSaved(false), 1800); })
       .catch(err => setHoursErr(err.message || "Bulk save failed"))
       .finally(() => setGridSaving(false));
+  }
+
+  function downloadHoursTemplate() {
+    // One row per site × recent month, pre-filled with any saved actuals — a ready-to-edit grid.
+    const rows = [];
+    (BRAND.siteRecords ?? []).forEach(s => {
+      recentMonths.forEach(m => {
+        rows.push([s.name, m.month, savedHoursMap[`${s.id}|${m.month}`] ?? ""]);
+      });
+    });
+    downloadCSV("labor-hours-template.csv", ["site", "month", "hours"], rows);
+  }
+
+  async function importHoursCSV(file) {
+    setHoursErr(""); setHoursSaved(false);
+    try {
+      const text = await readFileText(file);
+      const { headers, rows } = parseCSV(text);
+      const lower = headers.map(h => h.toLowerCase());
+      if (!["site", "month", "hours"].every(h => lower.includes(h))) {
+        setHoursErr("CSV needs columns: site, month, hours"); return;
+      }
+      const siteByName = {};
+      (BRAND.siteRecords ?? []).forEach(s => { siteByName[s.name.trim().toLowerCase()] = s.id; });
+      const edits = {}; let bad = 0;
+      rows.forEach(r => {
+        const o = {}; Object.keys(r).forEach(k => { o[k.toLowerCase()] = r[k]; });
+        const siteId = siteByName[String(o.site ?? "").trim().toLowerCase()];
+        const month = String(o.month ?? "").trim();
+        if (!siteId || !/^\d{4}-\d{2}$/.test(month) || o.hours === "" || o.hours == null) { bad++; return; }
+        edits[`${siteId}|${month}`] = String(o.hours).trim();
+      });
+      if (!Object.keys(edits).length) { setHoursErr("No valid rows found (check site names and YYYY-MM months)."); return; }
+      setGridEdits(g => ({ ...g, ...edits }));
+      if (bad) setHoursErr(`${Object.keys(edits).length} rows loaded, ${bad} skipped — review highlighted cells, then Save all.`);
+    } catch (e) { setHoursErr(e.message || "Import failed"); }
   }
 
   const inputStyle = focused => ({
@@ -611,6 +648,13 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                         {Object.keys(gridEdits).length > 0 && (
                           <button onClick={() => setGridEdits({})} style={{ background: "none", border: "none", color: C.mist, fontSize: ".76rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Discard changes</button>
                         )}
+                        <div style={{ flex: 1 }} />
+                        <button onClick={downloadHoursTemplate} style={{ background: "none", border: "none", color: C.sage, fontSize: ".76rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Get template</button>
+                        <label style={{ color: C.sage, fontSize: ".76rem", fontWeight: 600, cursor: "pointer" }}>
+                          Import CSV
+                          <input type="file" accept=".csv" style={{ display: "none" }}
+                            onChange={e => e.target.files[0] && importHoursCSV(e.target.files[0])} />
+                        </label>
                       </div>
                       {hoursErr && <div style={{ fontSize: ".72rem", color: C.red, marginTop: 6 }}>{hoursErr}</div>}
                       {hoursSaved && <div style={{ fontSize: ".72rem", color: C.pine, marginTop: 6 }}>✓ Saved — TRIR updated.</div>}

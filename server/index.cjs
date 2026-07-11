@@ -239,6 +239,28 @@ function listAll(table, orderBy = "id DESC") {
 }
 
 // Sites & departments (admin manage)
+app.post("/api/sites/bulk", auth, requireRole(...ADMINISH), (req, res) => {
+  const rows = req.body?.rows;
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: "rows array required" });
+  if (rows.length > 500) return res.status(400).json({ error: "Max 500 rows per import" });
+  const existing = new Set(db.prepare("SELECT name FROM sites WHERE tenant_id = ?").all(req.auth.tenant)
+    .map(s => String(s.name).trim().toLowerCase()));
+  const results = [];
+  const ins = db.prepare("INSERT INTO sites (tenant_id, name, location) VALUES (?, ?, ?)");
+  for (const [i, r] of rows.entries()) {
+    const line = i + 2;
+    const name = String(r.name ?? "").trim();
+    const location = String(r.location ?? "").trim() || null;
+    if (!name) { results.push({ line, error: "Missing site name" }); continue; }
+    const key = name.toLowerCase();
+    if (existing.has(key)) { results.push({ line, name, error: "Site name already exists" }); continue; }
+    ins.run(req.auth.tenant, name, location);
+    existing.add(key); // guard against duplicates within the same file
+    results.push({ line, name });
+  }
+  res.json({ created: results.filter(r => !r.error).length, failed: results.filter(r => r.error).length, results });
+});
+
 app.post("/api/sites", auth, requireRole(...ADMINISH), (req, res) => {
   const r = db.prepare("INSERT INTO sites (tenant_id, name, location) VALUES (?, ?, ?)")
     .run(req.auth.tenant, req.body.name, req.body.location ?? null);

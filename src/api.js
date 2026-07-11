@@ -68,6 +68,7 @@ export const api = {
   createUser: (u) => req("/users", { method: "POST", body: u }),
   updateUser: (id, patch) => req(`/users/${id}`, { method: "PUT", body: patch }),
   createSite: (s) => req("/sites", { method: "POST", body: s }),
+  bulkCreateSites: (rows) => req("/sites/bulk", { method: "POST", body: { rows } }),
   updateSite: (id, patch) => req(`/sites/${id}`, { method: "PUT", body: patch }),
   createDepartment: (d) => req("/departments", { method: "POST", body: d }),
   updateDepartment: (id, patch) => req(`/departments/${id}`, { method: "PUT", body: patch }),

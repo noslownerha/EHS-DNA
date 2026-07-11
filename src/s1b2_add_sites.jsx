@@ -1,6 +1,8 @@
 import { COLORS } from "./constants.js";
 import { useState, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
+import { parseCSV, downloadCSV, readFileText } from "./csv.js";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = { ...COLORS };
@@ -199,71 +201,96 @@ function SiteCard({ site, index, onEdit, onRemove, editing }) {
 }
 
 // ── CSV Dropzone ──────────────────────────────────────────────────────────────
-function CsvDropzone({ onImport }) {
+function CsvDropzone({ onImported }) {
   const [dragging, setDragging] = useState(false);
-  const [imported, setImported] = useState(null);
+  const [file, setFile]         = useState(null);
+  const [busy, setBusy]         = useState(false);
+  const [result, setResult]     = useState(null);
+  const [err, setErr]           = useState("");
   const fileRef = useRef(null);
 
-  function handleDrop(e) {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+  async function handleFile(f) {
+    setErr(""); setResult(null); setFile(f.name); setBusy(true);
+    try {
+      const text = await readFileText(f);
+      const { headers, rows } = parseCSV(text);
+      if (!headers.map(h => h.toLowerCase()).includes("name")) {
+        setErr(`CSV must include a "name" column (found: ${headers.join(", ") || "none"})`);
+        setBusy(false); return;
+      }
+      if (!rows.length) { setErr("No data rows found."); setBusy(false); return; }
+      const norm = rows.map(r => {
+        const o = {};
+        Object.keys(r).forEach(k => { o[k.toLowerCase()] = r[k]; });
+        return o;
+      });
+      const res = await api.bulkCreateSites(norm);
+      setResult(res);
+      if (onImported) onImported(res);
+    } catch (e) {
+      setErr(e.message || "Import failed");
+    } finally { setBusy(false); }
   }
 
-  function handleFile(file) {
-    setImported(file.name);
-    // In production: parse CSV and call onImport(parsedSites)
-    if (onImport) onImport(file.name);
+  function downloadTemplate(e) {
+    e.stopPropagation();
+    downloadCSV("sites-import-template.csv",
+      ["name", "location"],
+      [["Moriah", "Moriah, NY"]]);
   }
 
   return (
-    <div
-      onClick={() => fileRef.current?.click()}
-      onDragOver={e => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      style={{
-        border: `2px dashed ${dragging ? C.sage : C.mint}`,
-        borderRadius: 10, padding: "24px 20px",
-        textAlign: "center", cursor: "pointer",
-        background: dragging ? C.foam : C.chalk,
-        transition: "all .18s",
-      }}
-    >
-      <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
-        onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
-      <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>📋</div>
-      {imported ? (
-        <div>
-          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>✓ {imported} ready to import</div>
-          <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 4 }}>Click to choose a different file</div>
-        </div>
-      ) : (
-        <div>
-          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>Bulk import sites</div>
-          <div style={{ fontSize: ".78rem", color: C.mist, marginTop: 3 }}>Drop a CSV here or click to upload</div>
-        </div>
-      )}
-      <div style={{
-        margin: "12px 0", fontSize: ".72rem", color: C.mist,
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
-        <div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />
-        or
-        <div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />
-      </div>
-      <button
-        onClick={e => { e.stopPropagation(); /* trigger download */ }}
+    <div>
+      <div
+        onClick={() => fileRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
         style={{
-          padding: "6px 14px", background: C.white,
-          color: C.pine, border: `1.5px solid ${C.mint}`,
-          borderRadius: 6, fontFamily: "'DM Sans', sans-serif",
-          fontSize: ".78rem", fontWeight: 600, cursor: "pointer",
+          border: `2px dashed ${dragging ? C.sage : C.mint}`,
+          borderRadius: 10, padding: "24px 20px",
+          textAlign: "center", cursor: "pointer",
+          background: dragging ? C.foam : C.chalk,
+          transition: "all .18s",
         }}
       >
-        Download template
-      </button>
+        <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
+          onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
+        <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>📋</div>
+        {busy ? (
+          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>Importing…</div>
+        ) : file ? (
+          <div>
+            <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>✓ {file}</div>
+            <div style={{ fontSize: ".75rem", color: C.mist, marginTop: 4 }}>Click to choose a different file</div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.pine }}>Bulk import sites</div>
+            <div style={{ fontSize: ".78rem", color: C.mist, marginTop: 3 }}>CSV with name, location</div>
+          </div>
+        )}
+        <div style={{ margin: "12px 0", fontSize: ".72rem", color: C.mist, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />or<div style={{ flex: 1, height: 1, background: "#E2EBE6" }} />
+        </div>
+        <button onClick={downloadTemplate} style={{
+          padding: "6px 14px", background: C.white, color: C.pine, border: `1.5px solid ${C.mint}`,
+          borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 600, cursor: "pointer",
+        }}>Download template</button>
+      </div>
+
+      {err && <div style={{ marginTop: 10, padding: "9px 12px", background: C.redLt, color: C.red, borderRadius: 8, fontSize: ".8rem" }}>{err}</div>}
+
+      {result && (
+        <div style={{ marginTop: 10, padding: "10px 12px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
+          <div style={{ fontSize: ".82rem", fontWeight: 600, color: C.pine }}>
+            {result.created} added{result.failed ? `, ${result.failed} skipped` : ""}
+          </div>
+          {result.results.filter(r => r.error).map((r, i) => (
+            <div key={i} style={{ fontSize: ".72rem", color: C.red, marginTop: 2 }}>Line {r.line}{r.name ? ` (${r.name})` : ""}: {r.error}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -508,7 +535,7 @@ export default function S1b2AddSites({ initialSites = INITIAL_SITES, onContinue,
 
             <Divider />
 
-            <CsvDropzone onImport={(filename) => console.log("Import:", filename)} />
+            <CsvDropzone onImported={() => {}} />
           </div>
 
           {/* ── Right: add/edit form ── */}
