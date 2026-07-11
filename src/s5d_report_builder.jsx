@@ -175,10 +175,19 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   // Spec §15.3: completed periods only — not future or in-progress
   const [rawMonths, setRawMonths] = useState([]);
   const [hoursNote, setHoursNote] = useState("");
-  useEffect(() => {
+  const [laborHours, setLaborHours] = useState([]); // [{site_id, month, hours}]
+  const [showHoursEntry, setShowHoursEntry] = useState(false);
+  const [hoursSite, setHoursSite] = useState(null);
+  const [hoursValue, setHoursValue] = useState("");
+  const [hoursSaved, setHoursSaved] = useState(false);
+  const [hoursErr, setHoursErr] = useState("");
+
+  function loadReport() {
     api.reportIncidentSummary().then(r => { setRawMonths(r.months ?? []); setHoursNote(r.hoursNote ?? ""); })
       .catch(err => console.error("Report data load failed:", err.message));
-  }, []);
+    api.getLaborHours().then(setLaborHours).catch(() => {});
+  }
+  useEffect(() => { loadReport(); }, []);
 
   // Build MONTHLY/QUARTERLY from real data, honoring the site filter.
   // TRIR uses RECORDABLE incidents (OSHA definition), not all injuries.
@@ -274,6 +283,24 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   }
 
   function exportReportPDF() { window.print(); }
+
+  // Map the selected monthly period label ("Jun 2024") back to its YYYY-MM.
+  const ymForPeriod = () => {
+    if (frameType !== "monthly") return null;
+    const m = recentMonths.find(x => labelOf(x.month) === period);
+    return m ? m.month : null;
+  };
+  function saveHours() {
+    setHoursErr(""); setHoursSaved(false);
+    const ym = ymForPeriod();
+    const siteId = hoursSite ?? (BRAND.siteRecords ?? [])[0]?.id;
+    if (!ym || !siteId) { setHoursErr("Pick a monthly period and a site first."); return; }
+    const val = Number(hoursValue);
+    if (!Number.isFinite(val) || val < 0) { setHoursErr("Enter a valid number of hours."); return; }
+    api.setLaborHours(siteId, ym, val)
+      .then(() => { setHoursSaved(true); setHoursValue(""); loadReport(); setTimeout(() => setHoursSaved(false), 1800); })
+      .catch(err => setHoursErr(err.message || "Save failed"));
+  }
 
   const inputStyle = focused => ({
     padding: "9px 12px", border: `1.5px solid ${focused ? C.sage : "#D0DEDB"}`,
@@ -518,6 +545,38 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                     blsRate={blsRate}
                   />
                   {hoursNote && <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 6, fontStyle: "italic" }}>{hoursNote}</div>}
+
+                  <button onClick={() => { setShowHoursEntry(v => !v); setHoursErr(""); }} style={{
+                    marginTop: 10, background: "none", border: "none", color: C.sage,
+                    fontSize: ".76rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0,
+                  }}>{showHoursEntry ? "− Hide hours entry" : "+ Enter actual payroll hours"}</button>
+
+                  {showHoursEntry && (
+                    <div style={{ marginTop: 10, padding: "12px 14px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
+                      {frameType !== "monthly" ? (
+                        <div style={{ fontSize: ".76rem", color: C.mist }}>Switch to the monthly view to enter hours for a specific month.</div>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: ".72rem", color: C.slate, marginBottom: 8 }}>
+                            Actual hours worked for <strong>{period}</strong> (overrides the headcount estimate for TRIR).
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            <select value={hoursSite ?? (BRAND.siteRecords ?? [])[0]?.id ?? ""} onChange={e => setHoursSite(Number(e.target.value))}
+                              style={{ ...inputStyle(false), flex: "1 1 120px", minWidth: 110 }}>
+                              {(BRAND.siteRecords ?? []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                            <input type="number" min="0" inputMode="numeric" placeholder="Hours" value={hoursValue}
+                              onChange={e => setHoursValue(e.target.value)}
+                              style={{ ...inputStyle(false), flex: "1 1 90px", minWidth: 80, backgroundImage: "none", paddingRight: 12 }} />
+                            <button onClick={saveHours} style={{ padding: "9px 16px", background: C.sage, color: C.white, border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>Save</button>
+                          </div>
+                          {hoursErr && <div style={{ fontSize: ".72rem", color: C.red, marginTop: 6 }}>{hoursErr}</div>}
+                          {hoursSaved && <div style={{ fontSize: ".72rem", color: C.pine, marginTop: 6 }}>✓ Saved — TRIR updated.</div>}
+                          <div style={{ fontSize: ".68rem", color: C.mist, marginTop: 8 }}>Enter 0 to clear and revert to the estimate. Tip: sum all employees' hours for the month.</div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* KPI summary below chart */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 22, paddingTop: 18, borderTop: "1px solid #E8EFec" }}>

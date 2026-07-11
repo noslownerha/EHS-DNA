@@ -69,6 +69,22 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const totalRecordables = (trirSummary.months ?? []).reduce((n, m) => n + (m.recordables ?? 0), 0);
   ok("report summary counts recordables", trirSummary.months?.length === 24 && totalRecordables >= 1);
 
+  // Labor hours: entering actual hours overrides the headcount estimate for that site+month
+  const anyMonth = trirSummary.months[trirSummary.months.length - 1].month;
+  await fetch(`${B}/api/labor-hours`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ siteId: 1, month: anyMonth, hours: 12345 }) }).then(j);
+  const withHours = await fetch(`${B}/api/reports/incident-summary`, { headers: H() }).then(j);
+  const site1 = withHours.months.find(m => m.month === anyMonth).sites.find(s => s.siteId === 1);
+  ok("actual hours override estimate", site1.estHours === 12345 && site1.hoursActual === true);
+  const lh = await fetch(`${B}/api/labor-hours`, { headers: H() }).then(j);
+  ok("labor hours persisted", lh.some(r => r.site_id === 1 && r.month === anyMonth && r.hours === 12345));
+  // Entering 0 clears back to estimate
+  await fetch(`${B}/api/labor-hours`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ siteId: 1, month: anyMonth, hours: 0 }) }).then(j);
+  const hoursCleared = await fetch(`${B}/api/reports/incident-summary`, { headers: H() }).then(j);
+  const site1c = hoursCleared.months.find(m => m.month === anyMonth).sites.find(s => s.siteId === 1);
+  ok("zero hours reverts to estimate", site1c.hoursActual === false);
+
   const staff = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
     body: JSON.stringify({ email: "test.staff@whistlepig.com", name: "Test Staff", role: "staff", siteId: 1, password: "Staff!2026x" }) }).then(j);
   ok("user create", !!staff.id);

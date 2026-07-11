@@ -782,6 +782,29 @@ app.post("/api/op/impersonate", auth, requireOperator, (req, res) => {
 });
 
 // ── Reports: monthly incident summary (real data; hours estimated from headcount) ─
+// ── Labor hours (actual payroll hours per site per month, for accurate TRIR) ──
+app.get("/api/labor-hours", auth, (req, res) => {
+  const rows = db.prepare("SELECT site_id, month, hours FROM labor_hours WHERE tenant_id = ?").all(req.auth.tenant);
+  res.json(rows);
+});
+
+app.put("/api/labor-hours", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
+  const { siteId, month, hours } = req.body || {};
+  if (!siteId || !/^\d{4}-\d{2}$/.test(String(month || "")))
+    return res.status(400).json({ error: "siteId and month (YYYY-MM) required" });
+  const h = Number(hours);
+  if (!Number.isFinite(h) || h < 0) return res.status(400).json({ error: "hours must be a non-negative number" });
+  if (h === 0) {
+    db.prepare("DELETE FROM labor_hours WHERE tenant_id = ? AND site_id = ? AND month = ?")
+      .run(req.auth.tenant, siteId, month);
+  } else {
+    db.prepare(`INSERT INTO labor_hours (tenant_id, site_id, month, hours) VALUES (?, ?, ?, ?)
+                ON CONFLICT(tenant_id, site_id, month) DO UPDATE SET hours = ?, updated_at = datetime('now')`)
+      .run(req.auth.tenant, siteId, month, h, h);
+  }
+  res.json({ ok: true });
+});
+
 app.get("/api/reports/incident-summary", auth, (req, res) => {
   const t = req.auth.tenant;
   const rows = db.prepare(`SELECT strftime('%Y-%m', COALESCE(occurred_at, created_at)) AS ym,
@@ -791,6 +814,10 @@ app.get("/api/reports/incident-summary", auth, (req, res) => {
   const sites = db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1").all(t);
   const headcount = Object.fromEntries(sites.map(s => [s.id,
     db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND site_id = ? AND active = 1 AND is_operator = 0").get(t, s.id).n]));
+  // Actual payroll hours override the headcount estimate where entered
+  const actualRows = db.prepare("SELECT site_id, month, hours FROM labor_hours WHERE tenant_id = ?").all(t);
+  const actualHours = {}; // `${siteId}|${ym}` -> hours
+  actualRows.forEach(r => { actualHours[`${r.site_id}|${r.month}`] = r.hours; });
   // 24 calendar months so the report can show a prior-year comparison for each of the last 12
   const months = [];
   const d = new Date(); d.setDate(1);
@@ -799,15 +826,20 @@ app.get("/api/reports/incident-summary", auth, (req, res) => {
     months.push(m.toISOString().slice(0, 7));
   }
   const isRecordable = c => c === "Recordable";
+  let anyEstimated = false, anyActual = false;
   const out = months.map(ym => {
     const monthRows = rows.filter(r => r.ym === ym);
     const perSite = sites.map(s => {
       const siteRows = monthRows.filter(r => r.site_id === s.id);
+      const actual = actualHours[`${s.id}|${ym}`];
+      const hoursActual = actual !== undefined;
+      if (hoursActual) anyActual = true; else anyEstimated = true;
       return { siteId: s.id, site: s.name,
                incidents:   siteRows.reduce((n, r) => n + r.n, 0),
                injuries:    siteRows.filter(r => r.type === "injury").reduce((n, r) => n + r.n, 0),
                recordables: siteRows.filter(r => isRecordable(r.osha_classification)).reduce((n, r) => n + r.n, 0),
-               estHours: (headcount[s.id] ?? 0) * 160 };
+               estHours: hoursActual ? actual : (headcount[s.id] ?? 0) * 160,
+               hoursActual };
     });
     return { month: ym,
              incidents:   perSite.reduce((n, s) => n + s.incidents, 0),
@@ -816,7 +848,11 @@ app.get("/api/reports/incident-summary", auth, (req, res) => {
              estHours: perSite.reduce((n, s) => n + s.estHours, 0),
              sites: perSite };
   });
-  res.json({ months: out, hoursNote: "Hours estimated from active headcount × 160/mo — replace with payroll hours when available" });
+  const hoursNote = anyEstimated
+    ? (anyActual ? "Some periods use actual payroll hours; others estimated from headcount × 160/mo."
+                 : "Hours estimated from active headcount × 160/mo — enter payroll hours for audit-grade TRIR.")
+    : "Hours from entered payroll data.";
+  res.json({ months: out, hoursNote });
 });
 
 // ── Training due-date reminders (runs at boot + every 12h) ───────────────────

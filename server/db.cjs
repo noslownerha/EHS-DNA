@@ -244,6 +244,15 @@ db.exec(`CREATE TABLE IF NOT EXISTS response_checklists (
   PRIMARY KEY (tenant_id, incident_type)
 )`);
 
+db.exec(`CREATE TABLE IF NOT EXISTS labor_hours (
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  site_id INTEGER NOT NULL REFERENCES sites(id),
+  month TEXT NOT NULL,              -- 'YYYY-MM'
+  hours REAL NOT NULL,
+  updated_at TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (tenant_id, site_id, month)
+)`);
+
 // ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
 function seed() {
   const t = db.prepare("SELECT id FROM tenants WHERE id = 1").get();

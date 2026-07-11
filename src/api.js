@@ -76,6 +76,8 @@ export const api = {
   dashboardSummary: () => req("/dashboard/summary"),
   dashboardCompliance: () => req("/dashboard/compliance"),
   reportIncidentSummary: () => req("/reports/incident-summary"),
+  getLaborHours: () => req("/labor-hours"),
+  setLaborHours: (siteId, month, hours) => req("/labor-hours", { method: "PUT", body: { siteId, month, hours } }),
 
   // incidents & CAs
   listIncidents: () => req("/incidents"),
