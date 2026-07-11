@@ -15,7 +15,10 @@ export default function LandingPage({ onEnter }) {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [error, setError]       = useState(null);
+  const [error, setError]       = useState(() => {
+    try { const m = sessionStorage.getItem("ehs_suspended_msg"); if (m) { sessionStorage.removeItem("ehs_suspended_msg"); return m; } } catch {}
+    return null;
+  });
   const [busy, setBusy]         = useState(false);
 
   async function handleSubmit(e) {

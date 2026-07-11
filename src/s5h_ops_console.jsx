@@ -170,16 +170,35 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                 padding: "7px 16px", background: "#EEF2F0", color: C.slate, border: "none",
                 borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
               }}>{openUsers === t.id ? "Hide users" : "Users"}</button>
-              <button onClick={async () => { await api.opSetTenantStatus(t.id, !t.active); load(); }} style={{
-                padding: "7px 16px", background: t.active ? C.redLt : C.foam, color: t.active ? C.red : C.pine,
-                border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
-              }}>{t.active ? "Suspend" : "Reactivate"}</button>
+              {t.active ? (
+                <>
+                  <button onClick={async () => {
+                    if (!window.confirm(`Pause ${t.name} for non-payment?\n\nTheir entire team will be locked out immediately and shown a message to have Accounts Payable contact billing. Reversible anytime.`)) return;
+                    await api.opSetTenantStatus(t.id, false, "billing"); load();
+                  }} style={{
+                    padding: "7px 16px", background: "#FBECEC", color: C.red,
+                    border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+                  }}>Pause — billing</button>
+                  <button onClick={async () => {
+                    if (!window.confirm(`Suspend ${t.name}?\n\nTheir entire team will be locked out immediately with a generic support message. Reversible anytime.`)) return;
+                    await api.opSetTenantStatus(t.id, false, "other"); load();
+                  }} style={{
+                    padding: "7px 16px", background: "#EEF2F0", color: C.slate,
+                    border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+                  }}>Suspend</button>
+                </>
+              ) : (
+                <button onClick={async () => { await api.opSetTenantStatus(t.id, true); load(); }} style={{
+                  padding: "7px 16px", background: C.foam, color: C.pine,
+                  border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+                }}>Reactivate</button>
+              )}
               <button onClick={() => onOpenBilling?.(t.id, t.name)} style={{
                 padding: "7px 16px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`,
                 borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
               }}>Billing & invoices →</button>
             </div>
-            {!t.active && <div style={{ marginTop: 8, fontSize: ".74rem", color: C.red, fontWeight: 700 }}>⛔ Suspended — logins blocked</div>}
+            {!t.active && <div style={{ marginTop: 8, fontSize: ".74rem", color: C.red, fontWeight: 700 }}>⛔ {t.suspensionReason === "billing" ? "Paused — non-payment (AP notified via login message)" : "Suspended"} — logins blocked</div>}
             {openUsers === t.id && (
               <div style={{ marginTop: 12, borderTop: "1px solid #F0F4F2", paddingTop: 10 }}>
                 {resetInfo && (

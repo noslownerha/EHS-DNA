@@ -235,6 +235,33 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const moriah = (sitesNow.sites ?? []).find(s => s.name === "Moriah");
   ok("bulk did not overwrite existing site", moriah && moriah.location === "Moriah, NY");
 
+  // Operator billing pause: pausing a tenant locks its team out with the AP/billing message
+  const opLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "ahrenwolson@gmail.com", password: process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026" }) }).then(j);
+  const opH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${opLogin.token}` });
+  ok("operator login", !!opLogin.token && opLogin.user.isOperator === true);
+
+  await fetch(`${B}/api/op/tenants/1/status`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ active: false, reason: "billing" }) }).then(j);
+  // A tenant user can no longer log in, and gets the billing-specific message
+  const blocked = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "ahren@whistlepig.com", password: "ChangeMe!2026" }) });
+  const blockedBody = await blocked.json().catch(() => ({}));
+  ok("billing pause blocks tenant login", blocked.status === 403 && blockedBody.reason === "billing"
+     && /Accounts Payable/i.test(blockedBody.error));
+  // A live token is rejected mid-session too
+  const midSession = await fetch(`${B}/api/incidents`, { headers: H() });
+  ok("billing pause blocks live token", midSession.status === 403);
+  // Operator is NOT locked out
+  const opStill = await fetch(`${B}/api/op/tenants`, { headers: opH() });
+  ok("operator bypasses pause", opStill.status === 200);
+  // Reactivate clears the reason and restores access
+  await fetch(`${B}/api/op/tenants/1/status`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ active: true }) }).then(j);
+  const restored = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "ahren@whistlepig.com", password: "ChangeMe!2026" }) });
+  ok("reactivate restores access", restored.status === 200);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

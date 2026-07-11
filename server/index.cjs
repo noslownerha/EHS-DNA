@@ -14,6 +14,15 @@ const PORT = process.env.PORT || 3001;
 const SECRET = process.env.EHS_JWT_SECRET || "dev-secret-change-in-prod";
 const TOKEN_TTL = "12h";
 
+// Message shown to a blocked tenant, by suspension reason.
+const SUSPENSION_MESSAGES = {
+  billing: "Access to your organization's account is paused due to an outstanding balance. Please have your Accounts Payable department contact EHS DNA billing at billing@ehsdna.com to restore access.",
+  other:   "This account is suspended — contact EHS DNA support.",
+};
+function suspensionMessage(reason) {
+  return SUSPENSION_MESSAGES[reason] || SUSPENSION_MESSAGES.other;
+}
+
 // ── Login rate limiting ──────────────────────────────────────────────────────
 // Two layers, no external deps:
 //   (a) in-memory sliding window per IP+email — blocks rapid bursts (resets on restart)
@@ -87,9 +96,9 @@ app.post("/api/auth/login", loginRateLimit, (req, res) => {
     return res.status(401).json({ error: "Invalid email or password" });
   }
   recordLoginResult(req._rlEmail, true);
-  const tenantRow = db.prepare("SELECT active FROM tenants WHERE id = ?").get(user.tenant_id);
+  const tenantRow = db.prepare("SELECT active, suspension_reason FROM tenants WHERE id = ?").get(user.tenant_id);
   if (tenantRow && tenantRow.active === 0 && !user.is_operator)
-    return res.status(403).json({ error: "This account is suspended — contact EHS DNA support" });
+    return res.status(403).json({ error: suspensionMessage(tenantRow.suspension_reason), suspended: true, reason: tenantRow.suspension_reason || "other" });
   const token = jwt.sign(
     { uid: user.id, tenant: user.tenant_id, role: user.role, name: user.name, op: !!user.is_operator },
     SECRET, { expiresIn: TOKEN_TTL }
@@ -105,9 +114,9 @@ function auth(req, res, next) {
   try {
     req.auth = jwt.verify(token, SECRET);
     if (!req.auth.op) {
-      const tRow = db.prepare("SELECT active FROM tenants WHERE id = ?").get(req.auth.tenant);
+      const tRow = db.prepare("SELECT active, suspension_reason FROM tenants WHERE id = ?").get(req.auth.tenant);
       if (tRow && tRow.active === 0)
-        return res.status(403).json({ error: "This account is suspended — contact EHS DNA support" });
+        return res.status(403).json({ error: suspensionMessage(tRow.suspension_reason), suspended: true, reason: tRow.suspension_reason || "other" });
     }
     next();
   }
@@ -710,7 +719,8 @@ app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
     const cfg = db.prepare("SELECT base_price, per_site, per_user, auto_approve FROM billing_config WHERE tenant_id = ?").get(t.id);
     const lastInv = db.prepare("SELECT ref, period, status, total FROM invoices WHERE tenant_id = ? ORDER BY period DESC LIMIT 1").get(t.id);
     const est = cfg ? Math.round((cfg.base_price + sites * cfg.per_site + users * cfg.per_user) * 100) / 100 : null;
-    return { id: t.id, name: t.name, industry: t.industry, created: t.created_at, active: t.active !== 0, active: t.active !== 0,
+    return { id: t.id, name: t.name, industry: t.industry, created: t.created_at, active: t.active !== 0,
+             suspensionReason: t.active === 0 ? (t.suspension_reason || "other") : null,
              sites, users, billing: cfg ?? null, estMonthly: est, lastInvoice: lastInv ?? null };
   }));
 });
@@ -729,7 +739,10 @@ app.post("/api/op/users/:id/reset-password", auth, requireOperator, (req, res) =
 });
 
 app.put("/api/op/tenants/:id/status", auth, requireOperator, (req, res) => {
-  db.prepare("UPDATE tenants SET active = ? WHERE id = ?").run(req.body?.active ? 1 : 0, req.params.id);
+  const active = req.body?.active ? 1 : 0;
+  // reason only meaningful when suspending; cleared on reactivation
+  const reason = active ? null : (["billing", "other"].includes(req.body?.reason) ? req.body.reason : "other");
+  db.prepare("UPDATE tenants SET active = ?, suspension_reason = ? WHERE id = ?").run(active, reason, req.params.id);
   res.json({ ok: true });
 });
 

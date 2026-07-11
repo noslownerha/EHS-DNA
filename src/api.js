@@ -17,6 +17,13 @@ async function req(path, { method = "GET", body } = {}) {
   const res = await fetch(`/api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   if (res.status === 401) { setToken(null); }
   const data = await res.json().catch(() => ({}));
+  // Mid-session tenant suspension: drop the token and send them to the login screen,
+  // where the same reason-specific message is shown. Operators are never flagged.
+  if (res.status === 403 && data.suspended) {
+    setToken(null);
+    try { sessionStorage.setItem("ehs_suspended_msg", data.error || ""); } catch {}
+    if (typeof window !== "undefined") window.location.reload();
+  }
   if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status });
   return data;
 }
@@ -128,7 +135,7 @@ export const api = {
   opCreateTenant: (t) => req("/op/tenants", { method: "POST", body: t }),
   opTenantUsers: (id) => req(`/op/tenants/${id}/users`),
   opResetPassword: (userId) => req(`/op/users/${userId}/reset-password`, { method: "POST" }),
-  opSetTenantStatus: (id, active) => req(`/op/tenants/${id}/status`, { method: "PUT", body: { active } }),
+  opSetTenantStatus: (id, active, reason) => req(`/op/tenants/${id}/status`, { method: "PUT", body: { active, reason } }),
   opImpersonate: (tenantId) => req("/op/impersonate", { method: "POST", body: { tenantId } }),
 
   // billing (operator may pass tenantId to act on any account)
