@@ -68,6 +68,16 @@ function recordLoginResult(email, success) {
 app.use(express.json({ limit: "15mb" }));
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
+// Healthcheck for uptime monitors — no auth, verifies the DB responds.
+app.get("/api/health", (req, res) => {
+  try {
+    db.prepare("SELECT 1").get();
+    res.json({ status: "ok", time: new Date().toISOString() });
+  } catch (e) {
+    res.status(503).json({ status: "degraded", error: "database unreachable" });
+  }
+});
+
 app.post("/api/auth/login", loginRateLimit, (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "Email and password required" });
@@ -366,12 +376,20 @@ app.put("/api/incidents/:id/response", auth, (req, res) => {
 });
 
 app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (req, res) => {
-  const { status, severity, department, description, locationDetail, oshaClassification } = req.body || {};
-  db.prepare(`UPDATE incidents SET status = COALESCE(?, status), severity = COALESCE(?, severity),
-              department = COALESCE(?, department), description = COALESCE(?, description),
-              location_detail = COALESCE(?, location_detail), osha_classification = COALESCE(?, osha_classification),
-              updated_at = datetime('now') WHERE id = ? AND tenant_id = ?`)
-    .run(status, severity, department, description, locationDetail, oshaClassification, req.params.id, req.auth.tenant);
+  const b = req.body || {};
+  // Only update keys actually present in the body, so "" clears a field but an
+  // omitted key leaves it untouched (COALESCE couldn't distinguish those two).
+  const map = { status: "status", severity: "severity", department: "department",
+                description: "description", locationDetail: "location_detail",
+                oshaClassification: "osha_classification" };
+  const sets = [], vals = [];
+  for (const [key, col] of Object.entries(map)) {
+    if (Object.prototype.hasOwnProperty.call(b, key)) { sets.push(`${col} = ?`); vals.push(b[key]); }
+  }
+  if (!sets.length) return res.json({ ok: true });
+  vals.push(req.params.id, req.auth.tenant);
+  db.prepare(`UPDATE incidents SET ${sets.join(", ")}, updated_at = datetime('now')
+              WHERE id = ? AND tenant_id = ?`).run(...vals);
   res.json({ ok: true });
 });
 

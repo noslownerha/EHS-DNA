@@ -44,6 +44,24 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const incs = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
   ok("incident list", incs.length === 1);
 
+  // Empty-string edit must CLEAR a field (COALESCE bug regression guard)
+  await fetch(`${B}/api/incidents/${inc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ description: "" }) }).then(j);
+  const cleared = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  ok("empty-string clears field", cleared[0].description === "");
+  // Omitted key must leave field untouched
+  await fetch(`${B}/api/incidents/${inc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "closed" }) }).then(j);
+  const untouched = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  ok("omitted key untouched", untouched[0].location_detail === incs[0].location_detail && untouched[0].status === "closed");
+  // Restore open state so downstream dashboard-summary counts are unaffected
+  await fetch(`${B}/api/incidents/${inc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "open" }) }).then(j);
+
+  // Healthcheck (no auth)
+  const health = await fetch(`${B}/api/health`).then(j);
+  ok("healthcheck ok", health.status === "ok");
+
   const staff = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
     body: JSON.stringify({ email: "test.staff@whistlepig.com", name: "Test Staff", role: "staff", siteId: 1, password: "Staff!2026x" }) }).then(j);
   ok("user create", !!staff.id);

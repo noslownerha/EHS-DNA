@@ -450,6 +450,46 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
     </div>
   );
 
+  function exportCSV() {
+    const inc = incident;
+    const rows = [
+      ["Field", "Value"],
+      ["Incident ID", inc.id],
+      ["Type", inc.type],
+      ["Site", inc.site],
+      ["Department", inc.dept],
+      ["Severity", inc.severity],
+      ["Status", inc.status],
+      ["OSHA Classification", inc.osha],
+      ["Reporter", inc.reporter],
+      ["Reported", inc.date ? new Date(inc.date).toLocaleString() : "—"],
+      ["Location", inc.location],
+      ["Description", inc.description],
+      [],
+      ["Corrective Action", "Assignee", "Due", "Status"],
+      ...inc.cas.map(c => [c.desc, c.assignee, c.due || "—", c.status]),
+      [],
+      ["Response Checklist Item", "Done"],
+      ...inc.checklist.map(c => [c.text, c.done ? "Yes" : "No"]),
+    ];
+    const esc = v => {
+      const str = String(v ?? "");
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const csv = rows.map(r => r.map(esc).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${inc.id}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  function exportPDF() {
+    // Browser-native print-to-PDF: robust on mobile, no bundle bloat.
+    window.print();
+  }
+
   function toggleChecklistItem(id) {
     if (!dbId) return;
     setIncident(inc => {
@@ -512,7 +552,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="incident-detail-root" style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -521,6 +561,14 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
         input::placeholder, textarea::placeholder { color: ${C.mist}; }
         .export-btn:hover { background: ${C.foam} !important; }
         .close-btn:hover  { background: ${C.pine} !important; }
+        @media print {
+          @page { margin: 16mm; }
+          body { background: #fff !important; }
+          .no-print, nav, .bottom-nav, [data-nav] { display: none !important; }
+          .incident-detail-root { background: #fff !important; min-height: auto !important; }
+          .print-card { box-shadow: none !important; border: 1px solid #ddd; break-inside: avoid; }
+          textarea, input, select { border: none !important; padding: 0 !important; }
+        }
       `}</style>
 
       <DesktopNav companyName={companyName} onHome={onHome} />
@@ -555,14 +603,14 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
               )}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-            <button className="export-btn" onClick={() => onExport?.("pdf")} style={{
+          <div className="no-print" style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+            <button className="export-btn" onClick={exportPDF} style={{
               padding: "8px 16px", background: C.white, color: C.pine,
               border: `1.5px solid ${C.mint}`, borderRadius: 7,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", fontWeight: 600,
               cursor: "pointer", transition: "all .15s",
             }}>Export PDF</button>
-            <button className="export-btn" onClick={() => onExport?.("csv")} style={{
+            <button className="export-btn" onClick={exportCSV} style={{
               padding: "8px 16px", background: C.white, color: C.pine,
               border: `1.5px solid ${C.mint}`, borderRadius: 7,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", fontWeight: 600,

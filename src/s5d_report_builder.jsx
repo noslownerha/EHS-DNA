@@ -323,8 +323,8 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
 
               {generated && (
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button style={{ flex: 1, padding: "8px", background: C.white, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "pointer" }}>Export PDF</button>
-                  <button style={{ flex: 1, padding: "8px", background: C.white, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "pointer" }}>Export CSV</button>
+                  <button disabled title="Report export is coming soon" style={{ flex: 1, padding: "8px", background: "#F2F5F4", color: C.mist, border: "1.5px solid #E0E7E3", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "not-allowed" }}>Export PDF (soon)</button>
+                  <button disabled title="Report export is coming soon" style={{ flex: 1, padding: "8px", background: "#F2F5F4", color: C.mist, border: "1.5px solid #E0E7E3", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "not-allowed" }}>Export CSV (soon)</button>
                 </div>
               )}
             </div>

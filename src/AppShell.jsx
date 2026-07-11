@@ -220,7 +220,7 @@ function ChangePasswordModal({ onClose }) {
 // ── Bottom tab bar ─────────────────────────────────────────────────────────────
 function BottomTabBar({ tabs, activeTab, onTab }) {
   return (
-    <div style={{
+    <div className="bottom-nav" style={{
       position: "fixed", bottom: 0, left: 0, right: 0,
       height: 58,
       background: "#2A4435",
