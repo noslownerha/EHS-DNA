@@ -88,12 +88,13 @@ function SlideVideo({ url }) {
   );
 }
 
-export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onBack }) {
+export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onFail, onBack }) {
   const [slideIndex,   setSlideIndex]   = useState(0);
   const [answers,      setAnswers]      = useState({});   // slideId → selectedIndex
   const [revealed,     setRevealed]     = useState({});   // slideId → bool
   const [completed,    setCompleted]    = useState(false);
   const [score,        setScore]        = useState(null);
+  const failLogged = useRef(false);
 
   const slide      = training.slides[slideIndex];
   const total      = training.slides.length;
@@ -119,6 +120,10 @@ export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onBack }
       const pct = checks.length > 0 ? Math.round((correct / checks.length) * 100) : 100;
       setScore(pct);
       setCompleted(true);
+      if (pct < training.passThreshold && !failLogged.current) {
+        failLogged.current = true;
+        onFail?.({ score: pct });
+      }
     } else {
       setSlideIndex(i => i + 1);
     }

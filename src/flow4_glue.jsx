@@ -255,11 +255,17 @@ export function TrainingRouter({ onDone, onHome }) {
           onHome={onHome ?? onDone}
           training={activeTraining ?? undefined}
           onComplete={({ score, passed }) => {
-            if (passed && activeTraining?.id) {
-              api.logCompletion({ trainingId: activeTraining.id, method: "cbt", score })
+            if (activeTraining?.id) {
+              api.logCompletion({ trainingId: activeTraining.id, method: "cbt", score, passed })
                 .catch(err => console.error("Completion log failed:", err.message));
             }
             back();
+          }}
+          onFail={({ score }) => {
+            if (activeTraining?.id) {
+              api.logCompletion({ trainingId: activeTraining.id, method: "cbt", score, passed: false })
+                .catch(err => console.error("Failed-attempt log failed:", err.message));
+            }
           }}
           onBack={back}
         />

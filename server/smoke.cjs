@@ -58,6 +58,16 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("staff sees only own completions", staffComps.length === 1 && staffComps[0].user_id === staff.id);
   ok("expiry set from frequency", !!staffComps[0].expires_at);
 
+  // Failed attempt: logged for audit, passed=0, no expiry, excluded from compliance
+  const failTr = await fetch(`${B}/api/trainings`, { method: "POST", headers: H(),
+    body: JSON.stringify({ title: "Lockout/Tagout", frequencyMonths: 12 }) }).then(j);
+  await fetch(`${B}/api/completions`, { method: "POST", headers: sH,
+    body: JSON.stringify({ trainingId: failTr.id, method: "cbt", score: 40, passed: false }) }).then(j);
+  const afterFail = await fetch(`${B}/api/completions`, { headers: sH }).then(j);
+  const failRow = afterFail.find(c => c.training_id === failTr.id);
+  ok("failed attempt logged", !!failRow && failRow.passed === 0);
+  ok("failed attempt has no expiry", !!failRow && !failRow.expires_at);
+
   const trg = await fetch(`${B}/api/triage`, { method: "POST", headers: sH,
     body: JSON.stringify({ siteId: 1, outcome: "firstaid", stepsCompleted: ["Assessed scene"] }) }).then(j);
   ok("triage record", trg.ref?.startsWith("TRG-"));
@@ -83,9 +93,10 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
 
   const compliance = await fetch(`${B}/api/dashboard/compliance`, { headers: H() }).then(j);
   const staffRow = compliance.find(c => c.id === staff.id);
-  // 10 seeded trainings + 1 created in this test = 11 required; staff completed 1
+  // 10 seeded + "Forklift Safety" + "Lockout/Tagout" = 12 required; staff passed 1, failed 1.
+  // current must stay 1 — the failed Lockout attempt is logged but does NOT satisfy compliance.
   ok("compliance rollup", Array.isArray(compliance) && compliance.length === 2 &&
-     staffRow && staffRow.current === 1 && staffRow.total === 11 && staffRow.compliance === Math.round(100 / 11));
+     staffRow && staffRow.current === 1 && staffRow.total === 12 && staffRow.compliance === Math.round(100 / 12));
 
   const lead = await fetch(`${B}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Test Lead", email: "lead@example.com", company: "Acme" }) }).then(j);

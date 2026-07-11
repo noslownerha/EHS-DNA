@@ -230,6 +230,7 @@ try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'
 });
 try { db.exec("ALTER TABLE users ADD COLUMN is_operator INTEGER DEFAULT 0"); } catch {}
 try { db.exec("ALTER TABLE tenants ADD COLUMN active INTEGER DEFAULT 1"); } catch {}
+try { db.exec("ALTER TABLE training_completions ADD COLUMN passed INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN department TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN response_progress TEXT DEFAULT '[]'"); } catch {}
 try { db.exec("ALTER TABLE sites ADD COLUMN floorplan TEXT"); } catch {}

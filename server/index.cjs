@@ -489,7 +489,8 @@ app.get("/api/completions", auth, (req, res) => {
   res.json(rows);
 });
 app.post("/api/completions", auth, (req, res) => {
-  const { trainingId, userIds, method, score, sessionId } = req.body || {};
+  const { trainingId, userIds, method, score, sessionId, passed } = req.body || {};
+  const didPass = passed === undefined ? 1 : (passed ? 1 : 0);
   if (!trainingId) return res.status(400).json({ error: "trainingId required" });
   const targets = Array.isArray(userIds) && userIds.length ? userIds : [req.auth.uid];
   // Group logging requires trainer+; self-completion is open to all
@@ -499,10 +500,11 @@ app.post("/api/completions", auth, (req, res) => {
   const training = db.prepare("SELECT frequency_months FROM trainings WHERE id = ? AND tenant_id = ?").get(trainingId, req.auth.tenant);
   if (!training) return res.status(404).json({ error: "Training not found" });
   const sid = sessionId ?? `SES-${Date.now()}`;
-  const stmt = db.prepare(`INSERT INTO training_completions (tenant_id, training_id, user_id, session_id, method, score, expires_at)
-                           VALUES (?, ?, ?, ?, ?, ?, CASE WHEN ? IS NOT NULL THEN datetime('now', '+' || ? || ' months') ELSE NULL END)`);
+  // Failed attempts are logged for the audit trail but never carry an expiry (they do not satisfy the requirement)
+  const stmt = db.prepare(`INSERT INTO training_completions (tenant_id, training_id, user_id, session_id, method, score, passed, expires_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 1 AND ? IS NOT NULL THEN datetime('now', '+' || ? || ' months') ELSE NULL END)`);
   const tx = db.transaction(() => targets.forEach(uid =>
-    stmt.run(req.auth.tenant, trainingId, uid, sid, method ?? "cbt", score ?? null, training.frequency_months, training.frequency_months)));
+    stmt.run(req.auth.tenant, trainingId, uid, sid, method ?? "cbt", score ?? null, didPass, didPass, training.frequency_months, training.frequency_months)));
   tx();
   res.json({ ok: true, sessionId: sid, count: targets.length });
 });
@@ -536,6 +538,7 @@ app.get("/api/dashboard/summary", auth, (req, res) => {
     const compliantStaff = db.prepare(`SELECT COUNT(DISTINCT u.id) n FROM users u
                                        JOIN training_completions tc ON tc.user_id = u.id
                                        WHERE u.tenant_id = ? AND u.site_id = ? AND u.active = 1
+                                       AND tc.passed = 1
                                        AND tc.completed_at > datetime('now', '-12 months')`).get(t, site.id).n;
     const compliance = staff > 0 ? Math.round((compliantStaff / staff) * 100) : 100;
     return { name: site.name, location: site.location, staff, daysSince, compliance,
@@ -803,7 +806,7 @@ app.get("/api/dashboard/compliance", auth, (req, res) => {
     let current = 0, overdue = 0, expiring = 0;
     const now = Date.now(), soon = now + 30 * 86400000;
     required.forEach(tr => {
-      const comp = completions.filter(c => c.training_id === tr.id && c.user_id === u.id)
+      const comp = completions.filter(c => c.training_id === tr.id && c.user_id === u.id && c.passed !== 0)
         .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
       const notExpired = comp && (!comp.expires_at || new Date(comp.expires_at).getTime() > now);
       if (notExpired) {
