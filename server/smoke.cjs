@@ -62,6 +62,13 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const health = await fetch(`${B}/api/health`).then(j);
   ok("healthcheck ok", health.status === "ok");
 
+  // TRIR report: mark our incident Recordable, confirm it surfaces in the summary's recordables count
+  await fetch(`${B}/api/incidents/${inc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ oshaClassification: "Recordable" }) }).then(j);
+  const trirSummary = await fetch(`${B}/api/reports/incident-summary`, { headers: H() }).then(j);
+  const totalRecordables = (trirSummary.months ?? []).reduce((n, m) => n + (m.recordables ?? 0), 0);
+  ok("report summary counts recordables", trirSummary.months?.length === 24 && totalRecordables >= 1);
+
   const staff = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
     body: JSON.stringify({ email: "test.staff@whistlepig.com", name: "Test Staff", role: "staff", siteId: 1, password: "Staff!2026x" }) }).then(j);
   ok("user create", !!staff.id);

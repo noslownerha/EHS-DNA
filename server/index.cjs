@@ -785,31 +785,34 @@ app.post("/api/op/impersonate", auth, requireOperator, (req, res) => {
 app.get("/api/reports/incident-summary", auth, (req, res) => {
   const t = req.auth.tenant;
   const rows = db.prepare(`SELECT strftime('%Y-%m', COALESCE(occurred_at, created_at)) AS ym,
-                                  site_id, type, COUNT(*) n
+                                  site_id, type, osha_classification, COUNT(*) n
                            FROM incidents WHERE tenant_id = ?
-                           GROUP BY ym, site_id, type`).all(t);
+                           GROUP BY ym, site_id, type, osha_classification`).all(t);
   const sites = db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1").all(t);
   const headcount = Object.fromEntries(sites.map(s => [s.id,
     db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND site_id = ? AND active = 1 AND is_operator = 0").get(t, s.id).n]));
-  // Last 12 calendar months
+  // 24 calendar months so the report can show a prior-year comparison for each of the last 12
   const months = [];
   const d = new Date(); d.setDate(1);
-  for (let i = 11; i >= 0; i--) {
+  for (let i = 23; i >= 0; i--) {
     const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
     months.push(m.toISOString().slice(0, 7));
   }
+  const isRecordable = c => c === "Recordable";
   const out = months.map(ym => {
     const monthRows = rows.filter(r => r.ym === ym);
     const perSite = sites.map(s => {
       const siteRows = monthRows.filter(r => r.site_id === s.id);
       return { siteId: s.id, site: s.name,
-               incidents: siteRows.reduce((n, r) => n + r.n, 0),
-               injuries: siteRows.filter(r => r.type === "injury").reduce((n, r) => n + r.n, 0),
+               incidents:   siteRows.reduce((n, r) => n + r.n, 0),
+               injuries:    siteRows.filter(r => r.type === "injury").reduce((n, r) => n + r.n, 0),
+               recordables: siteRows.filter(r => isRecordable(r.osha_classification)).reduce((n, r) => n + r.n, 0),
                estHours: (headcount[s.id] ?? 0) * 160 };
     });
     return { month: ym,
-             incidents: perSite.reduce((n, s) => n + s.incidents, 0),
-             injuries: perSite.reduce((n, s) => n + s.injuries, 0),
+             incidents:   perSite.reduce((n, s) => n + s.incidents, 0),
+             injuries:    perSite.reduce((n, s) => n + s.injuries, 0),
+             recordables: perSite.reduce((n, s) => n + s.recordables, 0),
              estHours: perSite.reduce((n, s) => n + s.estHours, 0),
              sites: perSite };
   });

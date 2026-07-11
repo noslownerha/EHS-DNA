@@ -180,32 +180,61 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
       .catch(err => console.error("Report data load failed:", err.message));
   }, []);
 
-  // Build MONTHLY/QUARTERLY from real data, honoring the site filter
+  // Build MONTHLY/QUARTERLY from real data, honoring the site filter.
+  // TRIR uses RECORDABLE incidents (OSHA definition), not all injuries.
   const labelOf = ym => new Date(ym + "-15").toLocaleDateString("en-US", { month: "short", year: "numeric" });
   const pick = m => {
-    if (site === "All sites") return { incidents: m.injuries, hours: m.estHours };
+    if (site === "All sites") return { recordables: m.recordables, hours: m.estHours };
     const s = m.sites.find(x => x.site === site);
-    return { incidents: s?.injuries ?? 0, hours: s?.estHours ?? 0 };
+    return { recordables: s?.recordables ?? 0, hours: s?.estHours ?? 0 };
   };
-  const trir = (inc, hrs) => hrs > 0 ? +((inc * 200000) / hrs).toFixed(2) : 0;
+  const trir = (rec, hrs) => hrs > 0 ? +((rec * 200000) / hrs).toFixed(2) : 0;
 
-  const MONTHLY_LIVE = Object.fromEntries(rawMonths.map(m => {
-    const { incidents, hours } = pick(m);
-    return [labelOf(m.month), { incidents, hours, trir: trir(incidents, hours), prevYearTrir: null, blsRate: 2.8 }];
-  }));
-  const QUARTERLY_LIVE = {};
+  // Per-month TRIR keyed by YYYY-MM, so prior-year lookup is exact.
+  const monthlyByYm = {};
   rawMonths.forEach(m => {
-    const q = `Q${Math.floor((Number(m.month.slice(5, 7)) - 1) / 3) + 1} ${m.month.slice(0, 4)}`;
-    const { incidents, hours } = pick(m);
-    QUARTERLY_LIVE[q] = QUARTERLY_LIVE[q] ?? { incidents: 0, hours: 0, prevYearTrir: null, blsRate: 2.8 };
-    QUARTERLY_LIVE[q].incidents += incidents;
-    QUARTERLY_LIVE[q].hours += hours;
+    const { recordables, hours } = pick(m);
+    monthlyByYm[m.month] = { recordables, hours, trir: trir(recordables, hours) };
   });
-  Object.values(QUARTERLY_LIVE).forEach(v => { v.trir = trir(v.incidents, v.hours); });
+  const priorYm = ym => { const [y, mo] = ym.split("-"); return `${Number(y) - 1}-${mo}`; };
+
+  // Show only the most recent 12 months (endpoint returns 24 for the YoY lookback).
+  const recentMonths = rawMonths.slice(-12);
+  const MONTHLY_LIVE = Object.fromEntries(recentMonths.map(m => {
+    const cur = monthlyByYm[m.month];
+    const prev = monthlyByYm[priorYm(m.month)];
+    return [labelOf(m.month), { incidents: cur.recordables, hours: cur.hours, trir: cur.trir,
+                                prevYearTrir: prev ? prev.trir : null, blsRate: 2.8 }];
+  }));
+
+  const quarterOf = ym => `Q${Math.floor((Number(ym.slice(5, 7)) - 1) / 3) + 1} ${ym.slice(0, 4)}`;
+  const quarterAgg = {};
+  rawMonths.forEach(m => {
+    const q = quarterOf(m.month);
+    const { recordables, hours } = pick(m);
+    quarterAgg[q] = quarterAgg[q] ?? { recordables: 0, hours: 0 };
+    quarterAgg[q].recordables += recordables;
+    quarterAgg[q].hours += hours;
+  });
+  Object.values(quarterAgg).forEach(v => { v.trir = trir(v.recordables, v.hours); });
+  const priorQ = q => { const [qq, y] = q.split(" "); return `${qq} ${Number(y) - 1}`; };
+  // Most recent 4 quarters for display
+  const recentQuarters = [...new Set(recentMonths.map(m => quarterOf(m.month)))].slice(-4);
+  const QUARTERLY_LIVE = Object.fromEntries(recentQuarters.map(q => {
+    const cur = quarterAgg[q];
+    const prev = quarterAgg[priorQ(q)];
+    return [q, { incidents: cur.recordables, hours: cur.hours, trir: cur.trir,
+                 prevYearTrir: prev ? prev.trir : null, blsRate: 2.8 }];
+  }));
 
   const monthlyPeriods   = Object.keys(MONTHLY_LIVE);
   const quarterlyPeriods = Object.keys(QUARTERLY_LIVE);
   const periods          = frameType === "monthly" ? monthlyPeriods : quarterlyPeriods;
+
+  // Default the selected period to the latest available once live data arrives / frame flips.
+  useEffect(() => {
+    if (periods.length && !periods.includes(period)) setPeriod(periods[periods.length - 1]);
+  }, [frameType, rawMonths.length]); // eslint-disable-line
 
   const chartData = frameType === "monthly" ? MONTHLY_LIVE : QUARTERLY_LIVE;
   const blsRate   = 2.8; // BLS industry avg for beverage manufacturing
@@ -219,8 +248,32 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
 
   function handleGenerate() {
     setGenerating(true);
-    setTimeout(() => { setGenerating(false); setGenerated(true); }, 1000);
+    setTimeout(() => { setGenerating(false); setGenerated(true); }, 400);
   }
+
+  function exportReportCSV() {
+    const rows = [
+      [`${companyName} — TRIR Report (${frameType})`],
+      [`Site: ${site}`, `Generated: ${new Date().toLocaleString()}`],
+      ["Note: " + (hoursNote || "")],
+      [],
+      ["Period", "Recordables", "Hours", "TRIR", "Prior-Year TRIR", "BLS Rate"],
+      ...periods.map(p => {
+        const d = chartData[p] || {};
+        return [p, d.incidents ?? 0, d.hours ?? 0, d.trir ?? 0,
+                d.prevYearTrir == null ? "—" : d.prevYearTrir, d.blsRate ?? "—"];
+      }),
+    ];
+    const esc = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const csv = rows.map(r => r.map(esc).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `TRIR-${site.replace(/\s+/g, "_")}-${frameType}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  function exportReportPDF() { window.print(); }
 
   const inputStyle = focused => ({
     padding: "9px 12px", border: `1.5px solid ${focused ? C.sage : "#D0DEDB"}`,
@@ -323,8 +376,8 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
 
               {generated && (
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button disabled title="Report export is coming soon" style={{ flex: 1, padding: "8px", background: "#F2F5F4", color: C.mist, border: "1.5px solid #E0E7E3", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "not-allowed" }}>Export PDF (soon)</button>
-                  <button disabled title="Report export is coming soon" style={{ flex: 1, padding: "8px", background: "#F2F5F4", color: C.mist, border: "1.5px solid #E0E7E3", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "not-allowed" }}>Export CSV (soon)</button>
+                  <button onClick={exportReportPDF} style={{ flex: 1, padding: "8px", background: C.white, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "pointer" }}>Export PDF</button>
+                  <button onClick={exportReportCSV} style={{ flex: 1, padding: "8px", background: C.white, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 600, cursor: "pointer" }}>Export CSV</button>
                 </div>
               )}
             </div>
