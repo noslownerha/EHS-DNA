@@ -15,5 +15,14 @@ RestartSec=3
 StandardOutput=append:/var/log/ehs-dna.log
 StandardError=append:/var/log/ehs-dna.log
 
+# ── Process hardening ──
+# NB: the app + SQLite DB live under /home/ehs-platform, so ProtectHome is
+# deliberately NOT set — it would block DB writes.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
 [Install]
 WantedBy=multi-user.target
