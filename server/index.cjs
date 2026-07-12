@@ -379,9 +379,21 @@ app.get("/api/incidents", auth, (req, res) =>
                        LEFT JOIN sites s ON s.id = i.site_id
                        LEFT JOIN users u ON u.id = i.reported_by
                        WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)));
+const INCIDENT_TYPES = ["injury", "near_miss", "property", "spill", "fire", "security"];
+const SEVERITIES = ["minor", "significant", "serious", "critical"];
+
 app.post("/api/incidents", auth, (req, res) => {
   const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department } = req.body || {};
   if (!type) return res.status(400).json({ error: "type required" });
+  if (!INCIDENT_TYPES.includes(type))
+    return res.status(400).json({ error: `Invalid type. Must be one of: ${INCIDENT_TYPES.join(", ")}` });
+  if (severity && !SEVERITIES.includes(severity))
+    return res.status(400).json({ error: `Invalid severity. Must be one of: ${SEVERITIES.join(", ")}` });
+  // A site id must belong to THIS tenant — never trust a client-supplied FK.
+  if (siteId) {
+    const owns = db.prepare("SELECT 1 FROM sites WHERE id = ? AND tenant_id = ?").get(siteId, req.auth.tenant);
+    if (!owns) return res.status(400).json({ error: "Unknown site for this account" });
+  }
   const ref = nextRef("INC", "incidents");
   const r = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
@@ -411,6 +423,10 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
   const b = req.body || {};
   // Only update keys actually present in the body, so "" clears a field but an
   // omitted key leaves it untouched (COALESCE couldn't distinguish those two).
+  if (b.severity !== undefined && b.severity !== null && b.severity !== "" && !SEVERITIES.includes(b.severity))
+    return res.status(400).json({ error: `Invalid severity. Must be one of: ${SEVERITIES.join(", ")}` });
+  if (b.status !== undefined && !["open", "investigating", "closed"].includes(b.status))
+    return res.status(400).json({ error: "Invalid status. Must be one of: open, investigating, closed" });
   const map = { status: "status", severity: "severity", department: "department",
                 description: "description", locationDetail: "location_detail",
                 oshaClassification: "osha_classification" };
@@ -990,6 +1006,23 @@ app.use((req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });
   res.set("Cache-Control", "no-store, must-revalidate");
   res.sendFile(path.join(DIST, "index.html"));
+});
+
+// ── Global error handler — must be last. Never leak stack traces or file paths. ──
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", req.method, req.path, "—", err?.message);
+  const msg = String(err?.message || "");
+  // Turn common DB constraint violations into honest 4xx instead of a 500.
+  if (/FOREIGN KEY constraint failed/i.test(msg))
+    return res.status(400).json({ error: "Referenced record does not exist or is not accessible" });
+  if (/UNIQUE constraint failed/i.test(msg))
+    return res.status(409).json({ error: "That record already exists" });
+  if (/CHECK constraint failed/i.test(msg))
+    return res.status(400).json({ error: "One or more values are not valid" });
+  if (err?.type === "entity.too.large")
+    return res.status(413).json({ error: "Upload too large — try fewer or smaller photos" });
+  res.status(500).json({ error: "Something went wrong. Please try again." });
 });
 
 app.listen(PORT, () => console.log(`EHS DNA API listening on :${PORT}`));

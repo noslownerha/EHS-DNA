@@ -372,6 +372,25 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const dir = await fetch(`${B}/api/users/directory`, { headers: sH }).then(j);
   ok("staff can read user directory", Array.isArray(dir) && dir.length > 0);
 
+  // ── Input validation (invalid enums used to be silently accepted; bad FK leaked a stack trace) ──
+  const badType = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "NOT_A_REAL_TYPE" }) });
+  ok("invalid incident type rejected", badType.status === 400);
+  const badSev = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "BOGUS" }) });
+  ok("invalid severity rejected", badSev.status === 400);
+  const badSite = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", siteId: 99999 }) });
+  const badSiteBody = await badSite.json().catch(() => ({}));
+  ok("cross-tenant siteId rejected cleanly (no stack trace)",
+     badSite.status === 400 && !/at Object|\.cjs:/.test(JSON.stringify(badSiteBody)));
+  const badStatus = await fetch(`${B}/api/incidents/${inc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "NONSENSE" }) });
+  ok("invalid status rejected on update", badStatus.status === 400);
+  const noRoute = await fetch(`${B}/api/definitely-not-a-route`, { headers: H() });
+  const noRouteCt = noRoute.headers.get("content-type") || "";
+  ok("unknown API route returns JSON 404", noRoute.status === 404 && noRouteCt.includes("json"));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
