@@ -372,10 +372,11 @@ function EditableField({ label, value, onSave, multiline = false, canEdit = true
   );
 }
 
-export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, onHome }) {
+export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   const [incident, setIncident] = useState({ ...SEED_DETAIL, id: incidentId ?? SEED_DETAIL.id });
   const [dbId, setDbId] = useState(null); // server row id, needed for PUT calls
   const [phase, setPhase] = useState(incidentId ? "loading" : "ready"); // loading | ready | notfound
+  const [checklistErr, setChecklistErr] = useState("");
   const [floorRef, setFloorRef] = useState(null); // { plan, pos:{x,y} }
   const [newCA, setNewCA] = useState("");
 
@@ -494,7 +495,14 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
     if (!dbId) return;
     setIncident(inc => {
       const next = inc.checklist.map(c => c.id === id ? { ...c, done: !c.done } : c);
-      api.saveResponseProgress(dbId, next.filter(c => c.done).map(c => c.text)).catch(() => {});
+      api.saveResponseProgress(dbId, next.filter(c => c.done).map(c => c.text))
+        .catch(err => {
+          console.error("Checklist save failed:", err.message);
+          setChecklistErr("Couldn't save that step — check your connection and try again.");
+          // Roll the toggle back so the UI never shows a tick that isn't saved.
+          setIncident(cur => ({ ...cur, checklist: cur.checklist.map(c => c.id === id ? { ...c, done: !c.done } : c) }));
+          setTimeout(() => setChecklistErr(""), 4000);
+        });
       return { ...inc, checklist: next };
     });
   }
@@ -792,6 +800,12 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onExport, o
                   {incident.checklist.filter(c => c.done).length}/{incident.checklist.length} completed
                 </p>
               </div>
+              {checklistErr && (
+                <div style={{ margin: "0 18px 8px", padding: "8px 10px", background: "#FDEDEC",
+                              borderRadius: 6, fontSize: ".75rem", color: "#B3261E" }}>
+                  {checklistErr}
+                </div>
+              )}
               {incident.checklist.map((item, i) => (
                 <div key={item.id} onClick={() => toggleChecklistItem(item.id)} style={{
                   display: "flex", alignItems: "center", gap: 10,

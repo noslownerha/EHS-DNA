@@ -17,6 +17,16 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ email: "ahren@whistlepig.com", password: "ChangeMe!2026" }) }).then(j);
   TOKEN = login.token;
   ok("login", !!TOKEN && login.user.role === "admin");
+  // Seeded admin ships flagged (default password) — first boot must force a change.
+  ok("seeded admin must change password", login.user.mustChangePassword === true);
+  // Complete the forced change, then set it back so the rest of the suite (and the
+  // operator/rate-limit tests below) can keep using the known password.
+  await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: H(),
+    body: JSON.stringify({ current: "ChangeMe!2026", next: "TempRotate!1" }) }).then(j);
+  await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: H(),
+    body: JSON.stringify({ current: "TempRotate!1", next: "ChangeMe!2026" }) }).then(j);
+  const pwUnblocked = await fetch(`${B}/api/config`, { headers: H() });
+  ok("forced change unblocks admin", pwUnblocked.status === 200);
 
   const bad = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "ahren@whistlepig.com", password: "wrong" }) });
@@ -240,6 +250,14 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ email: "ahrenwolson@gmail.com", password: process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026" }) }).then(j);
   const opH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${opLogin.token}` });
   ok("operator login", !!opLogin.token && opLogin.user.isOperator === true);
+  // Operator seeds with the default password too — clear its forced change, then restore.
+  if (opLogin.user.mustChangePassword) {
+    const opPw = process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026";
+    await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: opH(),
+      body: JSON.stringify({ current: opPw, next: "OpRotate!1" }) }).then(j);
+    await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: opH(),
+      body: JSON.stringify({ current: "OpRotate!1", next: opPw }) }).then(j);
+  }
 
   await fetch(`${B}/api/op/tenants/1/status`, { method: "PUT", headers: opH(),
     body: JSON.stringify({ active: false, reason: "billing" }) }).then(j);
@@ -269,6 +287,9 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const t2Login = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "admin@acme.test", password: t2.tempPassword }) }).then(j);
   const t2H = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${t2Login.token}` });
+  // New tenant admin ships on a temp password — clear the forced change first.
+  await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: t2H(),
+    body: JSON.stringify({ current: t2.tempPassword, next: "AcmeSecure!1" }) }).then(j);
   // Tenant 2 creates an incident
   const t2inc = await fetch(`${B}/api/incidents`, { method: "POST", headers: t2H(),
     body: JSON.stringify({ type: "injury", severity: "serious", description: "ACME-SECRET-INJURY" }) }).then(j);
@@ -285,6 +306,32 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   // Tenant 1 cannot see tenant 2 users
   const t1users = await fetch(`${B}/api/users`, { headers: H() }).then(j);
   ok("tenant 1 cannot see tenant 2 users", !t1users.some(u => u.email === "admin@acme.test"));
+
+  // ── Forced password change on seeded/temp passwords ──
+  // Create a user (gets a temp password + must_change_password=1)
+  const fp = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ name: "Temp Pw User", email: "temppw@whistlepig.com", role: "staff" }) }).then(j);
+  const fpLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "temppw@whistlepig.com", password: fp.tempPassword }) }).then(j);
+  const fpH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${fpLogin.token}` });
+  ok("temp-pw user flagged at login", fpLogin.user.mustChangePassword === true);
+  // Blocked from every other endpoint until changed
+  const blockedCall = await fetch(`${B}/api/incidents`, { headers: fpH() });
+  const blockedJson = await blockedCall.json().catch(() => ({}));
+  ok("temp-pw user blocked from API", blockedCall.status === 403 && blockedJson.mustChangePassword === true);
+  // Cannot reuse the same password
+  const same = await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: fpH(),
+    body: JSON.stringify({ current: fp.tempPassword, next: fp.tempPassword }) });
+  ok("cannot reuse temp password", same.status === 400);
+  // Change it → flag clears, API opens up
+  const changed = await fetch(`${B}/api/auth/change-password`, { method: "POST", headers: fpH(),
+    body: JSON.stringify({ current: fp.tempPassword, next: "BrandNewPw!99" }) });
+  ok("password change succeeds", changed.status === 200);
+  const afterChange = await fetch(`${B}/api/incidents`, { headers: fpH() });
+  ok("API unblocked after change", afterChange.status === 200);
+  const reLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "temppw@whistlepig.com", password: "BrandNewPw!99" }) }).then(j);
+  ok("flag cleared on re-login", reLogin.user.mustChangePassword === false);
 
   console.log("SMOKE COMPLETE");
   process.exit(0);

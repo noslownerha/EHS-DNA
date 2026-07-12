@@ -229,6 +229,8 @@ try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'
   try { db.exec(`ALTER TABLE findings ADD COLUMN ${col}`); } catch {}
 });
 try { db.exec("ALTER TABLE users ADD COLUMN is_operator INTEGER DEFAULT 0"); } catch {}
+// Force a password change on any account still using a seeded/temp password.
+try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"); } catch {}
 try { db.exec("ALTER TABLE tenants ADD COLUMN active INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE tenants ADD COLUMN suspension_reason TEXT"); } catch {}
 try { db.exec("ALTER TABLE training_completions ADD COLUMN passed INTEGER DEFAULT 1"); } catch {}
@@ -275,9 +277,10 @@ function seed() {
      "Maintenance", "Quality", "Shipping & Receiving"].forEach(d => deptStmt.run(d));
 
     // Initial admin — password must be changed on first real use
+    const usingDefaultAdminPw = !process.env.EHS_ADMIN_PASSWORD;
     const hash = bcrypt.hashSync(process.env.EHS_ADMIN_PASSWORD || "ChangeMe!2026", 10);
-    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id)
-                VALUES (1, 'ahren@whistlepig.com', ?, 'Ahren', 'admin', 1)`).run(hash);
+    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, must_change_password)
+                VALUES (1, 'ahren@whistlepig.com', ?, 'Ahren', 'admin', 1, ?)`).run(hash, usingDefaultAdminPw ? 1 : 0);
 
     // Starter training catalog — standard distillery/manufacturing EHS set.
     // All editable/deactivatable through the training library.
@@ -365,9 +368,10 @@ function ensureDefaults() {
 
   if (!db.prepare("SELECT id FROM users WHERE email = 'ahrenwolson@gmail.com'").get()) {
     const bcrypt2 = require("bcryptjs");
-    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, is_operator)
-                VALUES (1, 'ahrenwolson@gmail.com', ?, 'EHS DNA Admin', 'admin', 1)`)
-      .run(bcrypt2.hashSync(process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026", 10));
+    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, is_operator, must_change_password)
+                VALUES (1, 'ahrenwolson@gmail.com', ?, 'EHS DNA Admin', 'admin', 1, ?)`)
+      .run(bcrypt2.hashSync(process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026", 10),
+           process.env.EHS_OPERATOR_PASSWORD ? 0 : 1);
     console.log("Backfilled: operator account ahrenwolson@gmail.com");
   }
 

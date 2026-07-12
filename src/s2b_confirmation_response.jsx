@@ -143,6 +143,7 @@ export default function S2bConfirmationResponse({
   const canManageCAs = ["admin", "safety", "site_manager"].includes(userRole);
   const [cas,       setCas]      = useState(() => generateCAs(incidentType, severity));
   const [checklist, setChecklist]= useState(DEFAULT_CHECKLIST.map((s, i) => ({ id: i, text: s, done: false })));
+  const [checklistErr, setChecklistErr] = useState("");
   useEffect(() => {
     api.responseChecklists().then(map => {
       const items = map[incidentType];
@@ -173,7 +174,16 @@ export default function S2bConfirmationResponse({
   function toggleCheck(id) {
     setChecklist(cl => {
       const next = cl.map(c => c.id === id ? { ...c, done: !c.done } : c);
-      if (incidentDbId) api.saveResponseProgress(incidentDbId, next.filter(c => c.done).map(c => c.text)).catch(() => {});
+      if (incidentDbId) {
+        api.saveResponseProgress(incidentDbId, next.filter(c => c.done).map(c => c.text))
+          .catch(err => {
+            console.error("Checklist save failed:", err.message);
+            setChecklistErr("Couldn't save that step — check your connection and try again.");
+            // Roll back so the UI never shows a tick that isn't saved.
+            setChecklist(cur => cur.map(c => c.id === id ? { ...c, done: !c.done } : c));
+            setTimeout(() => setChecklistErr(""), 4000);
+          });
+      }
       return next;
     });
   }
@@ -296,8 +306,9 @@ export default function S2bConfirmationResponse({
             </div>
           ))}
 
-          <div style={{ padding: "10px 16px", background: C.chalk, fontSize: ".72rem", color: C.mist, textAlign: "center" }}>
-            {checklist.filter(c => c.done).length}/{checklist.length} completed · progress auto-saved
+          <div style={{ padding: "10px 16px", background: checklistErr ? "#FDEDEC" : C.chalk, fontSize: ".72rem",
+                        color: checklistErr ? "#B3261E" : C.mist, textAlign: "center" }}>
+            {checklistErr || `${checklist.filter(c => c.done).length}/${checklist.length} completed · progress auto-saved`}
           </div>
         </div>
 

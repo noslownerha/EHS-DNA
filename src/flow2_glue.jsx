@@ -337,7 +337,6 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           incidentId={viewingId}
           companyName={companyName}
           onBack={back}
-          onExport={format => console.log(`Export ${viewingId} as ${format}`)}
         />
       );
 

@@ -121,6 +121,15 @@ function App() {
 
   if (booting) return null;
   if (!currentUser) return <LandingPage onEnter={handleEnter} />;
+  if (currentUser.mustChangePassword) {
+    return <ForcePasswordChange
+      onDone={() => setCurrentUser(u => {
+        const updated = { ...u, mustChangePassword: false };
+        try { sessionStorage.setItem("ehs_user", JSON.stringify(updated)); } catch {}
+        return updated;
+      })}
+      onLogout={handleLogout} />;
+  }
 
   const perms   = ROLE_PERMS[currentUser.role] ?? ROLE_PERMS.staff;
   const userObj = { ...currentUser, name: currentUser.name ?? `${currentUser.first ?? ""} ${currentUser.last ?? ""}`.trim() };
@@ -228,4 +237,71 @@ function App() {
 
 export default function AppWithShield() {
   return <CrashShield><App /></CrashShield>;
+}
+
+// ── Forced password change ────────────────────────────────────────────────────
+// Shown when an account is still on a seeded or temporary password. The server
+// blocks every other endpoint until this is done, so there is no way around it.
+function ForcePasswordChange({ onDone, onLogout }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext]       = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [err, setErr]         = useState("");
+  const [busy, setBusy]       = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr("");
+    if (next.length < 8)    { setErr("New password must be at least 8 characters."); return; }
+    if (next !== confirm)   { setErr("New passwords do not match."); return; }
+    setBusy(true);
+    try {
+      await api.changePassword(current, next);
+      onDone();
+    } catch (e2) {
+      setErr(e2.message || "Could not change password.");
+    } finally { setBusy(false); }
+  }
+
+  const field = {
+    width: "100%", padding: "12px 14px", borderRadius: 9, marginBottom: 10,
+    border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.07)",
+    color: "#fff", fontFamily: "'DM Sans', sans-serif", fontSize: ".95rem", outline: "none",
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#1E3328", display: "flex", alignItems: "center",
+                  justifyContent: "center", padding: "24px", fontFamily: "'DM Sans', sans-serif" }}>
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ fontSize: "1.9rem", marginBottom: 10, textAlign: "center" }}>🔐</div>
+        <h1 style={{ color: "#fff", fontSize: "1.3rem", fontWeight: 700, textAlign: "center", marginBottom: 6 }}>
+          Set a new password
+        </h1>
+        <p style={{ color: "rgba(255,255,255,.6)", fontSize: ".85rem", textAlign: "center", marginBottom: 20, lineHeight: 1.5 }}>
+          Your account is using a temporary password. Choose a new one to continue.
+        </p>
+        <input type="password" value={current} onChange={e => setCurrent(e.target.value)}
+          placeholder="Current (temporary) password" autoComplete="current-password" style={field} />
+        <input type="password" value={next} onChange={e => setNext(e.target.value)}
+          placeholder="New password (8+ characters)" autoComplete="new-password" style={field} />
+        <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+          placeholder="Confirm new password" autoComplete="new-password" style={field} />
+        {err && (
+          <div style={{ fontSize: ".78rem", color: "#F0A5A5", background: "rgba(220,80,80,.12)",
+                        border: "1px solid rgba(220,80,80,.25)", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+            {err}
+          </div>
+        )}
+        <button type="submit" disabled={busy} style={{
+          width: "100%", padding: "14px 18px", background: busy ? "#7FA890" : "#A8D5B5",
+          color: "#1E3328", border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
+          fontSize: ".95rem", fontWeight: 700, cursor: busy ? "default" : "pointer",
+        }}>{busy ? "Saving…" : "Set password & continue"}</button>
+        <button type="button" onClick={onLogout} style={{
+          width: "100%", marginTop: 10, background: "none", border: "none",
+          color: "rgba(255,255,255,.5)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+        }}>Sign out</button>
+      </form>
+    </div>
+  );
 }

@@ -108,7 +108,7 @@ app.post("/api/auth/login", loginRateLimit, (req, res) => {
     SECRET, { expiresIn: TOKEN_TTL }
   );
   const site = user.site_id ? db.prepare("SELECT name FROM sites WHERE id = ?").get(user.site_id) : null;
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, site: site?.name ?? null, siteId: user.site_id, isOperator: !!user.is_operator } });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, site: site?.name ?? null, siteId: user.site_id, isOperator: !!user.is_operator, mustChangePassword: !!user.must_change_password } });
 });
 
 function auth(req, res, next) {
@@ -121,6 +121,13 @@ function auth(req, res, next) {
       const tRow = db.prepare("SELECT active, suspension_reason FROM tenants WHERE id = ?").get(req.auth.tenant);
       if (tRow && tRow.active === 0)
         return res.status(403).json({ error: suspensionMessage(tRow.suspension_reason), suspended: true, reason: tRow.suspension_reason || "other" });
+    }
+    // Accounts on a seeded/temporary password must change it before doing anything else.
+    // Only the change-password endpoint itself stays reachable.
+    if (req.path !== "/api/auth/change-password") {
+      const pwRow = db.prepare("SELECT must_change_password FROM users WHERE id = ?").get(req.auth.uid);
+      if (pwRow && pwRow.must_change_password === 1)
+        return res.status(403).json({ error: "You must set a new password before continuing.", mustChangePassword: true });
     }
     next();
   }
@@ -172,7 +179,9 @@ app.post("/api/auth/change-password", auth, (req, res) => {
   if (!bcrypt.compareSync(current || "", user.password_hash))
     return res.status(401).json({ error: "Current password incorrect" });
   if (!nextPw || nextPw.length < 8) return res.status(400).json({ error: "New password must be 8+ characters" });
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(bcrypt.hashSync(nextPw, 10), user.id);
+  if (bcrypt.compareSync(nextPw, user.password_hash))
+    return res.status(400).json({ error: "New password must be different from the current one" });
+  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?").run(bcrypt.hashSync(nextPw, 10), user.id);
   res.json({ ok: true });
 });
 
@@ -321,8 +330,8 @@ app.post("/api/users/bulk", auth, requireRole("admin", "safety", "site_manager")
     if (r.department && !deptId) { results.push({ line, email, error: `Unknown department "${r.department}"` }); continue; }
     if (db.prepare("SELECT id FROM users WHERE email = ?").get(email)) { results.push({ line, email, error: "Email already exists" }); continue; }
     const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
-    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, department_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, department_id, must_change_password)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)`)
       .run(req.auth.tenant, email, bcrypt.hashSync(tempPassword, 10), name, role, siteId, deptId);
     results.push({ line, email, name, tempPassword });
   }
@@ -345,10 +354,13 @@ app.post("/api/users", auth, requireRole(...ADMINISH), (req, res) => {
   const { email, name, role, siteId, departmentId, password } = req.body || {};
   if (!email || !name || !role) return res.status(400).json({ error: "email, name, role required" });
   const pw = password || Math.random().toString(36).slice(2, 10) + "!A1";
+  // Auto-generated temp password → force a change on first login.
+  // An admin-chosen password is treated as intentional and is not forced.
+  const mustChange = password ? 0 : 1;
   try {
-    const r = db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, department_id)
-                          VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run(req.auth.tenant, String(email).toLowerCase().trim(), bcrypt.hashSync(pw, 10), name, role, siteId ?? null, departmentId ?? null);
+    const r = db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, department_id, must_change_password)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(req.auth.tenant, String(email).toLowerCase().trim(), bcrypt.hashSync(pw, 10), name, role, siteId ?? null, departmentId ?? null, mustChange);
     res.json({ id: r.lastInsertRowid, tempPassword: password ? undefined : pw });
   } catch (e) {
     res.status(409).json({ error: "Email already exists" });
@@ -363,7 +375,7 @@ app.put("/api/users/:id", auth, requireRole(...ADMINISH), (req, res) => {
   let tempPassword;
   if (resetPassword) {
     tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
-    db.prepare("UPDATE users SET password_hash = ? WHERE id = ? AND tenant_id = ?")
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ? AND tenant_id = ?")
       .run(bcrypt.hashSync(tempPassword, 10), req.params.id, req.auth.tenant);
   }
   res.json({ ok: true, tempPassword });
@@ -738,7 +750,7 @@ app.post("/api/op/users/:id/reset-password", auth, requireOperator, (req, res) =
   const user = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
   if (!user) return res.status(404).json({ error: "User not found" });
   const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(bcrypt2.hashSync(tempPassword, 10), user.id);
+  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?").run(bcrypt2.hashSync(tempPassword, 10), user.id);
   res.json({ tempPassword });
 });
 
@@ -770,8 +782,8 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
       const tr = db.prepare(`INSERT INTO tenants (name, industry, tagline, triage_enabled)
                              VALUES (?, ?, 'Safety & Operations Management', 0)`).run(name, industry ?? null);
       const tid = tr.lastInsertRowid;
-      db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role)
-                  VALUES (?, ?, ?, ?, 'admin')`)
+      db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, must_change_password)
+                  VALUES (?, ?, ?, ?, 'admin', 1)`)
         .run(tid, String(adminEmail).toLowerCase().trim(), bcrypt2.hashSync(tempPassword, 10), adminName ?? "Admin");
       db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve)
                   VALUES (?, 250, 75, 8, 0)`).run(tid);
@@ -805,7 +817,7 @@ app.post("/api/op/users/:id/reset", auth, requireOperator, (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
   if (!user) return res.status(404).json({ error: "User not found" });
   const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(bcrypt.hashSync(tempPassword, 10), user.id);
+  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?").run(bcrypt.hashSync(tempPassword, 10), user.id);
   res.json({ email: user.email, tempPassword });
 });
 
