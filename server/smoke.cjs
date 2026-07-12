@@ -333,6 +333,45 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ email: "temppw@whistlepig.com", password: "BrandNewPw!99" }) }).then(j);
   ok("flag cleared on re-login", reLogin.user.mustChangePassword === false);
 
+  // ── Operator impersonation (support tool — was silently broken by a duplicate route) ──
+  const imp = await fetch(`${B}/api/op/impersonate`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ tenantId: 1 }) }).then(j);
+  ok("impersonate returns token AND user", !!imp.token && !!imp.user && imp.user.isOperator === true
+     && imp.user.supportTenant === "WhistlePig Whiskey");
+  // The impersonation token must actually work against tenant data
+  const impH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${imp.token}` });
+  const impIncs = await fetch(`${B}/api/incidents`, { headers: impH() });
+  ok("impersonation token can read tenant data", impIncs.status === 200);
+  // Impersonating a non-existent tenant must 404
+  const impBad = await fetch(`${B}/api/op/impersonate`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ tenantId: 99999 }) });
+  ok("impersonate unknown tenant 404s", impBad.status === 404);
+
+  // ── forgot-password: must never reveal whether an account exists ──
+  const fgReal = await fetch(`${B}/api/auth/forgot`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "ahren@whistlepig.com" }) });
+  const fgFake = await fetch(`${B}/api/auth/forgot`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "nobody@nowhere.test" }) });
+  ok("forgot-password does not enumerate accounts",
+     fgReal.status === fgFake.status && JSON.stringify(await fgReal.json()) === JSON.stringify(await fgFake.json()));
+
+  // ── departments + response checklists + directory (previously untested) ──
+  const dept = await fetch(`${B}/api/departments`, { method: "POST", headers: H(),
+    body: JSON.stringify({ name: "Cooperage" }) }).then(j);
+  ok("department create", !!dept.id);
+  const deptUpd = await fetch(`${B}/api/departments/${dept.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ name: "Cooperage & Barrels" }) });
+  ok("department update", deptUpd.status === 200);
+
+  const rcPut = await fetch(`${B}/api/response-checklists/spill`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ items: ["Contain the spill", "Ventilate", ""] }) });
+  const rcGet = await fetch(`${B}/api/response-checklists`, { headers: H() }).then(j);
+  ok("response checklist upsert + blank filtered",
+     rcPut.status === 200 && Array.isArray(rcGet.spill) && rcGet.spill.length === 2);
+
+  const dir = await fetch(`${B}/api/users/directory`, { headers: sH }).then(j);
+  ok("staff can read user directory", Array.isArray(dir) && dir.length > 0);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

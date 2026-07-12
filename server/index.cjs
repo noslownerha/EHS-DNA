@@ -148,21 +148,6 @@ app.post("/api/auth/forgot", (req, res) => {
   if (user) {
     const admins = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND id != ?")
       .all(user.tenant_id, user.id);
-    const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body)
-                             VALUES (?, ?, ?, ?)`);
-    admins.forEach(a => stmt.run(user.tenant_id, a.id,
-      `🔑 Password reset requested: ${user.name}`,
-      `${user.email} requested a password reset. Use Manage Staff → Reset password and share the temporary password securely.`));
-  }
-  res.json({ ok: true });  // never reveal whether the email exists
-});
-
-app.post("/api/auth/forgot", (req, res) => {
-  const email = String(req.body?.email ?? "").toLowerCase().trim();
-  const user = email && db.prepare("SELECT * FROM users WHERE email = ? AND active = 1").get(email);
-  if (user) {
-    const admins = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND id != ?")
-      .all(user.tenant_id, user.id);
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
                              VALUES (?, ?, ?, ?, 'user', ?)`);
     admins.forEach(a => stmt.run(user.tenant_id, a.id,
@@ -741,10 +726,6 @@ app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
   }));
 });
 
-app.get("/api/op/tenants/:id/users", auth, requireOperator, (req, res) =>
-  res.json(db.prepare(`SELECT id, name, email, role, active FROM users
-                       WHERE tenant_id = ? AND is_operator = 0 ORDER BY name`).all(req.params.id)));
-
 app.post("/api/op/users/:id/reset-password", auth, requireOperator, (req, res) => {
   const bcrypt2 = require("bcryptjs");
   const user = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
@@ -760,16 +741,6 @@ app.put("/api/op/tenants/:id/status", auth, requireOperator, (req, res) => {
   const reason = active ? null : (["billing", "other"].includes(req.body?.reason) ? req.body.reason : "other");
   db.prepare("UPDATE tenants SET active = ?, suspension_reason = ? WHERE id = ?").run(active, reason, req.params.id);
   res.json({ ok: true });
-});
-
-app.post("/api/op/impersonate", auth, requireOperator, (req, res) => {
-  const tenant = db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.body?.tenantId);
-  if (!tenant) return res.status(404).json({ error: "Tenant not found" });
-  const token = jwt.sign(
-    { uid: req.auth.uid, tenant: tenant.id, role: "admin", name: `${req.auth.name} (support)`, op: true },
-    SECRET, { expiresIn: "4h" }
-  );
-  res.json({ token, tenantName: tenant.name });
 });
 
 app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
