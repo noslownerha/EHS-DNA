@@ -310,8 +310,8 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
 
   useEffect(() => {
     if (!findingId) return;
-    api.listFindings().then(rows => {
-      const row = rows.find(f => f.id === findingId);
+    // Fetch just this finding — the list no longer carries base64 photo data.
+    api.getFinding(findingId).then(row => {
       if (!row) return;
       setDbId(row.id);
       setFinding({

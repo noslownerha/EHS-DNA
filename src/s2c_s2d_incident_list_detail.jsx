@@ -449,8 +449,14 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   // Load the real incident + its CAs, overlaying server data onto the seed shape
   useEffect(() => {
     if (!incidentId) return;
-    Promise.all([api.listIncidents(), api.listCAs(), api.responseChecklists().catch(() => ({}))]).then(([incs, cas, tpls]) => {
-      const row = incs.find(i => i.ref === incidentId);
+    // Fetch just THIS incident (photos included) rather than pulling the whole
+    // list — the list no longer carries photo data, and downloading every photo
+    // of every incident to render one detail screen was a huge mobile cost.
+    Promise.all([
+      api.getIncident(incidentId).catch(() => null),
+      api.listCAs(),
+      api.responseChecklists().catch(() => ({})),
+    ]).then(([row, cas, tpls]) => {
       if (!row) { setPhase("notfound"); return; }
       setDbId(row.id);
       setPhase("ready");

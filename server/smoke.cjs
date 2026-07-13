@@ -486,6 +486,25 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("deactivation revokes the live session",
      beforeOff.status === 200 && afterOff.status === 401 && afterPost.status === 401);
 
+  // ── Photo payload: the LIST must not ship base64 image data ──
+  // SELECT i.* was sending every photo of every incident to the phone just to
+  // render a list of rows (~76 MB at 200 incidents, over cellular, every open).
+  const bigPhoto = { dataUrl: "data:image/jpeg;base64," + "A".repeat(50000), gps: false, name: "p.jpg" };
+  const withPhoto = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", description: "photo payload test", photos: [bigPhoto, bigPhoto] }) }).then(j);
+  const listRows = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  const listRow = listRows.find(i => i.id === withPhoto.id);
+  ok("incident list excludes photo blobs but keeps a count",
+     listRow && listRow.photos === undefined && listRow.photo_count === 2);
+  const detailRow = await fetch(`${B}/api/incidents/${withPhoto.id}`, { headers: H() }).then(j);
+  ok("incident detail still returns photo data",
+     JSON.parse(detailRow.photos || "[]").length === 2);
+  const byRef = await fetch(`${B}/api/incidents/${withPhoto.ref}`, { headers: H() }).then(j);
+  ok("incident detail resolves by ref too", byRef.id === withPhoto.id);
+  // Detail must honour the same read scoping as the list.
+  const staffPeek = await fetch(`${B}/api/incidents/${withPhoto.id}`, { headers: pH });
+  ok("staff cannot open someone else's incident detail", staffPeek.status === 403);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

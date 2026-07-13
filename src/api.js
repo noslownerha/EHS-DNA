@@ -98,6 +98,7 @@ export const api = {
 
   // incidents & CAs
   listIncidents: () => req("/incidents"),
+  getIncident: (idOrRef) => req(`/incidents/${encodeURIComponent(idOrRef)}`),
   createIncident: (i) => req("/incidents", { method: "POST", body: i }),
   updateIncident: (id, patch) => req(`/incidents/${id}`, { method: "PUT", body: patch }),
   saveResponseProgress: (id, progress) => req(`/incidents/${id}/response`, { method: "PUT", body: { progress } }),
@@ -114,6 +115,7 @@ export const api = {
   createInspection: (i) => req("/inspections", { method: "POST", body: i }),
   updateInspection: (id, patch) => req(`/inspections/${id}`, { method: "PUT", body: patch }),
   listFindings: () => req("/findings"),
+  getFinding: (id) => req(`/findings/${id}`),
   createFinding: (f) => req("/findings", { method: "POST", body: f }),
   updateFinding: (id, patch) => req(`/findings/${id}`, { method: "PUT", body: patch }),
 

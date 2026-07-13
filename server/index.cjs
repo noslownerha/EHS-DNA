@@ -416,23 +416,52 @@ function refInsert(prefix, table, tenantId, insertFn) {
     }
   }
 }
+// Columns for the LIST view. Deliberately EXCLUDES `photos`: that column holds
+// base64 image data, and `SELECT i.*` was shipping every photo of every incident
+// to the phone just to render a list of rows — ~76 MB at 200 incidents, over
+// cellular, every time the screen opened. The list only needs the count; the full
+// images come from GET /api/incidents/:id when a specific report is opened.
+const INCIDENT_LIST_COLS = `i.id, i.tenant_id, i.ref, i.type, i.severity, i.status,
+  i.site_id, i.description, i.location_detail, i.involved, i.reported_by,
+  i.occurred_at, i.created_at, i.updated_at, i.department, i.osha_classification,
+  i.response_progress, i.floor_pos,
+  json_array_length(COALESCE(i.photos, '[]')) AS photo_count`;
+
 app.get("/api/incidents", auth, (req, res) => {
   const seesAll = CAN_SEE_ALL_INCIDENTS.includes(req.auth.role);
   // Staff/trainer get only the reports they filed themselves — enough for the
   // "my open reports" count on their dashboard, and nothing about anyone else.
   const rows = seesAll
-    ? db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
+    ? db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
                   FROM incidents i
                   LEFT JOIN sites s ON s.id = i.site_id
                   LEFT JOIN users u ON u.id = i.reported_by
                   WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)
-    : db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
+    : db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
                   FROM incidents i
                   LEFT JOIN sites s ON s.id = i.site_id
                   LEFT JOIN users u ON u.id = i.reported_by
                   WHERE i.tenant_id = ? AND i.reported_by = ? ORDER BY i.created_at DESC`)
         .all(req.auth.tenant, req.auth.uid);
   res.json(rows);
+});
+
+// Full record for ONE incident, including photo data. Same read scoping as the
+// list: staff may only open a report they filed themselves.
+app.get("/api/incidents/:id", auth, (req, res) => {
+  // Accepts either the numeric id or the human ref (INC-2026-0001) — the UI
+  // navigates by ref.
+  const key = String(req.params.id);
+  const row = db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
+                          FROM incidents i
+                          LEFT JOIN sites s ON s.id = i.site_id
+                          LEFT JOIN users u ON u.id = i.reported_by
+                          WHERE i.tenant_id = ? AND (i.id = ? OR i.ref = ?)`)
+    .get(req.auth.tenant, /^\d+$/.test(key) ? Number(key) : -1, key);
+  if (!row) return res.status(404).json({ error: "Incident not found" });
+  if (!CAN_SEE_ALL_INCIDENTS.includes(req.auth.role) && row.reported_by !== req.auth.uid)
+    return res.status(403).json({ error: "Insufficient permissions" });
+  res.json(row);
 });
 const INCIDENT_TYPES = ["injury", "near_miss", "property", "spill", "fire", "security"];
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
@@ -613,11 +642,27 @@ app.put("/api/inspections/:id", auth, (req, res) => {
     .run(responses ? JSON.stringify(responses) : null, complete ? 1 : 0, complete ? 1 : 0, req.params.id, req.auth.tenant);
   res.json({ ok: true });
 });
+// Same photo-bloat fix as incidents: the findings list must not carry base64
+// image data. Detail comes from GET /api/findings/:id.
 app.get("/api/findings", auth, (req, res) =>
-  res.json(db.prepare(`SELECT f.*, u.name AS reporter_name, s.name AS site_name
+  res.json(db.prepare(`SELECT f.id, f.tenant_id, f.inspection_id, f.site_id,
+                              f.description, f.severity, f.status, f.reported_by,
+                              f.resolution_action, f.resolution_notes,
+                              f.created_at, f.resolved_at,
+                              json_array_length(COALESCE(f.photos, '[]')) AS photo_count,
+                              u.name AS reporter_name, s.name AS site_name
                        FROM findings f LEFT JOIN users u ON u.id = f.reported_by
                        LEFT JOIN sites s ON s.id = f.site_id
                        WHERE f.tenant_id = ? ORDER BY f.created_at DESC`).all(req.auth.tenant)));
+
+app.get("/api/findings/:id", auth, (req, res) => {
+  const row = db.prepare(`SELECT f.*, u.name AS reporter_name, s.name AS site_name
+                          FROM findings f LEFT JOIN users u ON u.id = f.reported_by
+                          LEFT JOIN sites s ON s.id = f.site_id
+                          WHERE f.id = ? AND f.tenant_id = ?`).get(req.params.id, req.auth.tenant);
+  if (!row) return res.status(404).json({ error: "Finding not found" });
+  res.json(row);
+});
 app.post("/api/findings", auth, (req, res) => {
   const { inspectionId, siteId, severity, description, photos } = req.body || {};
   if (!description) return res.status(400).json({ error: "description required" });
