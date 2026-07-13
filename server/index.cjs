@@ -126,9 +126,12 @@ function auth(req, res, next) {
     // token keeps working until it expires (up to 12h) — so someone who has just
     // been offboarded could still read and file records for the rest of the day,
     // which is exactly when you most need their access gone.
-    const meRow = db.prepare("SELECT active FROM users WHERE id = ?").get(req.auth.uid);
+    const meRow = db.prepare("SELECT active, site_id FROM users WHERE id = ?").get(req.auth.uid);
     if (!meRow || meRow.active === 0)
       return res.status(401).json({ error: "This account is no longer active." });
+    // The user's home site, read fresh each request (not baked into the token, so
+    // moving someone between sites takes effect immediately).
+    req.auth.siteId = meRow.site_id ?? null;
 
     // Accounts on a seeded/temporary password must change it before doing anything else.
     // Only the change-password endpoint itself stays reachable.
@@ -158,6 +161,26 @@ const CAN_SEE_CAS            = ["admin", "safety", "site_manager"];
 // A trainer's whole job is tracking who still owes training, so they keep the
 // org-wide compliance view. Everyone below that sees only their own row.
 const CAN_SEE_ALL_COMPLIANCE = ["admin", "safety", "site_manager", "trainer"];
+
+// Roles that see EVERY site. A site_manager is deliberately not one of them: they
+// are scoped to the site they are assigned to, so a manager at Moriah does not see
+// Brandenburg's injuries. Admin/safety keep the whole-company view.
+const CAN_SEE_ALL_SITES = ["admin", "safety"];
+
+/**
+ * The site a request is limited to, or null for "every site".
+ * Operators (and impersonation sessions, which carry op:true) always see it all.
+ */
+function siteScope(req) {
+  if (req.auth.op) return null;
+  if (CAN_SEE_ALL_SITES.includes(req.auth.role)) return null;
+  if (req.auth.role === "site_manager") {
+    // A site_manager with no site assigned would otherwise silently see the whole
+    // company. Fail closed: -1 matches nothing until an admin assigns their site.
+    return req.auth.siteId ?? -1;
+  }
+  return null;   // staff/trainer are scoped by ownership elsewhere, not by site
+}
 function requireOperator(req, res, next) {
   return req.auth.op ? next() : res.status(403).json({ error: "Operator access only" });
 }
@@ -429,20 +452,30 @@ const INCIDENT_LIST_COLS = `i.id, i.tenant_id, i.ref, i.type, i.severity, i.stat
 
 app.get("/api/incidents", auth, (req, res) => {
   const seesAll = CAN_SEE_ALL_INCIDENTS.includes(req.auth.role);
-  // Staff/trainer get only the reports they filed themselves — enough for the
-  // "my open reports" count on their dashboard, and nothing about anyone else.
-  const rows = seesAll
-    ? db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
-                  FROM incidents i
-                  LEFT JOIN sites s ON s.id = i.site_id
-                  LEFT JOIN users u ON u.id = i.reported_by
-                  WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)
-    : db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
-                  FROM incidents i
-                  LEFT JOIN sites s ON s.id = i.site_id
-                  LEFT JOIN users u ON u.id = i.reported_by
-                  WHERE i.tenant_id = ? AND i.reported_by = ? ORDER BY i.created_at DESC`)
-        .all(req.auth.tenant, req.auth.uid);
+  const site = siteScope(req);   // null = every site; a site_manager sees only theirs
+  let rows;
+  if (!seesAll) {
+    // Staff/trainer get only the reports they filed themselves.
+    rows = db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
+                       FROM incidents i
+                       LEFT JOIN sites s ON s.id = i.site_id
+                       LEFT JOIN users u ON u.id = i.reported_by
+                       WHERE i.tenant_id = ? AND i.reported_by = ? ORDER BY i.created_at DESC`)
+      .all(req.auth.tenant, req.auth.uid);
+  } else if (site === null) {
+    rows = db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
+                       FROM incidents i
+                       LEFT JOIN sites s ON s.id = i.site_id
+                       LEFT JOIN users u ON u.id = i.reported_by
+                       WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant);
+  } else {
+    rows = db.prepare(`SELECT ${INCIDENT_LIST_COLS}, s.name AS site_name, u.name AS reporter_name
+                       FROM incidents i
+                       LEFT JOIN sites s ON s.id = i.site_id
+                       LEFT JOIN users u ON u.id = i.reported_by
+                       WHERE i.tenant_id = ? AND i.site_id = ? ORDER BY i.created_at DESC`)
+      .all(req.auth.tenant, site);
+  }
   res.json(rows);
 });
 
@@ -460,6 +493,9 @@ app.get("/api/incidents/:id", auth, (req, res) => {
     .get(req.auth.tenant, /^\d+$/.test(key) ? Number(key) : -1, key);
   if (!row) return res.status(404).json({ error: "Incident not found" });
   if (!CAN_SEE_ALL_INCIDENTS.includes(req.auth.role) && row.reported_by !== req.auth.uid)
+    return res.status(403).json({ error: "Insufficient permissions" });
+  const dSite = siteScope(req);
+  if (dSite !== null && row.site_id !== dSite)
     return res.status(403).json({ error: "Insufficient permissions" });
   res.json(row);
 });
@@ -556,11 +592,24 @@ app.get("/api/cas", auth, (req, res) => {
   // Corrective actions reference incidents (and therefore injuries), so base
   // staff see none at all.
   if (!CAN_SEE_CAS.includes(req.auth.role)) return res.json([]);
+  const site = siteScope(req);
+  // corrective_actions has no site of its own — it inherits the site of the
+  // incident or finding it came from.
+  if (site === null) {
+    return res.json(db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name
+                                FROM corrective_actions c
+                                LEFT JOIN incidents i ON i.id = c.incident_id
+                                LEFT JOIN users u ON u.id = c.assignee_id
+                                WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant));
+  }
   res.json(db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name
                        FROM corrective_actions c
                        LEFT JOIN incidents i ON i.id = c.incident_id
+                       LEFT JOIN findings f ON f.id = c.finding_id
                        LEFT JOIN users u ON u.id = c.assignee_id
-                       WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant));
+                       WHERE c.tenant_id = ?
+                         AND (i.site_id = ? OR f.site_id = ?)
+                       ORDER BY c.due_date ASC`).all(req.auth.tenant, site, site));
 });
 app.post("/api/cas", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
   const { incidentId, findingId, title, priority, assigneeId, dueDate } = req.body || {};
@@ -627,7 +676,14 @@ app.get("/api/checklists/schedule", auth, (req, res) => {
   out.sort((a, b) => a.daysUntil - b.daysUntil);
   res.json(out);
 });
-app.get("/api/inspections", auth, listAll("inspections", "started_at DESC"));
+app.get("/api/inspections", auth, (req, res) => {
+  const site = siteScope(req);
+  const rows = site === null
+    ? db.prepare("SELECT * FROM inspections WHERE tenant_id = ? ORDER BY started_at DESC").all(req.auth.tenant)
+    : db.prepare("SELECT * FROM inspections WHERE tenant_id = ? AND site_id = ? ORDER BY started_at DESC")
+        .all(req.auth.tenant, site);
+  res.json(rows);
+});
 app.post("/api/inspections", auth, (req, res) => {
   const r = db.prepare("INSERT INTO inspections (tenant_id, checklist_id, site_id, inspector_id) VALUES (?, ?, ?, ?)")
     .run(req.auth.tenant, req.body.checklistId ?? null, req.body.siteId ?? null, req.auth.uid);
@@ -644,16 +700,26 @@ app.put("/api/inspections/:id", auth, (req, res) => {
 });
 // Same photo-bloat fix as incidents: the findings list must not carry base64
 // image data. Detail comes from GET /api/findings/:id.
-app.get("/api/findings", auth, (req, res) =>
-  res.json(db.prepare(`SELECT f.id, f.tenant_id, f.inspection_id, f.site_id,
-                              f.description, f.severity, f.status, f.reported_by,
-                              f.resolution_action, f.resolution_notes,
-                              f.created_at, f.resolved_at,
-                              json_array_length(COALESCE(f.photos, '[]')) AS photo_count,
-                              u.name AS reporter_name, s.name AS site_name
-                       FROM findings f LEFT JOIN users u ON u.id = f.reported_by
-                       LEFT JOIN sites s ON s.id = f.site_id
-                       WHERE f.tenant_id = ? ORDER BY f.created_at DESC`).all(req.auth.tenant)));
+app.get("/api/findings", auth, (req, res) => {
+  const site = siteScope(req);
+  const cols = `f.id, f.tenant_id, f.inspection_id, f.site_id,
+                f.description, f.severity, f.status, f.reported_by,
+                f.resolution_action, f.resolution_notes,
+                f.created_at, f.resolved_at,
+                json_array_length(COALESCE(f.photos, '[]')) AS photo_count,
+                u.name AS reporter_name, s.name AS site_name`;
+  const rows = site === null
+    ? db.prepare(`SELECT ${cols} FROM findings f
+                  LEFT JOIN users u ON u.id = f.reported_by
+                  LEFT JOIN sites s ON s.id = f.site_id
+                  WHERE f.tenant_id = ? ORDER BY f.created_at DESC`).all(req.auth.tenant)
+    : db.prepare(`SELECT ${cols} FROM findings f
+                  LEFT JOIN users u ON u.id = f.reported_by
+                  LEFT JOIN sites s ON s.id = f.site_id
+                  WHERE f.tenant_id = ? AND f.site_id = ? ORDER BY f.created_at DESC`)
+        .all(req.auth.tenant, site);
+  res.json(rows);
+});
 
 app.get("/api/findings/:id", auth, (req, res) => {
   const row = db.prepare(`SELECT f.*, u.name AS reporter_name, s.name AS site_name
@@ -661,6 +727,9 @@ app.get("/api/findings/:id", auth, (req, res) => {
                           LEFT JOIN sites s ON s.id = f.site_id
                           WHERE f.id = ? AND f.tenant_id = ?`).get(req.params.id, req.auth.tenant);
   if (!row) return res.status(404).json({ error: "Finding not found" });
+  const fSite = siteScope(req);
+  if (fSite !== null && row.site_id !== fSite)
+    return res.status(403).json({ error: "Insufficient permissions" });
   res.json(row);
 });
 app.post("/api/findings", auth, (req, res) => {
@@ -777,7 +846,11 @@ app.post("/api/triage", auth, (req, res) => {
 // ── Dashboard summary (per-site rollup for admin dashboards) ─────────────────
 app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
   const t = req.auth.tenant;
-  const sites = db.prepare("SELECT * FROM sites WHERE tenant_id = ? AND active = 1").all(t);
+  // Scoping the site list scopes every rollup below it.
+  const scope = siteScope(req);
+  const sites = scope === null
+    ? db.prepare("SELECT * FROM sites WHERE tenant_id = ? AND active = 1").all(t)
+    : db.prepare("SELECT * FROM sites WHERE tenant_id = ? AND active = 1 AND id = ?").all(t, scope);
   const summary = sites.map(site => {
     const staff = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND site_id = ? AND active = 1").get(t, site.id).n;
     const openIncidents = db.prepare("SELECT COUNT(*) n FROM incidents WHERE tenant_id = ? AND site_id = ? AND status != 'closed'").get(t, site.id).n;
@@ -999,7 +1072,10 @@ app.get("/api/reports/incident-summary", auth, requireRole(...CAN_SEE_ALL_INCIDE
                                   site_id, type, osha_classification, COUNT(*) n
                            FROM incidents WHERE tenant_id = ?
                            GROUP BY ym, site_id, type, osha_classification`).all(t);
-  const sites = db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1").all(t);
+  const scope = siteScope(req);
+  const sites = scope === null
+    ? db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1").all(t)
+    : db.prepare("SELECT id, name FROM sites WHERE tenant_id = ? AND active = 1 AND id = ?").all(t, scope);
   const headcount = Object.fromEntries(sites.map(s => [s.id,
     db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND site_id = ? AND active = 1 AND is_operator = 0").get(t, s.id).n]));
   // Actual payroll hours override the headcount estimate where entered
@@ -1126,10 +1202,13 @@ function staffCompliance(t, siteId = null) {
 }
 
 app.get("/api/dashboard/compliance", auth, (req, res) => {
-  const all = staffCompliance(req.auth.tenant);
-  if (CAN_SEE_ALL_COMPLIANCE.includes(req.auth.role)) return res.json(all);
-  // Everyone else sees only their own training record.
-  res.json(all.filter(u => u.id === req.auth.uid));
+  if (!CAN_SEE_ALL_COMPLIANCE.includes(req.auth.role)) {
+    // Staff see only their own training record.
+    const mine = staffCompliance(req.auth.tenant).filter(u => u.id === req.auth.uid);
+    return res.json(mine);
+  }
+  // A site_manager sees the people at their site; admin/safety/trainer see everyone.
+  res.json(staffCompliance(req.auth.tenant, siteScope(req)));
 });
 
 const DIST = path.join(__dirname, "..", "dist");

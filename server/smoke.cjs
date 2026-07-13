@@ -505,6 +505,38 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const staffPeek = await fetch(`${B}/api/incidents/${withPhoto.id}`, { headers: pH });
   ok("staff cannot open someone else's incident detail", staffPeek.status === 403);
 
+  // ── Site managers are scoped to their own site; admin/safety see every site ──
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", siteId: 1, description: "SITE1-ONLY-INJURY" }) }).then(j);
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", siteId: 2, description: "SITE2-ONLY-INJURY" }) }).then(j);
+  await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ email: "site1.mgr@whistlepig.com", name: "Site1 Mgr",
+                           role: "site_manager", siteId: 1, password: "Mgr!2026xx" }) }).then(j);
+  const mgrLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "site1.mgr@whistlepig.com", password: "Mgr!2026xx" }) }).then(j);
+  const mH = { "Content-Type": "application/json", Authorization: `Bearer ${mgrLogin.token}` };
+
+  const mgrIncs = await fetch(`${B}/api/incidents`, { headers: mH }).then(j);
+  ok("site manager sees only their own site's incidents",
+     mgrIncs.some(i => (i.description || "").includes("SITE1-ONLY-INJURY")) &&
+     !mgrIncs.some(i => (i.description || "").includes("SITE2-ONLY-INJURY")));
+
+  const mgrReport = await fetch(`${B}/api/reports/incident-summary`, { headers: mH }).then(j);
+  const mgrSites = mgrReport.months[mgrReport.months.length - 1].sites.map(x => x.siteId);
+  ok("site manager reporting covers only their site",
+     mgrSites.length === 1 && mgrSites[0] === 1);
+
+  const otherInc = (await fetch(`${B}/api/incidents`, { headers: H() }).then(j))
+    .find(i => (i.description || "").includes("SITE2-ONLY-INJURY"));
+  const mgrPeek = await fetch(`${B}/api/incidents/${otherInc.id}`, { headers: mH });
+  ok("site manager cannot open another site's incident", mgrPeek.status === 403);
+
+  const adminIncs = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  ok("admin still sees every site",
+     adminIncs.some(i => (i.description || "").includes("SITE1-ONLY-INJURY")) &&
+     adminIncs.some(i => (i.description || "").includes("SITE2-ONLY-INJURY")));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
