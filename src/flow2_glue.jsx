@@ -17,7 +17,7 @@
  *   </IncidentProvider>
  */
 
-import { createContext, useContext, useReducer, useCallback, useRef } from "react";
+import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from "react";
 import { BRAND } from "./constants.js";
 import { api } from "./api.js";
 
@@ -116,6 +116,7 @@ function reducer(state, action) {
       return { ...state, draft: { ...state.draft, ...action.payload } };
 
     case "SUBMIT": {
+      clearDraft();   // the report is now the server's problem, not a draft
       const id = generateIncidentId();
       const submitted = { id, ...state.draft, submittedAt: new Date() };
       return {
@@ -142,6 +143,7 @@ function reducer(state, action) {
       return { ...state, viewingId: action.id, screen: INCIDENT_SCREENS.DETAIL, history: [...state.history, state.screen] };
 
     case "RESET_DRAFT":
+      clearDraft();
       return { ...state, draft: { ...INITIAL_STATE.draft }, submitted: null };
 
     default:
@@ -154,6 +156,41 @@ function reducer(state, action) {
 // ─────────────────────────────────────────────────────────────────────────────
 const IncidentContext = createContext(null);
 
+// ── Draft persistence ─────────────────────────────────────────────────────────
+// A half-filled incident report is real work — losing it to an accidental reload,
+// a backgrounded tab, or a browser crash on the plant floor is unacceptable.
+// We persist the draft (minus photos, which are base64 and would blow the ~5MB
+// sessionStorage quota) and restore it on mount.
+const DRAFT_KEY = "ehs_incident_draft";
+
+function loadDraft() {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    // Ignore anything stale (older than 12h) so a forgotten draft doesn't haunt a new report.
+    if (!saved?.at || Date.now() - saved.at > 12 * 3600 * 1000) {
+      sessionStorage.removeItem(DRAFT_KEY);
+      return null;
+    }
+    return saved.draft ?? null;
+  } catch { return null; }
+}
+
+function saveDraft(draft) {
+  try {
+    // Only persist once the user has actually entered something worth keeping.
+    const meaningful = draft?.type || draft?.description || draft?.location || draft?.involved;
+    if (!meaningful) return;
+    const { photos, ...rest } = draft;   // photos intentionally dropped
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), draft: rest }));
+  } catch { /* quota or private mode — non-fatal */ }
+}
+
+function clearDraft() {
+  try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+}
+
 export function IncidentProvider({
   children,
   user           = { name: "Ahren H.", site: "Moriah", dept: "Administration", role: "admin" },
@@ -161,9 +198,19 @@ export function IncidentProvider({
   companyName    = BRAND.company,
   initialScreen  = INCIDENT_SCREENS.TYPE,
 }) {
-  const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
+  const [state, dispatch] = useReducer(reducer, undefined, () => {
+    const restored = loadDraft();
+    return {
+      ...INITIAL_STATE,
+      screen: initialScreen,
+      draft: restored ? { ...INITIAL_STATE.draft, ...restored } : INITIAL_STATE.draft,
+    };
+  });
   const stateRef = useRef(state);       // always-fresh snapshot for async callbacks
   stateRef.current = state;
+
+  // Persist the in-progress draft so a reload/crash doesn't discard the report.
+  useEffect(() => { saveDraft(state.draft); }, [state.draft]);
 
 
   const navigate   = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);

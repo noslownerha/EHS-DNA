@@ -1032,6 +1032,12 @@ app.get("/api/dashboard/compliance", auth, (req, res) => {
 
 const DIST = path.join(__dirname, "..", "dist");
 // Hashed assets cache forever; index.html must never be cached (stale-bundle white screens)
+// The manifest is NOT content-hashed, so caching it immutably would freeze the
+// app name/icons in installed PWAs for a year. Revalidate it instead.
+app.get("/manifest.webmanifest", (req, res, next) => {
+  res.set("Cache-Control", "no-cache");
+  next();
+});
 app.use(express.static(DIST, { index: false, maxAge: "365d", immutable: true }));
 app.use((req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });

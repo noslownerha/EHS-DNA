@@ -264,8 +264,29 @@ export default function AppShell({ user, children, activeTab, onTab }) {
   const perms = ROLE_PERMS[user.role] ?? ROLE_PERMS.staff;
   const tabs  = perms.tabs;
 
+  // Plant floors and warehouses have dead zones. Tell people plainly when they
+  // are offline, so a failed submit reads as "no signal" rather than "app broken".
+  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true);
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
+  }, []);
+
   return (
     <RoleContext.Provider value={{ user, perms }}>
+      {!online && (
+        <div className="no-print" style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 500,
+          background: "#8A5A00", color: "#fff", textAlign: "center",
+          padding: "6px 12px", fontSize: ".78rem", fontWeight: 600,
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          ⚠ No connection — your report is saved on this device. Reconnect to submit.
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
