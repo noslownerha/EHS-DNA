@@ -187,6 +187,10 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   await fetch(`${B}/api/users/${staff.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ active: 0 }) });
   const usersAfter = await fetch(`${B}/api/users`, { headers: H() }).then(j);
   ok("deactivate user", usersAfter.find(u => u.id === staff.id).active === 0);
+  // Reactivate: deactivation now revokes the live session immediately, and later
+  // tests below still use this staff token. (Offboarding revocation is covered by
+  // its own dedicated test at the end of the suite.)
+  await fetch(`${B}/api/users/${staff.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ active: 1 }) });
 
   // Checklist schedule: 3 scheduled lists × 4 sites = 12 rows, all due-now (never run)
   const sched = await fetch(`${B}/api/checklists/schedule`, { headers: H() }).then(j);
@@ -423,6 +427,64 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ type: "injury", description: "dead zone", clientUuid: qUuid }) }).then(j);
   const qAfter = (await fetch(`${B}/api/incidents`, { headers: H() }).then(j)).length;
   ok("queued retry is idempotent", first.ref === retry.ref && retry.duplicate === true && qAfter === qBefore + 1);
+
+  // ── Privacy: base staff must not see colleagues' injuries, CAs, or training ──
+  // NB: the `staff` user above is deactivated by an earlier test, so use a fresh
+  // active one here.
+  const priv = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ email: "line.worker@whistlepig.com", name: "Line Worker",
+                           role: "staff", siteId: 1, password: "Line!2026x" }) }).then(j);
+  const privLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "line.worker@whistlepig.com", password: "Line!2026x" }) }).then(j);
+  const pH = { "Content-Type": "application/json", Authorization: `Bearer ${privLogin.token}` };
+
+  // Injury descriptions and the names of hurt colleagues are among the most
+  // sensitive data a workplace holds. A line worker could previously pull the
+  // entire incident list straight from the API.
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious",
+                           description: "CONFIDENTIAL-INJURY-DETAIL" }) }).then(j);
+  const staffIncs = await fetch(`${B}/api/incidents`, { headers: pH }).then(j);
+  ok("staff cannot see others' incidents",
+     !staffIncs.some(i => (i.description || "").includes("CONFIDENTIAL-INJURY-DETAIL")));
+
+  const staffCas = await fetch(`${B}/api/cas`, { headers: pH }).then(j);
+  ok("staff cannot see corrective actions", Array.isArray(staffCas) && staffCas.length === 0);
+
+  const staffComp = await fetch(`${B}/api/dashboard/compliance`, { headers: pH }).then(j);
+  ok("staff sees only own compliance row",
+     Array.isArray(staffComp) && staffComp.length === 1 && staffComp[0].id === privLogin.user.id);
+
+  const staffCloseCa = await fetch(`${B}/api/cas/1`, { method: "PUT", headers: pH,
+    body: JSON.stringify({ status: "closed", verified: 1 }) });
+  ok("staff cannot close a corrective action", staffCloseCa.status === 403);
+
+  const staffReport = await fetch(`${B}/api/reports/incident-summary`, { headers: pH });
+  ok("staff cannot read company reporting", staffReport.status === 403);
+
+  // ...but a worker must still be able to file a report and see it back.
+  const ownInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: pH,
+    body: JSON.stringify({ type: "near_miss", description: "my own near miss" }) }).then(j);
+  const staffIncs2 = await fetch(`${B}/api/incidents`, { headers: pH }).then(j);
+  ok("staff can still file and see their own report",
+     !!ownInc.ref && staffIncs2.some(i => i.id === ownInc.id));
+
+  // ── Offboarding: deactivating a user must kill their LIVE session, not just
+  //    block the next login. Previously their token kept working for up to 12h.
+  const fired = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ email: "offboard@whistlepig.com", name: "Offboard",
+                           role: "staff", siteId: 1, password: "Bye!2026xx" }) }).then(j);
+  const firedLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "offboard@whistlepig.com", password: "Bye!2026xx" }) }).then(j);
+  const fH = { "Content-Type": "application/json", Authorization: `Bearer ${firedLogin.token}` };
+  const beforeOff = await fetch(`${B}/api/incidents`, { headers: fH });
+  await fetch(`${B}/api/users/${fired.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ active: 0 }) });
+  const afterOff = await fetch(`${B}/api/incidents`, { headers: fH });
+  const afterPost = await fetch(`${B}/api/incidents`, { method: "POST", headers: fH,
+    body: JSON.stringify({ type: "injury" }) });
+  ok("deactivation revokes the live session",
+     beforeOff.status === 200 && afterOff.status === 401 && afterPost.status === 401);
 
   console.log("SMOKE COMPLETE");
   process.exit(0);

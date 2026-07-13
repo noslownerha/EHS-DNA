@@ -122,6 +122,14 @@ function auth(req, res, next) {
       if (tRow && tRow.active === 0)
         return res.status(403).json({ error: suspensionMessage(tRow.suspension_reason), suspended: true, reason: tRow.suspension_reason || "other" });
     }
+    // A deactivated user must lose access IMMEDIATELY. Without this their existing
+    // token keeps working until it expires (up to 12h) — so someone who has just
+    // been offboarded could still read and file records for the rest of the day,
+    // which is exactly when you most need their access gone.
+    const meRow = db.prepare("SELECT active FROM users WHERE id = ?").get(req.auth.uid);
+    if (!meRow || meRow.active === 0)
+      return res.status(401).json({ error: "This account is no longer active." });
+
     // Accounts on a seeded/temporary password must change it before doing anything else.
     // Only the change-password endpoint itself stays reachable.
     if (req.path !== "/api/auth/change-password") {
@@ -138,6 +146,18 @@ function requireRole(...roles) {
     roles.includes(req.auth.role) ? next() : res.status(403).json({ error: "Insufficient permissions" });
 }
 const ADMINISH = ["admin", "safety"];
+
+// ── Read scoping ──────────────────────────────────────────────────────────────
+// Injury descriptions and the names of hurt colleagues are among the most
+// sensitive data a workplace holds (OSHA even has a formal "privacy concern case"
+// category that keeps names off the 300 log). A line worker must not be able to
+// pull the full incident list, the corrective-action queue, or everyone else's
+// training record — not from the UI, and not by hitting the API directly.
+const CAN_SEE_ALL_INCIDENTS  = ["admin", "safety", "site_manager"];
+const CAN_SEE_CAS            = ["admin", "safety", "site_manager"];
+// A trainer's whole job is tracking who still owes training, so they keep the
+// org-wide compliance view. Everyone below that sees only their own row.
+const CAN_SEE_ALL_COMPLIANCE = ["admin", "safety", "site_manager", "trainer"];
 function requireOperator(req, res, next) {
   return req.auth.op ? next() : res.status(403).json({ error: "Operator access only" });
 }
@@ -396,12 +416,24 @@ function refInsert(prefix, table, tenantId, insertFn) {
     }
   }
 }
-app.get("/api/incidents", auth, (req, res) =>
-  res.json(db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
-                       FROM incidents i
-                       LEFT JOIN sites s ON s.id = i.site_id
-                       LEFT JOIN users u ON u.id = i.reported_by
-                       WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)));
+app.get("/api/incidents", auth, (req, res) => {
+  const seesAll = CAN_SEE_ALL_INCIDENTS.includes(req.auth.role);
+  // Staff/trainer get only the reports they filed themselves — enough for the
+  // "my open reports" count on their dashboard, and nothing about anyone else.
+  const rows = seesAll
+    ? db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
+                  FROM incidents i
+                  LEFT JOIN sites s ON s.id = i.site_id
+                  LEFT JOIN users u ON u.id = i.reported_by
+                  WHERE i.tenant_id = ? ORDER BY i.created_at DESC`).all(req.auth.tenant)
+    : db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
+                  FROM incidents i
+                  LEFT JOIN sites s ON s.id = i.site_id
+                  LEFT JOIN users u ON u.id = i.reported_by
+                  WHERE i.tenant_id = ? AND i.reported_by = ? ORDER BY i.created_at DESC`)
+        .all(req.auth.tenant, req.auth.uid);
+  res.json(rows);
+});
 const INCIDENT_TYPES = ["injury", "near_miss", "property", "spill", "fire", "security"];
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
 
@@ -455,6 +487,14 @@ app.post("/api/incidents", auth, (req, res) => {
 });
 app.put("/api/incidents/:id/response", auth, (req, res) => {
   const progress = Array.isArray(req.body?.progress) ? req.body.progress : [];
+  // Responders can work any incident; everyone else may only tick the checklist
+  // on a report they filed themselves (that is the post-submit response screen).
+  const inc = db.prepare("SELECT reported_by FROM incidents WHERE id = ? AND tenant_id = ?")
+    .get(req.params.id, req.auth.tenant);
+  if (!inc) return res.status(404).json({ error: "Incident not found" });
+  const isResponder = CAN_SEE_ALL_INCIDENTS.includes(req.auth.role);
+  if (!isResponder && inc.reported_by !== req.auth.uid)
+    return res.status(403).json({ error: "Insufficient permissions" });
   db.prepare("UPDATE incidents SET response_progress = ?, updated_at = datetime('now') WHERE id = ? AND tenant_id = ?")
     .run(JSON.stringify(progress), req.params.id, req.auth.tenant);
   res.json({ ok: true });
@@ -483,13 +523,17 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
 });
 
 // ── Corrective actions ───────────────────────────────────────────────────────
-app.get("/api/cas", auth, (req, res) =>
+app.get("/api/cas", auth, (req, res) => {
+  // Corrective actions reference incidents (and therefore injuries), so base
+  // staff see none at all.
+  if (!CAN_SEE_CAS.includes(req.auth.role)) return res.json([]);
   res.json(db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name
                        FROM corrective_actions c
                        LEFT JOIN incidents i ON i.id = c.incident_id
                        LEFT JOIN users u ON u.id = c.assignee_id
-                       WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant)));
-app.post("/api/cas", auth, (req, res) => {
+                       WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant));
+});
+app.post("/api/cas", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
   const { incidentId, findingId, title, priority, assigneeId, dueDate } = req.body || {};
   if (!title) return res.status(400).json({ error: "title required" });
   const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, incident_id, finding_id, title, priority, assignee_id, due_date)
@@ -497,7 +541,7 @@ app.post("/api/cas", auth, (req, res) => {
     .run(req.auth.tenant, incidentId ?? null, findingId ?? null, title, priority ?? "medium", assigneeId ?? null, dueDate ?? null);
   res.json({ id: r.lastInsertRowid });
 });
-app.put("/api/cas/:id", auth, (req, res) => {
+app.put("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
   const { status, verified } = req.body || {};
   db.prepare(`UPDATE corrective_actions SET status = COALESCE(?, status),
               verified_by = CASE WHEN ? THEN ? ELSE verified_by END,
@@ -686,7 +730,7 @@ app.post("/api/triage", auth, (req, res) => {
 });
 
 // ── Dashboard summary (per-site rollup for admin dashboards) ─────────────────
-app.get("/api/dashboard/summary", auth, (req, res) => {
+app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
   const t = req.auth.tenant;
   const sites = db.prepare("SELECT * FROM sites WHERE tenant_id = ? AND active = 1").all(t);
   const summary = sites.map(site => {
@@ -904,7 +948,7 @@ app.put("/api/labor-hours", auth, requireRole(...ADMINISH, "site_manager"), (req
   res.json({ ok: true });
 });
 
-app.get("/api/reports/incident-summary", auth, (req, res) => {
+app.get("/api/reports/incident-summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
   const t = req.auth.tenant;
   const rows = db.prepare(`SELECT strftime('%Y-%m', COALESCE(occurred_at, created_at)) AS ym,
                                   site_id, type, osha_classification, COUNT(*) n
@@ -1037,7 +1081,10 @@ function staffCompliance(t, siteId = null) {
 }
 
 app.get("/api/dashboard/compliance", auth, (req, res) => {
-  res.json(staffCompliance(req.auth.tenant));
+  const all = staffCompliance(req.auth.tenant);
+  if (CAN_SEE_ALL_COMPLIANCE.includes(req.auth.role)) return res.json(all);
+  // Everyone else sees only their own training record.
+  res.json(all.filter(u => u.id === req.auth.uid));
 });
 
 const DIST = path.join(__dirname, "..", "dist");
