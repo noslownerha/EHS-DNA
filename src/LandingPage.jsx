@@ -16,7 +16,12 @@ export default function LandingPage({ onEnter }) {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError]       = useState(() => {
-    try { const m = sessionStorage.getItem("ehs_suspended_msg"); if (m) { sessionStorage.removeItem("ehs_suspended_msg"); return m; } } catch {}
+    try {
+      const m = sessionStorage.getItem("ehs_suspended_msg");
+      if (m) { sessionStorage.removeItem("ehs_suspended_msg"); return m; }
+      const e = sessionStorage.getItem("ehs_expired_msg");
+      if (e) { sessionStorage.removeItem("ehs_expired_msg"); return e; }
+    } catch {}
     return null;
   });
   const [busy, setBusy]         = useState(false);

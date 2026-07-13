@@ -15,8 +15,17 @@ async function req(path, { method = "GET", body } = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`/api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
-  if (res.status === 401) { setToken(null); }
   const data = await res.json().catch(() => ({}));
+  // Expired/invalid session: drop the token and return to the login screen. Without
+  // the reload the user keeps staring at the app shell while every action silently
+  // fails. Any in-progress incident draft lives in sessionStorage and survives this.
+  if (res.status === 401 && token) {
+    setToken(null);
+    try { sessionStorage.setItem("ehs_expired_msg", "Your session expired — please sign in again."); } catch {}
+    if (typeof window !== "undefined") window.location.reload();
+  } else if (res.status === 401) {
+    setToken(null);
+  }
   // Mid-session tenant suspension: drop the token and send them to the login screen,
   // where the same reason-specific message is shown. Operators are never flagged.
   if (res.status === 403 && data.suspended) {
