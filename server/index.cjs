@@ -412,6 +412,14 @@ app.post("/api/incidents", auth, (req, res) => {
     return res.status(400).json({ error: `Invalid type. Must be one of: ${INCIDENT_TYPES.join(", ")}` });
   if (severity && !SEVERITIES.includes(severity))
     return res.status(400).json({ error: `Invalid severity. Must be one of: ${SEVERITIES.join(", ")}` });
+  // Sane field caps — generous for real use, but stop a pasted novel from bloating
+  // the DB or breaking list/report rendering.
+  if (description && String(description).length > 10000)
+    return res.status(400).json({ error: "Description is too long (10,000 character limit)" });
+  if (locationDetail && String(locationDetail).length > 500)
+    return res.status(400).json({ error: "Location is too long (500 character limit)" });
+  if (Array.isArray(photos) && photos.length > 10)
+    return res.status(400).json({ error: "Too many photos (10 maximum)" });
   // A site id must belong to THIS tenant — never trust a client-supplied FK.
   if (siteId) {
     const owns = db.prepare("SELECT 1 FROM sites WHERE id = ? AND tenant_id = ?").get(siteId, req.auth.tenant);
@@ -711,7 +719,7 @@ function notify(tenantId, events, { title, body, linkKind, linkRef }) {
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref, emailed)
                              VALUES (?, ?, ?, ?, ?, ?, ?)`);
     recipients.forEach(uid => stmt.run(tenantId, uid, title, body ?? null, linkKind ?? null, linkRef ?? null, wantsEmail ? 1 : 0));
-    if (wantsEmail && process.env.EHS_EMAIL_WEBHOOK) {
+    if (wantsEmail && recipients.size && process.env.EHS_EMAIL_WEBHOOK) {
       const emails = db.prepare(`SELECT email FROM users WHERE id IN (${[...recipients].map(() => "?").join(",")})`)
         .all(...recipients).map(u => u.email);
       fetch(process.env.EHS_EMAIL_WEBHOOK, {
@@ -1036,6 +1044,9 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", req.method, req.path, "—", err?.message);
   const msg = String(err?.message || "");
+  // Malformed JSON body from a client → 400, not a 500 (it is not our fault).
+  if (err?.type === "entity.parse.failed" || (err instanceof SyntaxError && "body" in err))
+    return res.status(400).json({ error: "Malformed request body" });
   // Turn common DB constraint violations into honest 4xx instead of a 500.
   if (/FOREIGN KEY constraint failed/i.test(msg))
     return res.status(400).json({ error: "Referenced record does not exist or is not accessible" });

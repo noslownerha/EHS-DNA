@@ -403,6 +403,17 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const burstRefs = burst.map(b => b.ref);
   ok("concurrent submits get unique refs", new Set(burstRefs).size === burstRefs.length);
 
+  // ── Input hardening: bad bodies and oversized fields must 4xx, not 500 ──
+  const malformed = await fetch(`${B}/api/incidents`, { method: "POST",
+    headers: H(), body: '{"type":' });
+  ok("malformed JSON body -> 400", malformed.status === 400);
+  const longDesc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", description: "x".repeat(20000) }) });
+  ok("oversized description rejected", longDesc.status === 400);
+  const tooManyPhotos = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", photos: Array.from({ length: 20 }, () => ({ dataUrl: "x" })) }) });
+  ok("too many photos rejected", tooManyPhotos.status === 400);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
