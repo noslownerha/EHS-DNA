@@ -391,6 +391,18 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const noRouteCt = noRoute.headers.get("content-type") || "";
   ok("unknown API route returns JSON 404", noRoute.status === 404 && noRouteCt.includes("json"));
 
+  // ── Reference numbers: per-tenant sequence, no reuse, collision-safe ──
+  // (nextRef used to COUNT(*) with a hardcoded tenant 1, so a new customer's first
+  //  incident inherited WhistlePig's count — e.g. INC-2026-0003 instead of 0001.)
+  ok("new tenant ref sequence starts at 0001", /-0001$/.test(t2inc.ref));
+
+  // Concurrent submits must never share a ref (UNIQUE index + retry)
+  const burst = await Promise.all(Array.from({ length: 8 }, () =>
+    fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+      body: JSON.stringify({ type: "near_miss" }) }).then(j)));
+  const burstRefs = burst.map(b => b.ref);
+  ok("concurrent submits get unique refs", new Set(burstRefs).size === burstRefs.length);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

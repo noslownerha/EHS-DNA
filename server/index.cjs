@@ -367,11 +367,34 @@ app.put("/api/users/:id", auth, requireRole(...ADMINISH), (req, res) => {
 });
 
 // ── Incidents ────────────────────────────────────────────────────────────────
-function nextRef(prefix, table) {
+// Generate the next reference for a tenant, e.g. INC-2026-0007.
+// Uses MAX(existing sequence)+1 rather than COUNT(*) so numbers are never reused
+// if a row is ever removed, and is scoped to the CALLING tenant so each customer
+// gets its own 0001-up sequence. Callers wrap the insert in refInsert() below to
+// survive the (rare) race where two submits pick the same number concurrently.
+function nextRef(prefix, table, tenantId) {
   const year = new Date().getFullYear();
-  const row = db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE tenant_id = ? AND ref LIKE ?`)
-    .get(1, `${prefix}-${year}-%`);
-  return `${prefix}-${year}-${String(row.n + 1).padStart(4, "0")}`;
+  const like = `${prefix}-${year}-%`;
+  const row = db.prepare(
+    `SELECT MAX(CAST(substr(ref, ?) AS INTEGER)) AS mx
+       FROM ${table} WHERE tenant_id = ? AND ref LIKE ?`
+  ).get(`${prefix}-${year}-`.length + 1, tenantId, like);
+  return `${prefix}-${year}-${String((row?.mx ?? 0) + 1).padStart(4, "0")}`;
+}
+
+// Insert a row that carries a generated ref, retrying if a concurrent request
+// grabbed the same number first (UNIQUE(tenant_id, ref) makes that a hard error
+// rather than a silent duplicate).
+function refInsert(prefix, table, tenantId, insertFn) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const ref = nextRef(prefix, table, tenantId);
+    try {
+      return { ref, result: insertFn(ref) };
+    } catch (e) {
+      if (/UNIQUE constraint failed/i.test(String(e?.message)) && attempt < 4) continue;
+      throw e;
+    }
+  }
 }
 app.get("/api/incidents", auth, (req, res) =>
   res.json(db.prepare(`SELECT i.*, s.name AS site_name, u.name AS reporter_name
@@ -394,12 +417,12 @@ app.post("/api/incidents", auth, (req, res) => {
     const owns = db.prepare("SELECT 1 FROM sites WHERE id = ? AND tenant_id = ?").get(siteId, req.auth.tenant);
     if (!owns) return res.status(400).json({ error: "Unknown site for this account" });
   }
-  const ref = nextRef("INC", "incidents");
-  const r = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(req.auth.tenant, ref, type, severity ?? null, siteId ?? null, description ?? null,
-         locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
-         req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null);
+  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const { ref, result: r } = refInsert("INC", "incidents", req.auth.tenant, (newRef) =>
+    stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
+             locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
+             req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null));
   // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
   const events = ["incident_any"];
   if (type === "injury") events.push("incident_injury");
@@ -636,11 +659,11 @@ app.post("/api/completions", auth, (req, res) => {
 app.get("/api/triage", auth, listAll("triage_records", "created_at DESC"));
 app.post("/api/triage", auth, (req, res) => {
   const { siteId, outcome, stepsCompleted, notified, linkedIncidentId } = req.body || {};
-  const ref = nextRef("TRG", "triage_records");
-  const r = db.prepare(`INSERT INTO triage_records (tenant_id, ref, responder_id, site_id, outcome, steps_completed, notified, linked_incident_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(req.auth.tenant, ref, req.auth.uid, siteId ?? null, outcome ?? null,
-         JSON.stringify(stepsCompleted ?? []), JSON.stringify(notified ?? []), linkedIncidentId ?? null);
+  const tstmt = db.prepare(`INSERT INTO triage_records (tenant_id, ref, responder_id, site_id, outcome, steps_completed, notified, linked_incident_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+  const { ref, result: r } = refInsert("TRG", "triage_records", req.auth.tenant, (newRef) =>
+    tstmt.run(req.auth.tenant, newRef, req.auth.uid, siteId ?? null, outcome ?? null,
+              JSON.stringify(stepsCompleted ?? []), JSON.stringify(notified ?? []), linkedIncidentId ?? null));
   res.json({ id: r.lastInsertRowid, ref });
 });
 

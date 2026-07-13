@@ -236,6 +236,23 @@ try { db.exec("ALTER TABLE tenants ADD COLUMN suspension_reason TEXT"); } catch 
 try { db.exec("ALTER TABLE training_completions ADD COLUMN passed INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN department TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN osha_classification TEXT"); } catch {}
+
+// Reference numbers must be unique per tenant. These indexes turn a concurrent
+// double-submit into a catchable UNIQUE error (which refInsert() retries) rather
+// than two records silently sharing a ref. Wrapped in try/catch: if a database
+// somehow already contains a duplicate, the index creation fails harmlessly and
+// the app still starts — we log it instead of refusing to boot on live data.
+try {
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_incidents_tenant_ref ON incidents(tenant_id, ref)");
+} catch (e) {
+  console.error("WARN: could not create unique index on incidents(tenant_id, ref) —",
+                "existing duplicate refs? Refs will still be generated, but uniqueness is not enforced.", e.message);
+}
+try {
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_triage_tenant_ref ON triage_records(tenant_id, ref)");
+} catch (e) {
+  console.error("WARN: could not create unique index on triage_records(tenant_id, ref) —", e.message);
+}
 try { db.exec("ALTER TABLE incidents ADD COLUMN response_progress TEXT DEFAULT '[]'"); } catch {}
 try { db.exec("ALTER TABLE sites ADD COLUMN floorplan TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN floor_pos TEXT"); } catch {}
