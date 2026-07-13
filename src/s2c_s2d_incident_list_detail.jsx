@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
+import AuthImg from "./AuthImg.jsx";
 
 const C = { ...COLORS };
 
@@ -783,7 +784,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               <div style={{ display: "flex", gap: 10 }}>
                 {Array.isArray(incident.photos)
                   ? incident.photos.map((ph, i) => (
-                      <img key={i} src={ph.dataUrl} alt={ph.name ?? `Photo ${i + 1}`} style={{
+                      <AuthImg key={i} photo={ph} alt={ph.name ?? `Photo ${i + 1}`} style={{
                         width: 100, height: 80, borderRadius: 8, objectFit: "cover", border: "2px solid #E2EBE6",
                       }} />
                     ))

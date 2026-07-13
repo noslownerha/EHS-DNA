@@ -7,6 +7,8 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 const db = require("./db.cjs");
 
 const app = express();
@@ -181,6 +183,103 @@ function siteScope(req) {
   }
   return null;   // staff/trainer are scoped by ownership elsewhere, not by site
 }
+
+// ── Photo storage ────────────────────────────────────────────────────────────
+// Bytes on disk, refs in the DB. Keeps the SQLite file (and the nightly backup
+// that lands in immutable 365-day B2 retention) small, and stops every query
+// from dragging megabytes of base64 around.
+const PHOTO_DIR = process.env.EHS_PHOTO_DIR
+  || path.join(path.dirname(process.env.EHS_DB_PATH || path.join(__dirname, "..", "data", "ehs.db")), "photos");
+fs.mkdirSync(PHOTO_DIR, { recursive: true });
+
+const PHOTO_MIME_EXT = {
+  "image/jpeg": "jpg",
+  "image/png":  "png",
+  "image/webp": "webp",
+};
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;   // a 1280px JPEG is ~200 KB; this is generous
+
+function photoPath(tenantId, id, mime) {
+  const ext = PHOTO_MIME_EXT[mime] || "bin";
+  return path.join(PHOTO_DIR, String(tenantId), `${id}.${ext}`);
+}
+
+/**
+ * Persist one base64 data URL to disk and record it.
+ * Returns the stored ref ({ id, name, gps }) or null if the payload is unusable.
+ */
+function storePhoto(tenantId, ownerType, ownerId, photo) {
+  const dataUrl = photo?.dataUrl;
+  if (typeof dataUrl !== "string") return null;
+  const m = /^data:([\w/+.-]+);base64,(.+)$/s.exec(dataUrl);
+  if (!m) return null;
+  const mime = m[1].toLowerCase();
+  if (!PHOTO_MIME_EXT[mime]) return null;          // only real image types
+  let buf;
+  try { buf = Buffer.from(m[2], "base64"); } catch { return null; }
+  if (!buf.length || buf.length > MAX_PHOTO_BYTES) return null;
+
+  const id = crypto.randomUUID();
+  const dest = photoPath(tenantId, id, mime);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, buf);
+  db.prepare(`INSERT INTO photo_files (id, tenant_id, owner_type, owner_id, mime, bytes, name, gps)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(id, tenantId, ownerType, ownerId ?? null, mime, buf.length,
+         photo.name ? String(photo.name).slice(0, 200) : null, photo.gps ? 1 : 0);
+  return { id, name: photo.name ?? null, gps: !!photo.gps };
+}
+
+/** Store an array of incoming photos, returning the refs to persist on the row. */
+function storePhotos(tenantId, ownerType, ownerId, photos) {
+  if (!Array.isArray(photos)) return [];
+  return photos.map(p => storePhoto(tenantId, ownerType, ownerId, p)).filter(Boolean);
+}
+
+/**
+ * One-time migration: pull any base64 photos still embedded in incident/finding
+ * rows out to disk. Runs at boot, is idempotent (rows already holding refs have no
+ * dataUrl and are skipped), and never destroys a blob it could not write out.
+ */
+function migrateEmbeddedPhotos() {
+  const tables = [
+    { table: "incidents", ownerType: "incident" },
+    { table: "findings",  ownerType: "finding"  },
+  ];
+  let moved = 0, rows = 0;
+  for (const { table, ownerType } of tables) {
+    let candidates;
+    try {
+      candidates = db.prepare(
+        `SELECT id, tenant_id, photos FROM ${table} WHERE photos LIKE '%dataUrl%' OR photos LIKE '%data:image%'`
+      ).all();
+    } catch { continue; }
+    for (const row of candidates) {
+      let parsed;
+      try { parsed = JSON.parse(row.photos || "[]"); } catch { continue; }
+      if (!Array.isArray(parsed) || !parsed.length) continue;
+      const refs = [];
+      let converted = false;
+      for (const item of parsed) {
+        // Findings historically stored bare data-URL strings; incidents stored objects.
+        const photo = typeof item === "string" ? { dataUrl: item } : item;
+        if (photo && typeof photo.dataUrl === "string" && photo.dataUrl.startsWith("data:")) {
+          const ref = storePhoto(row.tenant_id, ownerType, row.id, photo);
+          if (ref) { refs.push(ref); converted = true; moved++; }
+          else refs.push(photo);          // unwritable: keep the original rather than lose it
+        } else {
+          refs.push(item);                // already a ref
+        }
+      }
+      if (converted) {
+        db.prepare(`UPDATE ${table} SET photos = ? WHERE id = ?`).run(JSON.stringify(refs), row.id);
+        rows++;
+      }
+    }
+  }
+  if (moved) console.log(`Photo migration: moved ${moved} embedded image(s) out of ${rows} row(s) to ${PHOTO_DIR}`);
+}
+migrateEmbeddedPhotos();
 function requireOperator(req, res, next) {
   return req.auth.op ? next() : res.status(403).json({ error: "Operator access only" });
 }
@@ -479,6 +578,40 @@ app.get("/api/incidents", auth, (req, res) => {
   res.json(rows);
 });
 
+// Serve one photo. Authorization mirrors the parent record exactly — a worker must
+// not be able to pull a photo from a colleague's injury report by guessing its id,
+// and a site manager must not reach another site's photos.
+app.get("/api/photos/:id", auth, (req, res) => {
+  const p = db.prepare("SELECT * FROM photo_files WHERE id = ? AND tenant_id = ?")
+    .get(String(req.params.id), req.auth.tenant);
+  if (!p) return res.status(404).json({ error: "Not found" });
+
+  if (p.owner_type === "incident" && p.owner_id) {
+    const inc = db.prepare("SELECT reported_by, site_id FROM incidents WHERE id = ? AND tenant_id = ?")
+      .get(p.owner_id, req.auth.tenant);
+    if (!inc) return res.status(404).json({ error: "Not found" });
+    if (!CAN_SEE_ALL_INCIDENTS.includes(req.auth.role) && inc.reported_by !== req.auth.uid)
+      return res.status(403).json({ error: "Insufficient permissions" });
+    const scope = siteScope(req);
+    if (scope !== null && inc.site_id !== scope)
+      return res.status(403).json({ error: "Insufficient permissions" });
+  } else if (p.owner_type === "finding" && p.owner_id) {
+    const f = db.prepare("SELECT site_id FROM findings WHERE id = ? AND tenant_id = ?")
+      .get(p.owner_id, req.auth.tenant);
+    if (!f) return res.status(404).json({ error: "Not found" });
+    const scope = siteScope(req);
+    if (scope !== null && f.site_id !== scope)
+      return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
+  const file = photoPath(p.tenant_id, p.id, p.mime);
+  if (!fs.existsSync(file)) return res.status(404).json({ error: "Image missing" });
+  res.set("Content-Type", p.mime);
+  // Immutable content addressed by uuid — safe to cache hard, but keep it private.
+  res.set("Cache-Control", "private, max-age=31536000, immutable");
+  res.sendFile(file);
+});
+
 // Full record for ONE incident, including photo data. Same read scoping as the
 // list: staff may only open a report they filed themselves.
 app.get("/api/incidents/:id", auth, (req, res) => {
@@ -533,11 +666,18 @@ app.post("/api/incidents", auth, (req, res) => {
   }
   const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  // Insert with an empty photo list, then write the image bytes to disk and store
+  // only the refs — the row must exist before a photo can be attached to it.
   const { ref, result: r } = refInsert("INC", "incidents", req.auth.tenant, (newRef) =>
     stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
-             locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
+             locationDetail ?? null, JSON.stringify(involved ?? []), "[]",
              req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null,
              clientUuid ? String(clientUuid) : null));
+  const photoRefs = storePhotos(req.auth.tenant, "incident", r.lastInsertRowid, photos);
+  if (photoRefs.length) {
+    db.prepare("UPDATE incidents SET photos = ? WHERE id = ? AND tenant_id = ?")
+      .run(JSON.stringify(photoRefs), r.lastInsertRowid, req.auth.tenant);
+  }
   // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
   const events = ["incident_any"];
   if (type === "injury") events.push("incident_injury");

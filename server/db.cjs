@@ -240,6 +240,24 @@ try { db.exec("ALTER TABLE incidents ADD COLUMN osha_classification TEXT"); } ca
 // retry after a flaky reconnect returns the existing incident instead of filing
 // a duplicate. Unique per tenant; NULLs are allowed and don't collide in SQLite.
 try { db.exec("ALTER TABLE incidents ADD COLUMN client_uuid TEXT"); } catch {}
+
+// ── Photo storage ────────────────────────────────────────────────────────────
+// Photos used to be stored as base64 INSIDE the incidents/findings rows. A single
+// photo-heavy incident is ~4 MB, so the DB — and the whole-file nightly backup that
+// gets uploaded to immutable 365-day B2 retention — grew without bound, and every
+// query dragged the blobs around. Bytes now live on disk; the DB keeps only refs.
+db.exec(`CREATE TABLE IF NOT EXISTS photo_files (
+  id TEXT PRIMARY KEY,                       -- uuid, also the filename
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  owner_type TEXT NOT NULL,                  -- 'incident' | 'finding'
+  owner_id INTEGER,                          -- set once the parent row exists
+  mime TEXT NOT NULL,
+  bytes INTEGER NOT NULL,
+  name TEXT,
+  gps INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_photo_owner ON photo_files(tenant_id, owner_type, owner_id)"); } catch {}
 try {
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_incidents_client_uuid ON incidents(tenant_id, client_uuid) WHERE client_uuid IS NOT NULL");
 } catch (e) {

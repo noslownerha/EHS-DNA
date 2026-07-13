@@ -537,6 +537,35 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
      adminIncs.some(i => (i.description || "").includes("SITE1-ONLY-INJURY")) &&
      adminIncs.some(i => (i.description || "").includes("SITE2-ONLY-INJURY")));
 
+  // ── Photos: bytes on disk, refs in the DB, authorization mirrors the parent ──
+  const imgB64 = Buffer.from("X".repeat(20000)).toString("base64");
+  const photoInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", siteId: 2, description: "photo storage test",
+      photos: [{ dataUrl: `data:image/jpeg;base64,${imgB64}`, name: "w.jpg", gps: false }] }) }).then(j);
+  const photoDetail = await fetch(`${B}/api/incidents/${photoInc.id}`, { headers: H() }).then(j);
+  const stored = JSON.parse(photoDetail.photos || "[]");
+  ok("photo stored as a ref, not base64",
+     stored.length === 1 && !!stored[0].id && stored[0].dataUrl === undefined);
+
+  const imgRes = await fetch(`${B}/api/photos/${stored[0].id}`, { headers: H() });
+  const imgBuf = await imgRes.arrayBuffer();
+  ok("photo serves real bytes", imgRes.status === 200 && imgBuf.byteLength === 20000);
+
+  const noAuthImg = await fetch(`${B}/api/photos/${stored[0].id}`);
+  ok("photo requires auth", noAuthImg.status === 401);
+
+  const staffImg = await fetch(`${B}/api/photos/${stored[0].id}`, { headers: pH });
+  ok("staff cannot fetch a colleague's injury photo", staffImg.status === 403);
+
+  const mgrImg = await fetch(`${B}/api/photos/${stored[0].id}`, { headers: mH });
+  ok("site manager cannot fetch another site's photo", mgrImg.status === 403);
+
+  const rejectedType = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury",
+      photos: [{ dataUrl: "data:text/html;base64,PHNjcmlwdD4=", name: "x.html" }] }) }).then(j);
+  const rejDetail = await fetch(`${B}/api/incidents/${rejectedType.id}`, { headers: H() }).then(j);
+  ok("non-image upload rejected", JSON.parse(rejDetail.photos || "[]").length === 0);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
