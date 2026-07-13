@@ -236,6 +236,15 @@ try { db.exec("ALTER TABLE tenants ADD COLUMN suspension_reason TEXT"); } catch 
 try { db.exec("ALTER TABLE training_completions ADD COLUMN passed INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN department TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN osha_classification TEXT"); } catch {}
+// Idempotency for the offline queue: the client mints a UUID per report, so a
+// retry after a flaky reconnect returns the existing incident instead of filing
+// a duplicate. Unique per tenant; NULLs are allowed and don't collide in SQLite.
+try { db.exec("ALTER TABLE incidents ADD COLUMN client_uuid TEXT"); } catch {}
+try {
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_incidents_client_uuid ON incidents(tenant_id, client_uuid) WHERE client_uuid IS NOT NULL");
+} catch (e) {
+  console.error("WARN: could not create unique index on incidents(client_uuid) —", e.message);
+}
 
 // Reference numbers must be unique per tenant. These indexes turn a concurrent
 // double-submit into a catchable UNIQUE error (which refInsert() retries) rather

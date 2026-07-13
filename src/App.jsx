@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api, getToken } from "./api.js";
+import { startAutoFlush } from "./offlineQueue.js";
 import { ROLE_PERMS } from "./constants.js";
 import LandingPage                   from "./LandingPage.jsx";
 import AppShell, { EHSHeader, AccountContext } from "./AppShell.jsx";
@@ -74,6 +75,10 @@ function App() {
   const [activeTab,   setActiveTab]   = useState("home");
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
+
+  // Drain any incident reports queued while offline (dead zones on the plant floor).
+  // Safe to run always: it no-ops when the queue is empty or the device is offline.
+  useEffect(() => startAutoFlush(api.createIncident), []);
 
   // Resume session if a valid token exists
   useEffect(() => {

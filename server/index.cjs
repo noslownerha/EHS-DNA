@@ -406,7 +406,16 @@ const INCIDENT_TYPES = ["injury", "near_miss", "property", "spill", "fire", "sec
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
 
 app.post("/api/incidents", auth, (req, res) => {
-  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department } = req.body || {};
+  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid } = req.body || {};
+
+  // Idempotency: the offline queue retries on reconnect. If this exact report was
+  // already filed, return the original instead of creating a duplicate incident.
+  if (clientUuid) {
+    const existing = db.prepare("SELECT id, ref FROM incidents WHERE tenant_id = ? AND client_uuid = ?")
+      .get(req.auth.tenant, String(clientUuid));
+    if (existing) return res.json({ id: existing.id, ref: existing.ref, duplicate: true, notified: null });
+  }
+
   if (!type) return res.status(400).json({ error: "type required" });
   if (!INCIDENT_TYPES.includes(type))
     return res.status(400).json({ error: `Invalid type. Must be one of: ${INCIDENT_TYPES.join(", ")}` });
@@ -425,12 +434,13 @@ app.post("/api/incidents", auth, (req, res) => {
     const owns = db.prepare("SELECT 1 FROM sites WHERE id = ? AND tenant_id = ?").get(siteId, req.auth.tenant);
     if (!owns) return res.status(400).json({ error: "Unknown site for this account" });
   }
-  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const { ref, result: r } = refInsert("INC", "incidents", req.auth.tenant, (newRef) =>
     stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
              locationDetail ?? null, JSON.stringify(involved ?? []), JSON.stringify(photos ?? []),
-             req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null));
+             req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null,
+             clientUuid ? String(clientUuid) : null));
   // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
   const events = ["incident_any"];
   if (type === "injury") events.push("incident_injury");

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { BRAND, ROLE_PERMS, TAB_CONFIG } from "./constants.js";
 import { api } from "./api.js";
+import { onQueueChange, queueCount } from "./offlineQueue.js";
 
 // Optional account context — when provided (by App), EHSHeader shows an account menu
 export const AccountContext = createContext(null);
@@ -267,24 +268,35 @@ export default function AppShell({ user, children, activeTab, onTab }) {
   // Plant floors and warehouses have dead zones. Tell people plainly when they
   // are offline, so a failed submit reads as "no signal" rather than "app broken".
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  const [pending, setPending] = useState(0);
   useEffect(() => {
     const up = () => setOnline(true);
     const down = () => setOnline(false);
     window.addEventListener("online", up);
     window.addEventListener("offline", down);
-    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
+    queueCount().then(setPending);
+    const unsub = onQueueChange(setPending);
+    return () => {
+      window.removeEventListener("online", up);
+      window.removeEventListener("offline", down);
+      unsub();
+    };
   }, []);
 
   return (
     <RoleContext.Provider value={{ user, perms }}>
-      {!online && (
+      {(!online || pending > 0) && (
         <div className="no-print" style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 500,
-          background: "#8A5A00", color: "#fff", textAlign: "center",
+          background: online ? "#2A4435" : "#8A5A00", color: "#fff", textAlign: "center",
           padding: "6px 12px", fontSize: ".78rem", fontWeight: 600,
           fontFamily: "'DM Sans', sans-serif",
         }}>
-          ⚠ No connection — your report is saved on this device. Reconnect to submit.
+          {!online
+            ? (pending > 0
+                ? `⚠ Offline — ${pending} report${pending === 1 ? "" : "s"} saved on this device, will send automatically`
+                : "⚠ Offline — anything you report is saved and sent when you reconnect")
+            : `📤 Sending ${pending} saved report${pending === 1 ? "" : "s"}…`}
         </div>
       )}
       <style>{`

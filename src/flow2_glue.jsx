@@ -18,6 +18,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from "react";
+import { enqueue, flushQueue, uuid as newUuid } from "./offlineQueue.js";
 import { BRAND } from "./constants.js";
 import { api } from "./api.js";
 
@@ -136,6 +137,11 @@ function reducer(state, action) {
             incidents: state.incidents.map(i => i.id === state.submitted.id ? { ...i, id: action.ref } : i) }
         : state;
 
+    case "SAVE_QUEUED":
+      return state.submitted
+        ? { ...state, submitted: { ...state.submitted, queued: true, saveFailed: false } }
+        : state;
+
     case "SAVE_FAILED":
       return state.submitted ? { ...state, submitted: { ...state.submitted, saveFailed: true, saveError: action.error ?? null } } : state;
 
@@ -221,16 +227,42 @@ export function IncidentProvider({
   const savePhotos = useCallback(payload => dispatch({ type: "SAVE_PHOTOS", payload }), []);
   const submit     = useCallback(() => {
     dispatch({ type: "SUBMIT" });
-    // Persist to server; UI already advanced optimistically
     const d = stateRef.current.draft;
     const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === d.site);
-    api.createIncident({
+    const payload = {
+      clientUuid: newUuid(),   // idempotency key — a retry can never double-file this
       type: d.type, severity: d.severity, siteId: siteRec?.id ?? null,
       description: d.description, locationDetail: d.location, floorPos: d.floorPos ?? null,
       involved: d.involved ?? [], occurredAt: d.datetime ?? null, department: d.dept ?? null,
       photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
-    }).then(({ ref, id, notified }) => dispatch({ type: "SERVER_REF", ref, dbId: id, notified }))
-      .catch(err => { console.error("Incident save failed:", err.message); dispatch({ type: "SAVE_FAILED", error: `${err.status ?? ""} ${err.message}`.trim() }); });
+    };
+
+    // Already offline? Don't even try — queue it and tell the user it's safe.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      enqueue(payload)
+        .then(() => dispatch({ type: "SAVE_QUEUED" }))
+        .catch(err => dispatch({ type: "SAVE_FAILED", error: err.message }));
+      return;
+    }
+
+    api.createIncident(payload)
+      .then(({ ref, id, notified }) => {
+        dispatch({ type: "SERVER_REF", ref, dbId: id, notified });
+        // Opportunistically drain anything queued from an earlier dead zone.
+        flushQueue(api.createIncident).catch(() => {});
+      })
+      .catch(err => {
+        // A transport failure (no status) means the network dropped mid-submit —
+        // queue it rather than losing the report. A 4xx is a real rejection.
+        if (!err.status) {
+          enqueue(payload)
+            .then(() => dispatch({ type: "SAVE_QUEUED" }))
+            .catch(() => dispatch({ type: "SAVE_FAILED", error: err.message }));
+        } else {
+          console.error("Incident save failed:", err.message);
+          dispatch({ type: "SAVE_FAILED", error: `${err.status ?? ""} ${err.message}`.trim() });
+        }
+      });
   }, []);
   const viewIncident = useCallback(id   => dispatch({ type: "VIEW_INCIDENT", id }), []);
   const resetDraft = useCallback(()     => dispatch({ type: "RESET_DRAFT" }), []);
@@ -360,7 +392,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           onViewIncident={() => viewIncident(submitted?.id)}
           userRole={user?.role ?? "staff"}
           incidentDbId={submitted?.dbId ?? null}
-          saveState={submitted?.dbId ? "saved" : submitted?.saveFailed ? "failed" : "saving"}
+          saveState={submitted?.dbId ? "saved" : submitted?.queued ? "queued" : submitted?.saveFailed ? "failed" : "saving"}
           saveError={submitted?.saveError ?? null}
         />
       );

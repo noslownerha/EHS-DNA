@@ -233,9 +233,14 @@ export default function S2bConfirmationResponse({
           boxShadow: "0 1px 8px rgba(15,31,23,.06)",
           padding: "20px 18px", marginBottom: 14, textAlign: "center",
         }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>{saveState === "failed" ? "⚠️" : saveState === "saving" ? "⏳" : "✅"}</div>
+          <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>
+            {saveState === "failed" ? "⚠️" : saveState === "saving" ? "⏳" : saveState === "queued" ? "📤" : "✅"}
+          </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: saveState === "failed" ? "#B3261E" : C.pine, marginBottom: 6 }}>
-            {saveState === "failed" ? "Report not saved" : saveState === "saving" ? "Saving report…" : "Incident reported"}
+            {saveState === "failed" ? "Report not saved"
+              : saveState === "saving" ? "Saving report…"
+              : saveState === "queued" ? "Saved — will send automatically"
+              : "Incident reported"}
           </h1>
           <div style={{
             fontFamily: "'DM Mono', monospace", fontSize: ".85rem",
@@ -252,6 +257,11 @@ export default function S2bConfirmationResponse({
                 <span>✓</span> {n}
               </div>
             ))}
+          </div>
+          )}
+          {saveState === "queued" && (
+          <div style={{ background: "#FFF6E5", borderRadius: 8, padding: "10px 12px", textAlign: "left", fontSize: ".82rem", color: "#7A5A00" }}>
+            You're offline, so this hasn't reached the server yet — but it's <strong>saved on this device</strong> and will send by itself as soon as you have a signal. You can close the app; nothing will be lost.
           </div>
           )}
           {saveState === "failed" && (

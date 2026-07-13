@@ -414,6 +414,16 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ type: "injury", photos: Array.from({ length: 20 }, () => ({ dataUrl: "x" })) }) });
   ok("too many photos rejected", tooManyPhotos.status === 400);
 
+  // ── Offline queue idempotency: a retried submit must not double-file ──
+  const qUuid = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  const qBefore = (await fetch(`${B}/api/incidents`, { headers: H() }).then(j)).length;
+  const first = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", description: "dead zone", clientUuid: qUuid }) }).then(j);
+  const retry = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", description: "dead zone", clientUuid: qUuid }) }).then(j);
+  const qAfter = (await fetch(`${B}/api/incidents`, { headers: H() }).then(j)).length;
+  ok("queued retry is idempotent", first.ref === retry.ref && retry.duplicate === true && qAfter === qBefore + 1);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
