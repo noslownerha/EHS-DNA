@@ -141,6 +141,16 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
         input::placeholder { color: ${C.mist}; }
         select option { color: ${C.ink}; }
         .incident-row:hover td { background: ${C.foam} !important; cursor: pointer; }
+
+        /* Mobile-first: cards by default, table only when there's room for its
+           9 columns. Below ~760px the table required horizontal scrolling and
+           columns (Status, CAs) sat off-screen where nobody found them. */
+        .incident-cards { display: block; }
+        .incident-table { display: none; }
+        @media (min-width: 760px) {
+          .incident-cards { display: none; }
+          .incident-table { display: block; }
+        }
         .new-btn:hover { background: ${C.pine} !important; transform: translateY(-1px); }
       `}</style>
 
@@ -230,8 +240,48 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
           )}
         </div>
 
-        {/* Table */}
-        <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
+        {/* Mobile: card list. A 9-column table at minWidth 620 forced horizontal
+            scrolling on a 360px phone — Status and CAs were off-screen and easy
+            to miss entirely. Same data, scannable, one tap to open. */}
+        <div className="incident-cards anim">
+          {filtered.length === 0 ? (
+            <div style={{ background: C.white, borderRadius: 10, padding: "28px", textAlign: "center", color: C.mist, fontSize: ".85rem", boxShadow: "0 2px 12px rgba(15,31,23,.07)" }}>
+              No incidents match your filters.
+            </div>
+          ) : filtered.map(inc => {
+            const cas = CA_STATUS[inc.caStatus];
+            const osha = OSHA_COLORS[inc.osha] ?? OSHA_COLORS["Pending"];
+            return (
+              <div key={inc.id} onClick={() => onViewIncident?.(inc.id)} style={{
+                background: C.white, borderRadius: 10, padding: "12px 14px", marginBottom: 8,
+                boxShadow: "0 2px 12px rgba(15,31,23,.07)", cursor: "pointer",
+                borderLeft: `3px solid ${SEV_COLORS[inc.severity] ?? C.mist}`,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".76rem", color: C.sage, fontWeight: 600, whiteSpace: "nowrap" }}>
+                    {inc.id}
+                  </span>
+                  {pill(inc.status === "open" ? "Open" : "Closed", inc.status === "open" ? C.foam : "#EEF1F0", inc.status === "open" ? C.pine : C.slate)}
+                </div>
+                <div style={{ fontSize: ".92rem", color: C.ink, fontWeight: 600, marginBottom: 4 }}>
+                  {TYPE_EMOJI[inc.type]} {TYPE_LABELS[inc.type]}
+                </div>
+                <div style={{ fontSize: ".8rem", color: C.slate, marginBottom: 8 }}>
+                  {inc.site} · <span style={{ color: SEV_COLORS[inc.severity], fontWeight: 600 }}>
+                    {inc.severity.charAt(0).toUpperCase() + inc.severity.slice(1)}
+                  </span> · {inc.date}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {pill(inc.osha, osha.bg, osha.color)}
+                  {pill(cas.label, cas.bg, cas.color)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop: full table */}
+        <div className="incident-table anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>

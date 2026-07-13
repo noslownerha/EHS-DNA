@@ -46,6 +46,66 @@ function DesktopNav({ companyName = BRAND.company, onHome }) {
 }
 
 // ── CA row ────────────────────────────────────────────────────────────────────
+// Mobile card for a corrective action. The 7-column table (minWidth 620) forced
+// horizontal scrolling on a phone — the Verify button and due date sat off-screen,
+// which is fatal for the one screen people are supposed to ACT on.
+function CACard({ ca, onVerify, onViewIncident }) {
+  const [verifying, setVerifying] = useState(false);
+  const pri = PRIORITY_MAP[ca.priority] ?? PRIORITY_MAP.low;
+
+  function handleVerify() {
+    setVerifying(true);
+    setTimeout(() => { setVerifying(false); onVerify?.(ca.id); }, 700);
+  }
+
+  return (
+    <div style={{
+      background: ca.status === "overdue" ? C.redLt + "60" : C.white,
+      borderRadius: 10, padding: "12px 14px", marginBottom: 8,
+      boxShadow: "0 2px 12px rgba(15,31,23,.07)",
+      borderLeft: `3px solid ${ca.status === "overdue" ? C.red : pri.color}`,
+    }}>
+      <div style={{ fontSize: ".9rem", color: C.ink, lineHeight: 1.4, fontWeight: 600, marginBottom: 8 }}>
+        {ca.desc}
+      </div>
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        <span style={{ fontSize: ".72rem", fontWeight: 700, color: pri.color, background: pri.bg, padding: "3px 9px", borderRadius: 20 }}>
+          {pri.label}
+        </span>
+        <span style={{
+          fontSize: ".72rem", fontWeight: 600, padding: "3px 9px", borderRadius: 20,
+          color: ca.status === "overdue" ? C.red : C.slate,
+          background: ca.status === "overdue" ? "#FBECEC" : "#EEF1F0",
+        }}>
+          Due {ca.due}
+        </span>
+      </div>
+
+      <div style={{ fontSize: ".78rem", color: C.slate, marginBottom: 10 }}>
+        {ca.assignee} · {ca.site}
+        {ca.incidentId && (
+          <> · <span onClick={() => onViewIncident?.(ca.incidentId)} style={{ color: C.sage, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Mono', monospace" }}>
+            {ca.incidentId}
+          </span></>
+        )}
+        {ca.escalated && (
+          <span style={{ color: C.red, fontWeight: 700 }}> · ⬆ Escalated</span>
+        )}
+      </div>
+
+      {ca.status !== "closed" && (
+        <button onClick={handleVerify} disabled={verifying} style={{
+          width: "100%", padding: "10px", borderRadius: 8, border: "none",
+          background: verifying ? C.mint : C.sage, color: verifying ? C.forest : C.white,
+          fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
+          cursor: verifying ? "default" : "pointer",
+        }}>{verifying ? "Verifying…" : "✓ Verify & close"}</button>
+      )}
+    </div>
+  );
+}
+
 function CARow({ ca, onVerify, onViewIncident }) {
   const [verifying, setVerifying] = useState(false);
   const pri = PRIORITY_MAP[ca.priority] ?? PRIORITY_MAP.low;
@@ -182,6 +242,15 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
         .anim { animation: fadeUp .28s ease both; }
         select option { color: ${C.ink}; }
         .ca-row:hover td { background: ${C.foam} !important; }
+
+        /* Cards on phones, table on desktop. The 7-column table hid the Verify
+           button off-screen on mobile — unusable for the screen people act on. */
+        .ca-cards { display: block; }
+        .ca-table { display: none; }
+        @media (min-width: 760px) {
+          .ca-cards { display: none; }
+          .ca-table { display: block; }
+        }
       `}</style>
 
       <DesktopNav companyName={companyName} onHome={onHome} />
@@ -265,8 +334,19 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
           )}
         </div>
 
-        {/* CA table */}
-        <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
+        {/* Mobile: card list (the table needed horizontal scrolling on a phone) */}
+        <div className="ca-cards anim">
+          {filtered.length === 0 ? (
+            <div style={{ background: C.white, borderRadius: 10, padding: "32px", textAlign: "center", color: C.mist, fontSize: ".85rem", boxShadow: "0 2px 12px rgba(15,31,23,.07)" }}>
+              No {activeTab} corrective actions{filterSite || filterAssignee ? " matching filters" : ""}.
+            </div>
+          ) : filtered.map(ca => (
+            <CACard key={ca.id} ca={ca} onVerify={handleVerify} onViewIncident={onViewIncident} />
+          ))}
+        </div>
+
+        {/* Desktop: CA table */}
+        <div className="ca-table anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>

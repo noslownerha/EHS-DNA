@@ -316,6 +316,39 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         .ehs-fixed-bottom {
           bottom: 58px !important;
         }
+
+        /* ── Global mobile guards ──────────────────────────────────────────
+           1. A single over-wide element (a table, a long ref) was able to scroll
+              the WHOLE page sideways, shifting every other screen off-centre.
+              Contain it: the page itself never scrolls horizontally; widgets that
+              genuinely need it opt in with their own overflow-x:auto container. */
+        html, body {
+          overflow-x: hidden;
+          max-width: 100%;
+        }
+
+        /* 2. Long unbroken strings (refs like INC-2026-0051, emails, URLs) were
+              breaking mid-character across lines. Break at sensible points only. */
+        .ehs-content-root {
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
+        /* Reference numbers and other monospace IDs should never break at all. */
+        .ehs-content-root [style*="DM Mono"] {
+          overflow-wrap: normal;
+        }
+
+        /* 3. Comfortable tap targets for checkboxes/radios — a 14px checkbox is a
+              miss-tap on a phone, especially with gloves on, which is how these
+              actually get used on a plant floor. (Deliberately NOT applying a
+              blanket min-height to buttons — that would distort inline "Edit" links.) */
+        @media (max-width: 760px) {
+          .ehs-content-root input[type="checkbox"],
+          .ehs-content-root input[type="radio"] {
+            min-width: 20px;
+            min-height: 20px;
+          }
+        }
       `}</style>
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F4F7F5", fontFamily: "'DM Sans', sans-serif" }}>
         {/* Content wrapper — gives global bottom clearance */}
