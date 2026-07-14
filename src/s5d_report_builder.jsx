@@ -376,7 +376,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
+        <div className="split-pane" style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
 
           {/* Left: report configuration panel */}
           <div>

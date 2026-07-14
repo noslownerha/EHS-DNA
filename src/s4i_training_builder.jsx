@@ -115,7 +115,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
         <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink, marginBottom: 16 }}>Training Builder</h1>
         {error && <div style={{ marginBottom: 12, padding: "10px 14px", background: C.redLt, color: C.red, borderRadius: 8, fontSize: ".84rem" }}>{error}</div>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 18, alignItems: "start" }}>
+        <div className="split-pane" style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 18, alignItems: "start" }}>
           {/* Left: course list */}
           <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
             <div style={{ padding: "10px 12px", borderBottom: "1px solid #F0F4F2" }}>

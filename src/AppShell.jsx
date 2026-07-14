@@ -330,7 +330,12 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         /* 2. Long unbroken strings (refs like INC-2026-0051, emails, URLs) were
               breaking mid-character across lines. Break at sensible points only. */
         .ehs-content-root {
-          overflow-wrap: anywhere;
+          /* break-word, NOT "anywhere": the "anywhere" value also shrinks an
+             element's min-content width to a single character, so a squeezed flex
+             item (a breadcrumb next to non-shrinking buttons) renders one letter
+             per line. break-word still splits genuinely unbreakable strings like
+             long refs and emails, without collapsing intrinsic width. */
+          overflow-wrap: break-word;
           word-break: normal;
         }
         /* Reference numbers and other monospace IDs should never break at all. */
@@ -338,7 +343,17 @@ export default function AppShell({ user, children, activeTab, onTab }) {
           overflow-wrap: normal;
         }
 
-        /* 3. Comfortable tap targets for checkboxes/radios — a 14px checkbox is a
+        /* 3. Two-pane builder/report layouts use a fixed-width sidebar
+              (gridTemplateColumns: "300px 1fr"). On a 360px phone that overflows,
+              and since the page no longer scrolls sideways the right-hand pane was
+              simply clipped and unreachable. Collapse to a single column. */
+        @media (max-width: 760px) {
+          .ehs-content-root .split-pane {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        /* 4. Comfortable tap targets for checkboxes/radios — a 14px checkbox is a
               miss-tap on a phone, especially with gloves on, which is how these
               actually get used on a plant floor. (Deliberately NOT applying a
               blanket min-height to buttons — that would distort inline "Edit" links.) */

@@ -152,6 +152,16 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
           .incident-cards { display: none; }
           .incident-table { display: block; }
         }
+
+        /* On a phone the detail header (breadcrumb + title on the left, three
+           export/close buttons on the right) could not fit side by side: the
+           buttons ran off-screen and the breadcrumb was crushed to one letter
+           per line. Stack them, and let the buttons share the full width. */
+        @media (max-width: 760px) {
+          .detail-header { flex-direction: column; align-items: stretch; gap: 12px; }
+          .detail-actions { width: 100%; flex-wrap: wrap; }
+          .detail-actions button { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
+        }
         .new-btn:hover { background: ${C.pine} !important; transform: translateY(-1px); }
       `}</style>
 
@@ -641,10 +651,10 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
         {/* Header */}
-        <div className="anim" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16 }}>
-          <div>
+        <div className="anim detail-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Incidents</button>
+              <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", flexShrink: 0, padding: 0 }}>← Incidents</button>
               <span style={{ color: "#D0DEDB" }}>/</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.sage, fontWeight: 600, whiteSpace: "nowrap" }}>{incident.id}</span>
             </div>
@@ -668,7 +678,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               )}
             </div>
           </div>
-          <div className="no-print" style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+          <div className="no-print detail-actions" style={{ display: "flex", gap: 10, flexShrink: 0 }}>
             <button className="export-btn" onClick={exportPDF} style={{
               padding: "8px 16px", background: C.white, color: C.pine,
               border: `1.5px solid ${C.mint}`, borderRadius: 7,

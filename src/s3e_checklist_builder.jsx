@@ -335,7 +335,7 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
         </div>
 
         {/* Spec §s3e: template list + editor side by side */}
-        <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
+        <div className="split-pane" style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
 
           {/* Left: template list */}
           <div className="anim">
