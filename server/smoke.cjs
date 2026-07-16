@@ -566,6 +566,30 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const rejDetail = await fetch(`${B}/api/incidents/${rejectedType.id}`, { headers: H() }).then(j);
   ok("non-image upload rejected", JSON.parse(rejDetail.photos || "[]").length === 0);
 
+  // ── Email transport module ──
+  const { sendEmail, emailConfigured } = require("./email.cjs");
+  // With nothing configured, sending must skip gracefully (never throw) and
+  // notify() must report email:false rather than pretending it went out.
+  const noCfg = await sendEmail(["x@y.com"], "s", "t");
+  ok("email skips cleanly when unconfigured", noCfg.sent === false && !emailConfigured());
+  // Empty recipient list is a no-op, not a crash.
+  const noRcpt = await sendEmail([], "s", "t");
+  ok("email no-ops with no recipients", noRcpt.sent === false);
+  // Spin up a mock Resend to confirm the request shape and success path.
+  const http = require("http");
+  let seen = null;
+  const mail = http.createServer((rq, rs) => { let b=""; rq.on("data",c=>b+=c); rq.on("end",()=>{ seen=JSON.parse(b); rs.writeHead(200); rs.end("{}"); }); });
+  await new Promise(r => mail.listen(0, r));
+  const mport = mail.address().port;
+  const realFetch = global.fetch;
+  process.env.RESEND_API_KEY = "re_smoke";
+  global.fetch = (u, o2) => u === "https://api.resend.com/emails" ? realFetch(`http://127.0.0.1:${mport}/`, o2) : realFetch(u, o2);
+  const sent = await sendEmail(["a@b.com"], "subj", "body");
+  global.fetch = realFetch; mail.close(); delete process.env.RESEND_API_KEY;
+  ok("email sends via Resend with correct shape",
+     sent.sent === true && sent.via === "resend" &&
+     Array.isArray(seen.to) && seen.subject === "subj" && !!seen.from);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

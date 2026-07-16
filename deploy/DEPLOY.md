@@ -23,6 +23,19 @@ chmod 600 /etc/ehs-dna.env
 systemctl daemon-reload
 systemctl enable --now ehs-dna
 
+# 2a) Email (transactional alerts: injury reported, CA overdue, password reset)
+# Default provider is Resend (https://resend.com). Verify the ehsdna.com domain in
+# Resend, generate a SENDING api key, then append to the env file and restart:
+#   echo 'RESEND_API_KEY=re_xxxxxxxxxxxx' >> /etc/ehs-dna.env
+#   systemctl restart ehs-dna
+# Optional: override the From address (defaults to "EHS DNA <alerts@ehsdna.com>")
+#   echo 'EHS_EMAIL_FROM=EHS DNA Safety <alerts@ehsdna.com>' >> /etc/ehs-dna.env
+# To route through n8n/another service instead of Resend, set EHS_EMAIL_WEBHOOK
+# (it takes precedence over RESEND_API_KEY) — no app change needed.
+# Verify delivery (operator account): GET /api/op/email-test?to=you@example.com
+# If neither var is set the app still runs; only the email copy is skipped
+# (in-app notifications are unaffected).
+
 # 3) Nightly backups (2:15 AM, 30-day retention)
 apt install -y sqlite3   # needed by backup.sh
 (crontab -l 2>/dev/null; echo "15 2 * * * /home/ehs-platform/deploy/backup.sh") | crontab -

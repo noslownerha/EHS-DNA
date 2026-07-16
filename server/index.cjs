@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { sendEmail, emailConfigured } = require("./email.cjs");
 const db = require("./db.cjs");
 
 const app = express();
@@ -1031,15 +1032,18 @@ function notify(tenantId, events, { title, body, linkKind, linkRef }) {
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref, emailed)
                              VALUES (?, ?, ?, ?, ?, ?, ?)`);
     recipients.forEach(uid => stmt.run(tenantId, uid, title, body ?? null, linkKind ?? null, linkRef ?? null, wantsEmail ? 1 : 0));
-    if (wantsEmail && recipients.size && process.env.EHS_EMAIL_WEBHOOK) {
+    let emailQueued = false;
+    if (wantsEmail && recipients.size && emailConfigured()) {
       const emails = db.prepare(`SELECT email FROM users WHERE id IN (${[...recipients].map(() => "?").join(",")})`)
-        .all(...recipients).map(u => u.email);
-      fetch(process.env.EHS_EMAIL_WEBHOOK, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: emails, subject: title, text: body ?? title }),
-      }).catch(err => console.error("Email webhook failed:", err.message));
+        .all(...recipients).map(u => u.email).filter(Boolean);
+      if (emails.length) {
+        emailQueued = true;
+        // Fire-and-forget: a slow or failing mail provider must never delay or
+        // roll back the incident that triggered it.
+        sendEmail(emails, title, body ?? title).catch(err => console.error("sendEmail threw:", err.message));
+      }
     }
-    return { count: recipients.size, email: wantsEmail, events: [...new Set(rules.map(r => r.event))] };
+    return { count: recipients.size, email: emailQueued, events: [...new Set(rules.map(r => r.event))] };
   } catch (e) { console.error("notify() failed:", e.message); return null; }
 }
 
@@ -1071,6 +1075,22 @@ app.delete("/api/notification-rules/:id", auth, requireRole(...ADMINISH), (req, 
 });
 
 // ── Operator console (EHS DNA staff only) ────────────────────────────────────
+// Operator-only: send a test email to confirm the provider is wired up correctly.
+// GET /api/op/email-test?to=you@example.com
+app.get("/api/op/email-test", auth, requireOperator, async (req, res) => {
+  const to = String(req.query.to || req.auth.email || "").trim();
+  if (!to) return res.status(400).json({ error: "pass ?to=an@email.com" });
+  if (!emailConfigured())
+    return res.status(400).json({ error: "No email transport configured. Set RESEND_API_KEY (or EHS_EMAIL_WEBHOOK) and restart." });
+  const result = await sendEmail(
+    [to],
+    "EHS DNA — test email",
+    "This is a test from EHS DNA. If you received it, transactional email is working.",
+    "<p>This is a test from <strong>EHS DNA</strong>. If you received it, transactional email is working.</p>"
+  );
+  res.status(result.sent ? 200 : 502).json(result);
+});
+
 app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
   const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
   res.json(tenants.map(t => {
