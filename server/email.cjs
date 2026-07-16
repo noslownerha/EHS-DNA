@@ -21,6 +21,53 @@
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
+// Brand palette (matches the app's forest/sage).
+const BRAND = { forest: "#1E3328", sage: "#5B8C6E", ink: "#1A2420", mist: "#6B7E76", chalk: "#F4F7F5", line: "#E2EBE6" };
+const APP_URL = process.env.EHS_APP_URL || "https://app.ehsdna.com";
+
+const escapeHtml = (s) => String(s ?? "")
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+/**
+ * Render a branded HTML alert. Deliberately table-based with inline styles —
+ * that is what survives Gmail, Outlook, and Apple Mail intact. `meta` is the
+ * one-line "Site · severity · by reporter" summary; `link` deep-links to the
+ * record so a manager can act without hunting for it.
+ */
+function renderAlertHtml({ heading, meta, link, linkLabel }) {
+  const button = link ? `
+    <tr><td style="padding:24px 32px 8px;">
+      <a href="${escapeHtml(link)}" style="display:inline-block;background:${BRAND.sage};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 28px;border-radius:8px;font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(linkLabel || "View in EHS DNA")}</a>
+    </td></tr>` : "";
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:${BRAND.chalk};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.chalk};padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BRAND.line};">
+        <tr><td style="background:${BRAND.forest};padding:18px 32px;">
+          <span style="color:#ffffff;font-weight:700;font-size:16px;font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:.3px;">EHS&nbsp;<span style="color:${BRAND.sage};">DNA</span></span>
+        </td></tr>
+        <tr><td style="padding:28px 32px 4px;">
+          <h1 style="margin:0;font-size:19px;line-height:1.35;color:${BRAND.ink};font-family:'Helvetica Neue',Arial,sans-serif;font-weight:700;">${escapeHtml(heading)}</h1>
+        </td></tr>
+        ${meta ? `<tr><td style="padding:8px 32px 0;">
+          <p style="margin:0;font-size:14px;color:${BRAND.mist};font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(meta)}</p>
+        </td></tr>` : ""}
+        ${button}
+        <tr><td style="padding:24px 32px 28px;">
+          <p style="margin:0;font-size:12px;line-height:1.5;color:${BRAND.mist};font-family:'Helvetica Neue',Arial,sans-serif;">
+            You're receiving this because you're on the notification list for this event in EHS DNA.
+            ${link ? `If the button doesn't work, open:<br><a href="${escapeHtml(link)}" style="color:${BRAND.sage};">${escapeHtml(link)}</a>` : ""}
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
 // "EHS DNA Safety <alerts@ehsdna.com>" — overridable, but this is the sane default
 // once ehsdna.com is verified in Resend.
 function fromAddress() {
@@ -95,4 +142,25 @@ function emailConfigured() {
   return !!(process.env.EHS_EMAIL_WEBHOOK || process.env.RESEND_API_KEY);
 }
 
-module.exports = { sendEmail, emailConfigured };
+/**
+ * Send a branded alert email built from a notification's parts. This is what
+ * notify() uses, so every incident/finding alert gets the same clean layout and
+ * a deep link straight to the record instead of a bare one-liner.
+ */
+async function sendAlert(to, { title, meta, linkKind, linkRef }) {
+  // Deep link to the specific record when we know how to address it.
+  const link = linkKind && linkRef
+    ? `${APP_URL}/?open=${encodeURIComponent(linkKind)}:${encodeURIComponent(linkRef)}`
+    : APP_URL;
+  const linkLabel = linkKind === "incident" ? "View incident"
+    : linkKind === "finding" ? "View finding"
+    : "Open EHS DNA";
+
+  const html = renderAlertHtml({ heading: title, meta, link, linkLabel });
+  // Plain-text fallback for clients that don't render HTML — still useful.
+  const text = [title, meta, "", `${linkLabel}: ${link}`].filter(Boolean).join("\n");
+
+  return sendEmail(to, title, text, html);
+}
+
+module.exports = { sendEmail, sendAlert, emailConfigured };

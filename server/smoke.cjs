@@ -585,10 +585,18 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   process.env.RESEND_API_KEY = "re_smoke";
   global.fetch = (u, o2) => u === "https://api.resend.com/emails" ? realFetch(`http://127.0.0.1:${mport}/`, o2) : realFetch(u, o2);
   const sent = await sendEmail(["a@b.com"], "subj", "body");
-  global.fetch = realFetch; mail.close(); delete process.env.RESEND_API_KEY;
   ok("email sends via Resend with correct shape",
      sent.sent === true && sent.via === "resend" &&
      Array.isArray(seen.to) && seen.subject === "subj" && !!seen.from);
+  // Branded alert: HTML body, deep link, and a plain-text fallback.
+  const { sendAlert } = require("./email.cjs");
+  await sendAlert(["a@b.com"], { title: "Injury reported: INC-2026-0004",
+    meta: "Moriah · serious · by Admin", linkKind: "incident", linkRef: "INC-2026-0004" });
+  global.fetch = realFetch; mail.close(); delete process.env.RESEND_API_KEY;
+  ok("alert email is branded HTML with a deep link",
+     typeof seen.html === "string" && seen.html.includes("EHS") &&
+     seen.html.includes("open=incident:INC-2026-0004") &&
+     seen.text.includes("View incident:"));
 
   console.log("SMOKE COMPLETE");
   process.exit(0);

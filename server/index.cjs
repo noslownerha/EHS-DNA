@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const { sendEmail, emailConfigured } = require("./email.cjs");
+const { sendAlert, emailConfigured } = require("./email.cjs");
 const db = require("./db.cjs");
 
 const app = express();
@@ -1040,7 +1040,7 @@ function notify(tenantId, events, { title, body, linkKind, linkRef }) {
         emailQueued = true;
         // Fire-and-forget: a slow or failing mail provider must never delay or
         // roll back the incident that triggered it.
-        sendEmail(emails, title, body ?? title).catch(err => console.error("sendEmail threw:", err.message));
+        sendAlert(emails, { title, meta: body, linkKind, linkRef }).catch(err => console.error("sendAlert threw:", err.message));
       }
     }
     return { count: recipients.size, email: emailQueued, events: [...new Set(rules.map(r => r.event))] };
@@ -1082,12 +1082,11 @@ app.get("/api/op/email-test", auth, requireOperator, async (req, res) => {
   if (!to) return res.status(400).json({ error: "pass ?to=an@email.com" });
   if (!emailConfigured())
     return res.status(400).json({ error: "No email transport configured. Set RESEND_API_KEY (or EHS_EMAIL_WEBHOOK) and restart." });
-  const result = await sendEmail(
-    [to],
-    "EHS DNA — test email",
-    "This is a test from EHS DNA. If you received it, transactional email is working.",
-    "<p>This is a test from <strong>EHS DNA</strong>. If you received it, transactional email is working.</p>"
-  );
+  const result = await sendAlert([to], {
+    title: "EHS DNA — test alert",
+    meta: "This is a test. If you received it, transactional email is working.",
+    linkKind: null, linkRef: null,
+  });
   res.status(result.sent ? 200 : 502).json(result);
 });
 

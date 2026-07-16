@@ -117,6 +117,24 @@ function App() {
     return () => window.removeEventListener("ehs:navigate", onDeepLink);
   });
 
+  // Deep link from an email/notification: /?open=incident:INC-2026-0004 lands the
+  // user on the right screen after login. Reuses the same navigate event that a
+  // notification tap fires, then clears the param so a refresh doesn't re-trigger.
+  useEffect(() => {
+    if (!currentUser) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const open = params.get("open");
+      if (open) {
+        const [kind, ref] = open.split(":");
+        window.dispatchEvent(new CustomEvent("ehs:navigate", { detail: { kind, ref } }));
+        params.delete("open");
+        const qs = params.toString();
+        window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+      }
+    } catch { /* malformed param — ignore */ }
+  }, [currentUser]);
+
   function handleTab(tabId) {
     if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
     else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);
