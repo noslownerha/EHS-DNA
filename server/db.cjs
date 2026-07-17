@@ -290,6 +290,18 @@ try { db.exec("CREATE INDEX IF NOT EXISTS idx_points_source ON points_ledger(ten
 try { db.exec("ALTER TABLE incidents ADD COLUMN recognized_user_id INTEGER REFERENCES users(id)"); } catch {}
 // Per-tenant toggle for the whole recognition feature (off by default until set up).
 try { db.exec("ALTER TABLE tenants ADD COLUMN recognition_enabled INTEGER DEFAULT 1"); } catch {}
+
+// Per-tenant module enablement. A row = an explicit on/off for that tenant;
+// absence = "use the module's default". Lets the operator sell modules piecemeal
+// (incidents-only rollout, upsell corrective_actions later). The module gate reads
+// this; when a tenant has everything on, the gate is a no-op.
+db.exec(`CREATE TABLE IF NOT EXISTS tenant_modules (
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  module TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (tenant_id, module)
+)`);
 // status now also allows 'capex_blocked' alongside open|in_progress|done|verified.
 
 db.exec(`CREATE TABLE IF NOT EXISTS ca_activity (

@@ -760,6 +760,35 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("leaderboard returns top-N and the caller's own rank",
      Array.isArray(lb.top) && lb.top.length <= 10 && typeof lb.me.rank === "number");
 
+  // ── Module system: gate is a no-op when all on; blocks a disabled module ──
+  const cfgAll = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  ok("config reports enabled modules", Array.isArray(cfgAll.modules) && cfgAll.modules.includes("inspections"));
+  // All-on: inspections endpoint works.
+  const inspOn = await fetch(`${B}/api/inspections`, { headers: H() });
+  ok("module endpoint works when enabled", inspOn.status === 200);
+  // Operator disables inspections for this tenant.
+  const tid = 1; // seeded WhistlePig tenant
+  await fetch(`${B}/api/op/tenants/${tid}/modules/inspections`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ enabled: false }) });
+  const inspOff = await fetch(`${B}/api/inspections`, { headers: H() });
+  ok("disabled module endpoint returns 403 moduleDisabled", inspOff.status === 403);
+  const inspBody = await inspOff.json().catch(() => ({}));
+  ok("403 identifies the disabled module", inspBody.moduleDisabled === true && inspBody.module === "inspections");
+  // A different module still works (no over-blocking).
+  const incStill = await fetch(`${B}/api/incidents`, { headers: H() });
+  ok("other modules unaffected when one is disabled", incStill.status === 200);
+  // Core never blocked.
+  const usersStill = await fetch(`${B}/api/users`, { headers: H() });
+  ok("core endpoints never gated", usersStill.status === 200);
+  // config now omits inspections.
+  const cfgOff = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  ok("config drops a disabled module", !cfgOff.modules.includes("inspections"));
+  // Re-enable so later tests (if any) are unaffected.
+  await fetch(`${B}/api/op/tenants/${tid}/modules/inspections`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ enabled: true }) });
+  const inspBack = await fetch(`${B}/api/inspections`, { headers: H() });
+  ok("re-enabling a module restores access", inspBack.status === 200);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

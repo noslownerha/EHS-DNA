@@ -11,6 +11,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const { sendAlert, emailConfigured } = require("./email.cjs");
 const db = require("./db.cjs");
+const { MODULES, LIVE_MODULES, moduleForPath } = require("./modules.cjs");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -143,7 +144,9 @@ function auth(req, res, next) {
       if (pwRow && pwRow.must_change_password === 1)
         return res.status(403).json({ error: "You must set a new password before continuing.", mustChangePassword: true });
     }
-    next();
+    // Module gate: block paths owned by a module this tenant doesn't have. No-op
+    // when all modules are on. Runs here so it applies to every authenticated route.
+    return moduleGate(req, res, next);
   }
   catch { return res.status(401).json({ error: "Session expired" }); }
 }
@@ -152,6 +155,39 @@ function requireRole(...roles) {
     roles.includes(req.auth.role) ? next() : res.status(403).json({ error: "Insufficient permissions" });
 }
 const ADMINISH = ["admin", "safety"];
+
+// ── Module enablement ─────────────────────────────────────────────────────────
+// Resolve a tenant's enabled feature modules: an explicit tenant_modules row wins,
+// otherwise the module's registry default. Core is always on. Returns a Set of
+// enabled module keys.
+function enabledModules(tenantId) {
+  const rows = db.prepare("SELECT module, enabled FROM tenant_modules WHERE tenant_id = ?").all(tenantId);
+  const explicit = new Map(rows.map(r => [r.module, r.enabled === 1]));
+  const set = new Set(["core"]);
+  for (const key of LIVE_MODULES) {
+    const on = explicit.has(key) ? explicit.get(key) : (MODULES[key].default !== false);
+    if (on) set.add(key);
+  }
+  return set;
+}
+
+// Gate: block requests whose path is owned by a module this tenant doesn't have.
+// Deliberately conservative — it only blocks a path it can POSITIVELY attribute to
+// a KNOWN, DISABLED, LIVE module. Unrecognized paths, core paths, and operator
+// requests pass through untouched, so this is a no-op for any tenant with all
+// modules on. Runs after auth (needs req.auth.tenant).
+function moduleGate(req, res, next) {
+  if (!req.auth || req.auth.op) return next();          // operators bypass
+  const mod = moduleForPath(req.path);
+  if (!mod || mod === "core") return next();            // core/unknown → allow
+  if (MODULES[mod]?.reserved) return next();            // not yet a real feature
+  const enabled = req.auth._modules || (req.auth._modules = enabledModules(req.auth.tenant));
+  if (enabled.has(mod)) return next();
+  return res.status(403).json({
+    error: `The ${MODULES[mod]?.label || mod} module isn't enabled for your account.`,
+    module: mod, moduleDisabled: true,
+  });
+}
 
 // ── Read scoping ──────────────────────────────────────────────────────────────
 // Injury descriptions and the names of hurt colleagues are among the most
@@ -366,6 +402,9 @@ app.get("/api/config", auth, (req, res) => {
     company: t.name, shortName: t.short_name, industry: t.industry, tagline: t.tagline,
     triage: { enabled: !!t.triage_enabled, providerName: t.triage_provider_name, providerPhone: t.triage_provider_phone },
     sites, departments,
+    // Enabled feature modules — the frontend intersects these with role tabs so a
+    // tenant only sees nav for what they've bought.
+    modules: [...enabledModules(req.auth.tenant)],
   });
 });
 app.put("/api/config", auth, requireRole(...ADMINISH), (req, res) => {
@@ -1463,6 +1502,36 @@ app.get("/api/op/email-test", auth, requireOperator, async (req, res) => {
     linkKind: null, linkRef: null,
   });
   res.status(result.sent ? 200 : 502).json(result);
+});
+
+// Operator: read a tenant's module enablement (registry + this tenant's state).
+app.get("/api/op/tenants/:id/modules", auth, requireOperator, (req, res) => {
+  const tid = parseInt(req.params.id, 10);
+  const rows = db.prepare("SELECT module, enabled FROM tenant_modules WHERE tenant_id = ?").all(tid);
+  const explicit = new Map(rows.map(r => [r.module, r.enabled === 1]));
+  const modules = LIVE_MODULES.map(key => ({
+    key, label: MODULES[key].label, blurb: MODULES[key].blurb,
+    softDeps: MODULES[key].softDeps || [],
+    enabled: explicit.has(key) ? explicit.get(key) : (MODULES[key].default !== false),
+    explicit: explicit.has(key),
+  }));
+  // Reserved-but-unbuilt modules, surfaced so the grid can show "coming soon".
+  const reserved = Object.keys(MODULES)
+    .filter(k => MODULES[k].reserved)
+    .map(k => ({ key: k, label: MODULES[k].label, blurb: MODULES[k].blurb, reserved: true }));
+  res.json({ modules, reserved });
+});
+
+// Operator: enable/disable a module for a tenant.
+app.put("/api/op/tenants/:id/modules/:module", auth, requireOperator, (req, res) => {
+  const tid = parseInt(req.params.id, 10);
+  const mod = req.params.module;
+  if (!LIVE_MODULES.includes(mod)) return res.status(400).json({ error: "Unknown or non-toggleable module" });
+  const enabled = req.body?.enabled ? 1 : 0;
+  db.prepare(`INSERT INTO tenant_modules (tenant_id, module, enabled) VALUES (?, ?, ?)
+              ON CONFLICT(tenant_id, module) DO UPDATE SET enabled = excluded.enabled, updated_at = datetime('now')`)
+    .run(tid, mod, enabled);
+  res.json({ ok: true, module: mod, enabled: !!enabled });
 });
 
 app.get("/api/op/tenants", auth, requireOperator, (req, res) => {

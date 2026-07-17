@@ -51,6 +51,9 @@ export function applyServerConfig(cfg) {
     DEPARTMENTS.length = 0; cfg.departments.forEach(d => DEPARTMENTS.push(d.name));
     BRAND.departmentRecords = cfg.departments;
   }
+  if (Array.isArray(cfg.modules)) {
+    BRAND.modules = cfg.modules;   // enabled module keys, e.g. ["core","incidents",…]
+  }
 }
 
 export const api = {

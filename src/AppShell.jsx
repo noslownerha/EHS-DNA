@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { BRAND, ROLE_PERMS, TAB_CONFIG } from "./constants.js";
+import { BRAND, ROLE_PERMS, TAB_CONFIG, visibleTabs } from "./constants.js";
 import { api } from "./api.js";
 import { onQueueChange, queueCount } from "./offlineQueue.js";
 
@@ -263,7 +263,9 @@ function BottomTabBar({ tabs, activeTab, onTab }) {
 // This ensures bottom CTAs on ALL screens are never hidden behind the nav bar.
 export default function AppShell({ user, children, activeTab, onTab }) {
   const perms = ROLE_PERMS[user.role] ?? ROLE_PERMS.staff;
-  const tabs  = perms.tabs;
+  // Show a tab only if the tenant has the module that powers it. No-op until the
+  // server reports modules (visibleTabs passes everything through when unset).
+  const tabs  = visibleTabs(perms.tabs, BRAND.modules);
 
   // Plant floors and warehouses have dead zones. Tell people plainly when they
   // are offline, so a failed submit reads as "no signal" rather than "app broken".

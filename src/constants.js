@@ -136,6 +136,30 @@ export const TAB_CONFIG = {
   reports:  { icon: "📊", label: "Reports"  },
 };
 
+// Which module powers each nav tab. Mirrors server/modules.cjs (keep in sync).
+// Tabs with no module here (e.g. home) are core and always shown. A tab is shown
+// only if its module is in the tenant's enabled set.
+export const TAB_MODULE = {
+  flag:    "incidents",
+  triage:  "incidents",
+  inspect: "inspections",
+  training: "lms",
+  reports: "reporting",
+  recognition: "recognition",
+};
+
+// Intersect a role's tabs with the tenant's enabled modules. When modules is
+// null/undefined (config not loaded yet, or older server), everything shows —
+// so this is a safe no-op until the server actually reports modules.
+export function visibleTabs(roleTabs, enabledModules) {
+  if (!Array.isArray(enabledModules)) return roleTabs;
+  const on = new Set(enabledModules);
+  return roleTabs.filter(t => {
+    const mod = TAB_MODULE[t];
+    return !mod || on.has(mod);
+  });
+}
+
 // ── Role permissions & tab access ──────────────────────────────────────────────
 // Reports restricted to Site Manager and above (Round 1 decision).
 // Triage accessible to all roles.
