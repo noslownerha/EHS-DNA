@@ -132,6 +132,7 @@ function App() {
         const qs = params.toString();
         window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
       }
+
     } catch { /* malformed param — ignore */ }
   }, [currentUser]);
 

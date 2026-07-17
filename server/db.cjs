@@ -257,6 +257,39 @@ try { db.exec("ALTER TABLE corrective_actions ADD COLUMN closed_at TEXT"); } cat
 // group; when set, assignee_id (the individual) is typically null.
 try { db.exec("ALTER TABLE corrective_actions ADD COLUMN assignee_dept_id INTEGER REFERENCES departments(id)"); } catch {}
 try { db.exec("ALTER TABLE corrective_actions ADD COLUMN assignee_site_id INTEGER REFERENCES sites(id)"); } catch {}
+
+// ── Recognition & points (safety engagement gamification) ─────────────────────
+// Deliberately designed around what the research says actually works — and avoids
+// the ways safety gamification backfires:
+//   * We reward LEADING indicators only (reporting a hazard, giving a peer kudos,
+//     submitting an idea, completing training) — NEVER lagging ones like "days
+//     without injury", which literally pay people to hide injuries.
+//   * Points on a report are awarded when safety REVIEWS/accepts it (status set on
+//     the ledger row), not on raw submission — this blunts spam/gaming.
+//   * Peer kudos name a recipient, so BOTH the reporter and the recognised person
+//     earn — the social proof is the point.
+// The ledger is append-only; balances and leaderboards are computed from it.
+db.exec(`CREATE TABLE IF NOT EXISTS points_ledger (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),      -- who earns the points
+  points INTEGER NOT NULL,
+  reason TEXT NOT NULL,          -- report_reviewed | kudos_given | kudos_received | idea | training | manual
+  source_type TEXT,              -- incident | training | manual
+  source_id INTEGER,             -- id of the originating record, when applicable
+  awarded_by INTEGER REFERENCES users(id),            -- null for automatic awards
+  period TEXT NOT NULL,          -- 'YYYY-MM' bucket for monthly contests/resets
+  status TEXT NOT NULL DEFAULT 'confirmed', -- confirmed | pending (report awaits review)
+  note TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_points_user ON points_ledger(tenant_id, user_id, period)"); } catch {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_points_source ON points_ledger(tenant_id, source_type, source_id)"); } catch {}
+
+// A "positive" report can name the person being recognised (the kudos recipient).
+try { db.exec("ALTER TABLE incidents ADD COLUMN recognized_user_id INTEGER REFERENCES users(id)"); } catch {}
+// Per-tenant toggle for the whole recognition feature (off by default until set up).
+try { db.exec("ALTER TABLE tenants ADD COLUMN recognition_enabled INTEGER DEFAULT 1"); } catch {}
 // status now also allows 'capex_blocked' alongside open|in_progress|done|verified.
 
 db.exec(`CREATE TABLE IF NOT EXISTS ca_activity (

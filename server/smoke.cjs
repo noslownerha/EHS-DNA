@@ -732,6 +732,34 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("closing an already-closed report does not re-notify",
      after2.filter(n => n.link_ref === loopRid.ref).length === beforeCount);
 
+  // ── Recognition & points (leading-indicator gamification) ──
+  // A second staffer to receive kudos.
+  await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ name: "Joe Kudos", email: "joekudos@whistlepig.com", role: "staff", siteId: 1, departmentId: 2, password: "Kud!2026xx" }) });
+  const joeId = (await fetch(`${B}/api/users`, { headers: H() }).then(j)).find(u => u.email === "joekudos@whistlepig.com").id;
+  // staff (sH) gives Joe a kudos.
+  const kudos = await fetch(`${B}/api/incidents`, { method: "POST", headers: sH,
+    body: JSON.stringify({ type: "positive", siteId: 1, description: "caught Joe doing it safe", recognizedUserId: joeId }) }).then(j);
+  ok("kudos report is created", kudos.ref && kudos.ref.startsWith("REP-"));
+  const joeLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "joekudos@whistlepig.com", password: "Kud!2026xx" }) }).then(j);
+  const joeH = { "Content-Type": "application/json", Authorization: `Bearer ${joeLogin.token}` };
+  const joePts = await fetch(`${B}/api/points/me`, { headers: joeH }).then(j);
+  ok("recognised colleague earns kudos_received points", joePts.confirmed >= 10);
+  // Report-linked points are pending until reviewed.
+  const hz = await fetch(`${B}/api/incidents`, { method: "POST", headers: sH,
+    body: JSON.stringify({ type: "hazard", siteId: 1, description: "guard loose" }) }).then(j);
+  const beforeReview = await fetch(`${B}/api/points/me`, { headers: sH }).then(j);
+  ok("a filed report's points start pending (anti-gaming)", beforeReview.pending > 0);
+  await fetch(`${B}/api/incidents/${hz.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "closed" }) });
+  const afterReview = await fetch(`${B}/api/points/me`, { headers: sH }).then(j);
+  ok("points confirm once safety reviews the report", afterReview.confirmed > beforeReview.confirmed);
+  // Leaderboard returns top-N + own rank, never a full shame list.
+  const lb = await fetch(`${B}/api/points/leaderboard`, { headers: sH }).then(j);
+  ok("leaderboard returns top-N and the caller's own rank",
+     Array.isArray(lb.top) && lb.top.length <= 10 && typeof lb.me.rank === "number");
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

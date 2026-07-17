@@ -646,10 +646,41 @@ const INCIDENT_TYPES = [
 // Which types are "positive/neutral" — never treated as incidents, never OSHA,
 // routed to safety as engagement rather than as something to respond to.
 const ENGAGEMENT_TYPES = ["observation", "positive", "idea"];
+
+// ── Recognition points ────────────────────────────────────────────────────────
+// Point values per proactive act. Tunable; kept modest and recognition-forward
+// rather than cash-forward (the research warns big extrinsic rewards crowd out
+// intrinsic motivation). All are LEADING indicators — never "no incidents".
+const POINTS = {
+  report_reviewed: 10,   // any report you filed, once safety reviews/accepts it
+  idea:            15,   // ideas take thought — worth a little more
+  kudos_given:      5,   // you recognised a colleague
+  kudos_received:  10,   // you were caught doing it right
+  training:         5,   // completed an assigned training
+};
+const periodOf = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+// Award points. `status` is 'confirmed' for immediate awards (kudos, training) or
+// 'pending' for report-linked awards that only count once safety reviews the
+// report — dedup guards against awarding the same source twice.
+function awardPoints(tenantId, userId, points, reason, { sourceType = null, sourceId = null, awardedBy = null, status = "confirmed", note = null } = {}) {
+  if (!userId || !points) return;
+  try {
+    // Don't double-award the same (user, reason, source).
+    if (sourceType && sourceId) {
+      const dup = db.prepare(`SELECT 1 FROM points_ledger WHERE tenant_id=? AND user_id=? AND reason=? AND source_type=? AND source_id=? LIMIT 1`)
+        .get(tenantId, userId, reason, sourceType, sourceId);
+      if (dup) return;
+    }
+    db.prepare(`INSERT INTO points_ledger (tenant_id, user_id, points, reason, source_type, source_id, awarded_by, period, status, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(tenantId, userId, points, reason, sourceType, sourceId, awardedBy, periodOf(), status, note);
+  } catch (e) { console.error("awardPoints failed:", e.message); }
+}
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
 
 app.post("/api/incidents", auth, (req, res) => {
-  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid } = req.body || {};
+  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid, recognizedUserId } = req.body || {};
 
   // Idempotency: the offline queue retries on reconnect. If this exact report was
   // already filed, return the original instead of creating a duplicate incident.
@@ -677,8 +708,14 @@ app.post("/api/incidents", auth, (req, res) => {
     const owns = db.prepare("SELECT 1 FROM sites WHERE id = ? AND tenant_id = ?").get(siteId, req.auth.tenant);
     if (!owns) return res.status(400).json({ error: "Unknown site for this account" });
   }
-  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  // A named kudos recipient (for "positive" reports) must be a user in THIS tenant.
+  let recognizedId = null;
+  if (recognizedUserId) {
+    const rec = db.prepare("SELECT id FROM users WHERE id = ? AND tenant_id = ? AND active = 1").get(recognizedUserId, req.auth.tenant);
+    if (rec) recognizedId = rec.id;
+  }
+  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid, recognized_user_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   // Insert with an empty photo list, then write the image bytes to disk and store
   // only the refs — the row must exist before a photo can be attached to it.
   // Engagement reports (positive/idea/observation) get a REP- ref, not INC- —
@@ -689,7 +726,7 @@ app.post("/api/incidents", auth, (req, res) => {
     stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
              locationDetail ?? null, JSON.stringify(involved ?? []), "[]",
              req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null,
-             clientUuid ? String(clientUuid) : null));
+             clientUuid ? String(clientUuid) : null, recognizedId));
   const photoRefs = storePhotos(req.auth.tenant, "incident", r.lastInsertRowid, photos);
   if (photoRefs.length) {
     db.prepare("UPDATE incidents SET photos = ? WHERE id = ? AND tenant_id = ?")
@@ -716,6 +753,29 @@ app.post("/api/incidents", auth, (req, res) => {
       : `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,
     linkKind: "incident", linkRef: ref,
   });
+  // Recognition points (leading-indicator rewards). Report-linked points start as
+  // 'pending' and are confirmed when safety reviews/closes the report — this is
+  // the anti-gaming guard (spamming junk reports earns nothing until reviewed).
+  // Kudos are immediate: naming a colleague recognises them now.
+  const recoOn = db.prepare("SELECT recognition_enabled FROM tenants WHERE id = ?").get(req.auth.tenant)?.recognition_enabled;
+  if (recoOn) {
+    const isIdea = type === "idea";
+    awardPoints(req.auth.tenant, req.auth.uid, isIdea ? POINTS.idea : POINTS.report_reviewed,
+      isIdea ? "idea" : "report_reviewed", { sourceType: "incident", sourceId: r.lastInsertRowid, status: "pending" });
+    if (type === "positive" && recognizedId) {
+      // The reporter gets kudos-given now; the recognised colleague gets kudos-received.
+      awardPoints(req.auth.tenant, req.auth.uid, POINTS.kudos_given, "kudos_given",
+        { sourceType: "incident", sourceId: r.lastInsertRowid });
+      awardPoints(req.auth.tenant, recognizedId, POINTS.kudos_received, "kudos_received",
+        { sourceType: "incident", sourceId: r.lastInsertRowid, awardedBy: req.auth.uid });
+      // Tell the recognised person they were caught doing it right.
+      notifyUsers(req.auth.tenant, [recognizedId], {
+        title: "👏 You got a shout-out",
+        body: `A colleague recognised you for working safe${site ? ` at ${site}` : ""}.`,
+        linkKind: "incident", linkRef: ref, email: false,
+      });
+    }
+  }
   res.json({ id: r.lastInsertRowid, ref, notified: notified ?? null });
 });
 app.put("/api/incidents/:id/response", auth, (req, res) => {
@@ -777,7 +837,54 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
                   : "The team has closed out what you reported. Thanks for flagging it.",
       linkKind: "incident", linkRef: notifyReporter.ref, email: false,
     });
+    // Confirm the reporter's pending points now that safety has reviewed it.
+    db.prepare(`UPDATE points_ledger SET status = 'confirmed'
+                WHERE tenant_id = ? AND source_type = 'incident' AND source_id = ? AND status = 'pending'`)
+      .run(req.auth.tenant, req.params.id);
   }
+  res.json({ ok: true });
+});
+
+// ── Recognition & leaderboard ─────────────────────────────────────────────────
+// My own points: confirmed total, this month, and pending (awaiting review).
+app.get("/api/points/me", auth, (req, res) => {
+  const t = req.auth.tenant, u = req.auth.uid, p = periodOf();
+  const confirmed = db.prepare("SELECT COALESCE(SUM(points),0) n FROM points_ledger WHERE tenant_id=? AND user_id=? AND status='confirmed'").get(t, u).n;
+  const thisMonth = db.prepare("SELECT COALESCE(SUM(points),0) n FROM points_ledger WHERE tenant_id=? AND user_id=? AND status='confirmed' AND period=?").get(t, u, p).n;
+  const pending = db.prepare("SELECT COALESCE(SUM(points),0) n FROM points_ledger WHERE tenant_id=? AND user_id=? AND status='pending'").get(t, u).n;
+  const recent = db.prepare(`SELECT points, reason, note, created_at FROM points_ledger
+                             WHERE tenant_id=? AND user_id=? AND status='confirmed'
+                             ORDER BY created_at DESC LIMIT 10`).all(t, u);
+  res.json({ confirmed, thisMonth, pending, period: p, recent });
+});
+
+// Monthly leaderboard. Anti-shame by design: returns only the TOP N plus the
+// caller's OWN rank — never a full ranked list that publicly ranks people last.
+app.get("/api/points/leaderboard", auth, (req, res) => {
+  const t = req.auth.tenant, p = String(req.query.period || periodOf());
+  const top = db.prepare(`SELECT u.id, u.name, SUM(l.points) AS pts
+                          FROM points_ledger l JOIN users u ON u.id = l.user_id
+                          WHERE l.tenant_id=? AND l.status='confirmed' AND l.period=? AND u.active=1
+                          GROUP BY u.id ORDER BY pts DESC, u.name ASC LIMIT 10`).all(t, p);
+  // Caller's own rank (computed, not exposed for others).
+  const mine = db.prepare(`SELECT COALESCE(SUM(points),0) pts FROM points_ledger
+                           WHERE tenant_id=? AND user_id=? AND status='confirmed' AND period=?`).get(t, req.auth.uid, p).pts;
+  const ahead = db.prepare(`SELECT COUNT(*) n FROM (
+                              SELECT user_id, SUM(points) pts FROM points_ledger
+                              WHERE tenant_id=? AND status='confirmed' AND period=? GROUP BY user_id
+                              HAVING pts > ?)`).get(t, p, mine).n;
+  res.json({ period: p, top: top.map((r, i) => ({ rank: i + 1, name: r.name, points: r.pts, isMe: r.id === req.auth.uid })),
+             me: { points: mine, rank: mine > 0 ? ahead + 1 : null } });
+});
+
+// Operator/admin: award manual recognition points to someone.
+app.post("/api/points/award", auth, requireRole(...ADMINISH), (req, res) => {
+  const { userId, points, note } = req.body || {};
+  const n = parseInt(points, 10);
+  if (!userId || !Number.isFinite(n) || n === 0) return res.status(400).json({ error: "userId and non-zero points required" });
+  const target = db.prepare("SELECT id FROM users WHERE id=? AND tenant_id=?").get(userId, req.auth.tenant);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  awardPoints(req.auth.tenant, userId, n, "manual", { awardedBy: req.auth.uid, note: note ? String(note).slice(0, 300) : null });
   res.json({ ok: true });
 });
 
@@ -1192,6 +1299,13 @@ app.post("/api/completions", auth, (req, res) => {
   const tx = db.transaction(() => targets.forEach(uid =>
     stmt.run(req.auth.tenant, trainingId, uid, sid, method ?? "cbt", score ?? null, didPass, didPass, training.frequency_months, training.frequency_months)));
   tx();
+  // Recognition: reward passing a training (a leading indicator). One award per
+  // (user, training) via the source dedup, so retakes don't farm points.
+  const recoOn = db.prepare("SELECT recognition_enabled FROM tenants WHERE id = ?").get(req.auth.tenant)?.recognition_enabled;
+  if (recoOn && didPass) {
+    targets.forEach(uid => awardPoints(req.auth.tenant, uid, POINTS.training, "training",
+      { sourceType: "training", sourceId: trainingId }));
+  }
   res.json({ ok: true, sessionId: sid, count: targets.length });
 });
 
