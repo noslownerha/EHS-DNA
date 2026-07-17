@@ -234,6 +234,7 @@ export function IncidentProvider({
       type: d.type, severity: d.severity, siteId: siteRec?.id ?? null,
       description: d.description, locationDetail: d.location, floorPos: d.floorPos ?? null,
       involved: d.involved ?? [], occurredAt: d.datetime ?? null, department: d.dept ?? null,
+      recognizedUserId: d.recognizedUserId ?? null,
       photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
     };
 

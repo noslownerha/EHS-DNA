@@ -1,5 +1,6 @@
 import { COLORS } from "./constants.js";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
@@ -97,10 +98,32 @@ export default function S2a2WhatHappened({
   const [injuryType,  setInjuryType]  = useState("");
   const [descFocused, setDescFocused] = useState(false);
   const [locFocused,  setLocFocused]  = useState(false);
+  const [recognizedUserId, setRecognizedUserId] = useState("");
+  const [users, setUsers] = useState([]);
 
   const isInjury   = incidentType === "injury";
+  const isPositive = incidentType === "positive";
+  const isIdea     = incidentType === "idea";
+  const isEngagement = isPositive || isIdea || incidentType === "observation";
   const showOsha   = isInjury && injuryType !== "";
-  const canContinue = description.trim() && severity;
+  // Engagement reports don't need a severity; everything else does.
+  const canContinue = description.trim() && (isEngagement || severity);
+
+  // Load the roster for the "who are you recognising?" picker (positives only).
+  useEffect(() => {
+    if (!isPositive) return;
+    api.listUsers().then(setUsers).catch(() => setUsers([]));
+  }, [isPositive]);
+
+  // Type-aware copy so the screen speaks the worker's language.
+  const COPY = {
+    positive:    { h: "Nice catch! 👍", p: "Tell us what you saw someone do right.", ph: "What did they do well? (e.g. stopped to lock out the line before clearing a jam)" },
+    idea:        { h: "What's your idea? 💡", p: "How could we make things safer or easier?", ph: "Describe your idea — what would you change, and why?" },
+    observation: { h: "What did you notice?", p: "Describe what you observed.", ph: "What did you see?" },
+    hazard:      { h: "What's the hazard?", p: "Describe what's unsafe so we can fix it.", ph: "What's unsafe, and where?" },
+    _default:    { h: "What happened?", p: "Describe it in your own words.", ph: "Describe what happened, what you saw, and what you did…" },
+  };
+  const copy = COPY[incidentType] ?? COPY._default;
 
   return (
     <div style={{
@@ -130,8 +153,8 @@ export default function S2a2WhatHappened({
       <div style={{ flex: 1, padding: "16px 20px 100px", overflowY: "auto" }}>
 
         <div className="anim" style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>What happened?</h1>
-          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>Describe the incident in your own words.</p>
+          <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>{copy.h}</h1>
+          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>{copy.p}</p>
         </div>
 
         {/* Description */}
@@ -142,7 +165,7 @@ export default function S2a2WhatHappened({
             onChange={e => setDescription(e.target.value)}
             onFocus={() => setDescFocused(true)}
             onBlur={() => setDescFocused(false)}
-            placeholder="Describe what happened, what you saw, and what you did…"
+            placeholder={copy.ph}
             rows={4}
             style={{
               width: "100%", padding: "10px 12px",
@@ -203,7 +226,28 @@ export default function S2a2WhatHappened({
           </div>
         )}
 
-        {/* Severity — spec: plain-language 3-tier, OSHA classification NOT shown */}
+        {/* Who are you recognising? — positives only. This is the peer-kudos hook:
+            naming a colleague is what turns a "positive observation" into
+            recognition that person actually feels. */}
+        {isPositive && (
+          <div className="anim" style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 8 }}>
+              Who are you recognising? <span style={{ color: C.mist, textTransform: "none", fontWeight: 400 }}>(optional)</span>
+            </div>
+            <select value={recognizedUserId} onChange={e => setRecognizedUserId(e.target.value)}
+              style={{ width: "100%", padding: "12px 14px", border: "1.5px solid #D0DEDB", borderRadius: 10,
+                       fontFamily: "'DM Sans', sans-serif", fontSize: ".92rem", color: C.ink, background: C.white }}>
+              <option value="">Someone (no name) / a team</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+            <div style={{ fontSize: ".74rem", color: C.mist, marginTop: 6 }}>
+              They'll get a shout-out and a few points. Catching people doing it right is how good habits spread.
+            </div>
+          </div>
+        )}
+
+        {/* Severity — not shown for engagement reports (a kudos isn't "severe"). */}
+        {!isEngagement && (
         <div className="anim" style={{ marginBottom: 14 }}>
           <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>
             How serious was it?
@@ -250,6 +294,7 @@ export default function S2a2WhatHappened({
             Your Safety Officer will make the formal OSHA classification after submission.
           </div>
         </div>
+        )}
       </div>
 
       {/* Fixed bottom */}
@@ -260,7 +305,7 @@ export default function S2a2WhatHappened({
       }}>
         <button
           className="continue-btn"
-          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType })}
+          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, recognizedUserId: recognizedUserId || null })}
           disabled={!canContinue}
           style={{
             width: "100%", padding: "14px",

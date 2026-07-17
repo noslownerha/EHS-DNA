@@ -102,7 +102,21 @@ export default function StaffDashboard({ user, onHome, onNavigate }) {
             </div>
           </div>
 
-          {/* Triage — full width, pulsing */}
+          {/* Recognition — points & this month's leaders */}
+          <div className="tile" onClick={() => onNavigate("recognition")} style={{
+            background: "linear-gradient(135deg, #EEF6F0, #E0F2F7)",
+            border: `1.5px solid ${C.mint}`,
+            borderRadius: 12, padding: "15px 14px", marginBottom: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,.06)", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <div style={{ fontSize: "1.6rem" }}>🏆</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: ".9rem", fontWeight: 700, color: C.ink }}>Recognition</div>
+              <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>Your points, this month's leaders, give a shout-out</div>
+            </div>
+            <div style={{ fontSize: "1rem", color: C.sage }}>→</div>
+          </div>
           <div
             className="tile triage-tile"
             onClick={() => onNavigate("triage")}

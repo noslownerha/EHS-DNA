@@ -6,6 +6,7 @@ import LandingPage                   from "./LandingPage.jsx";
 import AppShell, { EHSHeader, AccountContext } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
 import StaffDashboard                from "./StaffDashboard.jsx";
+import RecognitionScreen            from "./RecognitionScreen.jsx";
 
 import { TriageProvider, TriageRouter }                                from "./flow0_glue.jsx";
 import { IncidentProvider, IncidentRouter, INCIDENT_SCREENS }          from "./flow2_glue.jsx";
@@ -178,6 +179,7 @@ function App() {
                 onIncidents={()     => { setFlagScreen(INCIDENT_SCREENS.LIST); handleTab("flag"); }}
                 onFindings={()      => handleTab("inspect")}
                 onCAs={()           => { setFlagScreen(INCIDENT_SCREENS.CA_TRACKER); handleTab("flag"); }}
+                onRecognition={()   => handleTab("recognition")}
               />
             </DashboardProvider>
           </MobileFrame>
@@ -216,6 +218,13 @@ function App() {
         );
 
       // ── TRAINING ─────────────────────────────────────────────────────────
+      case "recognition":
+        return (
+          <MobileFrame>
+            <RecognitionScreen onHome={handleHome} currentUserName={currentUser.name} />
+          </MobileFrame>
+        );
+
       case "training":
         return (
           <MobileFrame>

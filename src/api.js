@@ -102,6 +102,11 @@ export const api = {
   createIncident: (i) => req("/incidents", { method: "POST", body: i }),
   updateIncident: (id, patch) => req(`/incidents/${id}`, { method: "PUT", body: patch }),
   saveResponseProgress: (id, progress) => req(`/incidents/${id}/response`, { method: "PUT", body: { progress } }),
+  // Recognition / points
+  myPoints: () => req("/points/me"),
+  leaderboard: (period) => req(`/points/leaderboard${period ? `?period=${period}` : ""}`),
+  awardPoints: (body) => req("/points/award", { method: "POST", body }),
+
   listCAs: () => req("/cas"),
   getCA: (id) => req(`/cas/${id}`),
   createCA: (c) => req("/cas", { method: "POST", body: c }),
