@@ -749,9 +749,35 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
     if (Object.prototype.hasOwnProperty.call(b, key)) { sets.push(`${col} = ?`); vals.push(b[key]); }
   }
   if (!sets.length) return res.json({ ok: true });
+
+  // Close-the-loop: if this update closes the report, tell the person who filed it.
+  // Workers stop reporting when nothing visibly comes of it — a "here's what
+  // happened with your report" note is the single biggest driver of repeat
+  // reporting. Only fire on the open→closed transition, and not for the closer
+  // themselves.
+  let notifyReporter = null;
+  if (b.status === "closed") {
+    const prev = db.prepare("SELECT status, reported_by, ref, type FROM incidents WHERE id = ? AND tenant_id = ?")
+      .get(req.params.id, req.auth.tenant);
+    if (prev && prev.status !== "closed" && prev.reported_by && prev.reported_by !== req.auth.uid) {
+      notifyReporter = prev;
+    }
+  }
+
   vals.push(req.params.id, req.auth.tenant);
   db.prepare(`UPDATE incidents SET ${sets.join(", ")}, updated_at = datetime('now')
               WHERE id = ? AND tenant_id = ?`).run(...vals);
+
+  if (notifyReporter) {
+    const isEng = ENGAGEMENT_TYPES.includes(notifyReporter.type);
+    notifyUsers(req.auth.tenant, [notifyReporter.reported_by], {
+      title: isEng ? `Thanks for speaking up — ${notifyReporter.ref} was reviewed`
+                   : `Your report ${notifyReporter.ref} has been resolved`,
+      body: isEng ? "Your input was reviewed and closed out. Keep them coming — it makes a difference."
+                  : "The team has closed out what you reported. Thanks for flagging it.",
+      linkKind: "incident", linkRef: notifyReporter.ref, email: false,
+    });
+  }
   res.json({ ok: true });
 });
 

@@ -716,6 +716,22 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const engInjuries = engSummary.reduce((n, s2) => n + (s2.injuries || 0), 0);
   ok("engagement reports are not counted as injuries", engInjuries === 0);
 
+  // ── Close-the-loop: reporter is notified when their report is resolved ──
+  const loopRid = await fetch(`${B}/api/incidents`, { method: "POST", headers: sH,
+    body: JSON.stringify({ type: "hazard", siteId: 1, description: "loose railing" }) }).then(j);
+  await fetch(`${B}/api/incidents/${loopRid.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "closed" }) });
+  const loopNotifs = await fetch(`${B}/api/notifications`, { headers: sH }).then(j);
+  ok("reporter is notified when their report is closed",
+     loopNotifs.some(n => (n.link_ref === loopRid.ref) && /resolved|reviewed/i.test(n.title)));
+  // Closing again (or a no-op) must not re-notify.
+  const beforeCount = loopNotifs.filter(n => n.link_ref === loopRid.ref).length;
+  await fetch(`${B}/api/incidents/${loopRid.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "closed" }) });
+  const after2 = await fetch(`${B}/api/notifications`, { headers: sH }).then(j);
+  ok("closing an already-closed report does not re-notify",
+     after2.filter(n => n.link_ref === loopRid.ref).length === beforeCount);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
