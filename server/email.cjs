@@ -22,7 +22,9 @@
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
 // Brand palette (matches the app's forest/sage).
-const BRAND = { forest: "#1E3328", sage: "#5B8C6E", ink: "#1A2420", mist: "#6B7E76", chalk: "#F4F7F5", line: "#E2EBE6" };
+// Brand palette for email. Mirrors src/constants.js BRAND_COLORS (email runs
+// outside the JS bundle so it can't import that file — keep in sync on rebrand).
+const BRAND = { forest: "#1C3A2A", sage: "#4A8C5C", ink: "#0F1F17", mist: "#6B7E76", chalk: "#F4F7F5", line: "#E2EBE6" };
 const APP_URL = process.env.EHS_APP_URL || "https://app.ehsdna.com";
 
 const escapeHtml = (s) => String(s ?? "")

@@ -34,6 +34,25 @@ export const COLORS = {
 // Company: WhistlePig (Whiskey)
 // Round 1 review applied: buckets 1–4
 
+// ── Brand identity ────────────────────────────────────────────────────────────
+// THE rebrand surface. When EHS DNA gets its new logo + palette, these are the
+// values to change — brand colours are deliberately separated from the semantic
+// colours in COLORS (red = danger, gold = warning, etc.), which stay constant
+// through any rebrand. The primary/accent/etc. here mirror the forest/sage family
+// in COLORS today; a rebrand swaps these and the COLORS brand entries together.
+// NOTE: email (server/email.cjs), the PWA manifest, and index.html each carry
+// their own copy of the primary colour because they run outside the JS bundle and
+// can't import this file — keep them in sync with brandPrimary when rebranding.
+export const BRAND_COLORS = {
+  primary:   "#1C3A2A",   // forest — headers, primary surfaces  (COLORS.forest)
+  primary2:  "#2D5A3D",   // pine — gradients, hover              (COLORS.pine)
+  accent:    "#4A8C5C",   // sage — buttons, links, active        (COLORS.sage)
+  accentSoft:"#A8D5B5",   // mint — soft accents                  (COLORS.mint)
+  wash:      "#E8F5EC",   // foam — tinted backgrounds            (COLORS.foam)
+  textDark:  "#0F1F17",   // ink — primary text on light          (COLORS.ink)
+  surface:   "#F4F7F5",   // chalk — app background               (COLORS.chalk)
+};
+
 export const BRAND = {
   name:     "EHS DNA",
   tagline:  "Keeping the right eyes on what matters.",
