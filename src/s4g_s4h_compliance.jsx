@@ -13,18 +13,6 @@ const STATUS = {
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple },
 };
 
-
-const STAFF_TRAININGS = [
-  { id: 1, title: "Bottling Line Safety Orientation",   status: "overdue",       due: "Jun 10, 2024",  expiresAt: null           },
-  { id: 2, title: "Hazard Communication (HAZCOM)",      status: "expiring_soon", due: null,            expiresAt: "Jul 5, 2024"  },
-  { id: 3, title: "Emergency Evacuation Procedures",    status: "current",       due: null,            expiresAt: "Dec 2024"     },
-  { id: 4, title: "PPE Selection & Use",                status: "not_started",   due: "Jun 30, 2024",  expiresAt: null           },
-  { id: 5, title: "Slips, Trips & Falls Prevention",    status: "expired",       due: null,            expiresAt: "May 1, 2024"  },
-  { id: 6, title: "Annual Safety Refresher",            status: "current",       due: null,            expiresAt: "Jan 2025"     },
-  { id: 7, title: "Forklift Operator Certification",    status: "not_started",   due: "Jul 15, 2024",  expiresAt: null           },
-  { id: 8, title: "First Aid & CPR",                    status: "current",       due: null,            expiresAt: "Apr 2026"     },
-];
-
 function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
   return (
     <EHSHeader onHome={onHome} title={companyName} rightContent={

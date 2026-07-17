@@ -6,15 +6,6 @@ import AuthImg from "./AuthImg.jsx";
 
 const C = { ...COLORS };
 
-// ── Seed data ────────────────────────────────────────────────────────────────
-const SEED_INCIDENTS = [
-  { id: "INC-2024-0087", type: "injury",       site: "Moriah",      dept: "Bottling & Packaging",    severity: "significant", status: "open",   reporter: "Sarah M.", date: "2024-06-12", osha: "Pending",      caStatus: "overdue",   triageId: "TRG-2024-0041" },
-  { id: "INC-2024-0086", type: "near_miss",    site: "Middlebury",  dept: "Production / Distilling", severity: "minor",       status: "open",   reporter: "Dana K.",  date: "2024-06-10", osha: "Non-recordable",caStatus: "on-track",  triageId: null },
-  { id: "INC-2024-0085", type: "property",     site: "Moriah",      dept: "Warehouse",               severity: "significant", status: "closed", reporter: "Marcus W.",date: "2024-06-05", osha: "Recordable",    caStatus: "closed",    triageId: null },
-  { id: "INC-2024-0084", type: "injury",       site: "Brandenburg", dept: "Administration",          severity: "minor",       status: "open",   reporter: "Priya N.", date: "2024-06-03", osha: "Non-recordable",caStatus: "on-track",  triageId: null },
-  { id: "INC-2024-0083", type: "environmental",site: "Shoreham",    dept: "Bottling & Packaging",    severity: "serious",     status: "closed", reporter: "Tom R.",   date: "2024-05-28", osha: "Recordable",    caStatus: "closed",    triageId: "TRG-2024-0038" },
-  { id: "INC-2024-0082", type: "vehicle",      site: "Moriah",      dept: "Warehouse",               severity: "significant", status: "open",   reporter: "Jake L.",  date: "2024-05-20", osha: "Pending",       caStatus: "overdue",   triageId: null },
-];
 
 const TYPE_LABELS = {
   injury: "Injury", near_miss: "Near Miss", property: "Property Damage",

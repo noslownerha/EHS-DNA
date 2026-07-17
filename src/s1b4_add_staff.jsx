@@ -17,14 +17,6 @@ const ROLES = [
   "Company Admin",
 ];
 
-const SEED_STAFF = [
-  { id: 1, first: "Sarah",  last: "Mitchell", email: "sarah.m@whistlepig.com",  site: "Moriah",      dept: "Bottling & Packaging",    role: "Staff / Trainee",           invited: true  },
-  { id: 2, first: "Marcus", last: "Webb",      email: "marcus.w@whistlepig.com", site: "Moriah",      dept: "Warehouse",                role: "Staff / Trainee",           invited: true  },
-  { id: 3, first: "Dana",   last: "Kowalski",  email: "dana.k@whistlepig.com",   site: "Middlebury",  dept: "Production / Distilling",  role: "Site Manager",              invited: true  },
-  { id: 4, first: "Tom",    last: "Rivera",    email: "tom.r@whistlepig.com",    site: "Shoreham",    dept: "Facility Maintenance",              role: "Staff / Trainee",           invited: false },
-  { id: 5, first: "Priya",  last: "Nair",      email: "priya.n@whistlepig.com",  site: "Brandenburg", dept: "Administration",           role: "Site Manager",              invited: true  },
-];
-
 // ── Shared primitives ────────────────────────────────────────────────────────
 function Stepper({ current }) {
   return (
@@ -469,7 +461,7 @@ export default function S1b4AddStaff({
   onHome,
   sites       = ["Moriah", "Middlebury", "Shoreham", "Brandenburg"],
   departments = ["Production / Distilling", "Bottling & Packaging", "Warehouse", "Facility Maintenance", "Quality Control", "Tasting Room / Hospitality", "Administration"],
-  initialStaff = SEED_STAFF,
+  initialStaff = [],
   onContinue,
   onBack,
 }) {

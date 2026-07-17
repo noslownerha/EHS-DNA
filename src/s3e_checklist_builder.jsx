@@ -12,14 +12,6 @@ const SEVERITIES = ["Critical", "Major", "Minor", "Noted"];
 
 const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer", "Inspector"];
 
-const SEED_TEMPLATES = [
-  { id: 1, name: "Bottling Line Safety Check",  site: "Moriah",      dept: "Bottling & Packaging",    items: 11, lastUsed: "Jun 12, 2024", schedule: "Daily"    },
-  { id: 2, name: "Forklift Pre-Op Inspection",  site: "Moriah",      dept: "Warehouse",               items: 8,  lastUsed: "Jun 14, 2024", schedule: "Daily"    },
-  { id: 3, name: "Chemical Storage Walkthrough",site: "Middlebury",  dept: "Production / Distilling", items: 14, lastUsed: "Jun 10, 2024", schedule: "Weekly"   },
-  { id: 4, name: "Emergency Equipment Check",   site: "All sites",   dept: "All departments",         items: 6,  lastUsed: "Jun 07, 2024", schedule: "Monthly"  },
-  { id: 5, name: "Barrel House Inspection",     site: "Shoreham",    dept: "Facility Maintenance",             items: 9,  lastUsed: "May 28, 2024", schedule: "Monthly"  },
-];
-
 const SEED_ITEMS = [
   { id: 1,  section: "PPE",         text: "All workers wearing hard hats in active zones",           defaultSeverity: "Major",  autoAssign: "Site Manager"   },
   { id: 2,  section: "PPE",         text: "Safety glasses present at all bottling stations",         defaultSeverity: "Minor",  autoAssign: "Department Lead"},

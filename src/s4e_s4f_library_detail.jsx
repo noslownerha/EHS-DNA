@@ -17,17 +17,6 @@ const STATUS = {
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple },
 };
 
-const SEED_LIBRARY = [
-  { id: 1,  title: "Bottling Line Safety Orientation",     type: "cbt",       groups: ["Bottling & Packaging"],               recurrence: 12, passThreshold: 80,  version: "v1.3", completions: 18, overdue: 2  },
-  { id: 2,  title: "Forklift Operator Certification",      type: "in_person", groups: ["Warehouse", "Forklift Certified"],    recurrence: 12, passThreshold: null, version: "v2.0", completions: 9,  overdue: 1  },
-  { id: 3,  title: "Hazard Communication (HAZCOM)",        type: "cbt",       groups: ["All Staff"],                          recurrence: 12, passThreshold: 75,  version: "v1.1", completions: 41, overdue: 0  },
-  { id: 4,  title: "Emergency Evacuation Procedures",      type: "cbt",       groups: ["All Staff"],                          recurrence: 6,  passThreshold: 100, version: "v1.0", completions: 38, overdue: 3  },
-  { id: 5,  title: "PPE Selection & Use",                  type: "cbt",       groups: ["All Staff"],                          recurrence: 12, passThreshold: 80,  version: "v1.2", completions: 35, overdue: 4  },
-  { id: 6,  title: "Slips, Trips & Falls Prevention",      type: "cbt",       groups: ["All Staff"],                          recurrence: 12, passThreshold: 80,  version: "v1.0", completions: 30, overdue: 5  },
-  { id: 7,  title: "First Aid & CPR",                      type: "in_person", groups: ["Safety Officer", "ERC"],              recurrence: 24, passThreshold: null, version: "v1.0", completions: 4,  overdue: 0  },
-  { id: 8,  title: "Annual Safety Refresher",              type: "in_person", groups: ["All Staff"],                          recurrence: 12, passThreshold: null, version: "v3.1", completions: 40, overdue: 2  },
-];
-
 const SEED_COMPLETIONS = [
   { id: 1, staffName: "Staff member",  site: "Moriah",     completedAt: "2024-03-15", score: 92, passed: true,  expiresAt: "2025-03-15", trainerName: null,      sessionId: null           },
   { id: 2, staffName: "Jake Larson",     site: "Moriah",     completedAt: "2024-03-15", score: 88, passed: true,  expiresAt: "2025-03-15", trainerName: null,      sessionId: null           },

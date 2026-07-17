@@ -21,15 +21,6 @@ const TYPE = {
   in_person: { label: "In-person", emoji: "👥", color: C.pine   },
 };
 
-const SEED_QUEUE_UNUSED = [
-  { id: 1, title: "Bottling Line Safety Orientation",       type: "cbt",       status: "overdue",       due: "Jun 10, 2024",  duration: "~12 min",  progress: 0,    expiresAt: null       },
-  { id: 2, title: "Forklift Operator Certification",        type: "in_person", status: "not_started",   due: "Jun 20, 2024",  duration: "4 hrs",    progress: 0,    expiresAt: null       },
-  { id: 3, title: "Hazard Communication (HAZCOM)",          type: "cbt",       status: "expiring_soon", due: null,            duration: "~8 min",   progress: 100,  expiresAt: "Jul 5, 2024" },
-  { id: 4, title: "Emergency Evacuation Procedures",        type: "cbt",       status: "current",       due: null,            duration: "~6 min",   progress: 100,  expiresAt: "Dec 2024" },
-  { id: 5, title: "PPE Selection & Use",                    type: "cbt",       status: "not_started",   due: "Jun 30, 2024",  duration: "~10 min",  progress: 0,    expiresAt: null       },
-  { id: 6, title: "Slips, Trips & Falls Prevention",        type: "cbt",       status: "expired",       due: null,            duration: "~7 min",   progress: 100,  expiresAt: "May 1, 2024" },
-];
-
 function StatusPill({ status }) {
   const s = STATUS[status] ?? STATUS.not_started;
   return (
