@@ -730,27 +730,40 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
 
 // ── Corrective actions ───────────────────────────────────────────────────────
 app.get("/api/cas", auth, (req, res) => {
-  // Corrective actions reference incidents (and therefore injuries), so base
-  // staff see none at all.
-  if (!CAN_SEE_CAS.includes(req.auth.role)) return res.json([]);
-  const site = siteScope(req);
-  // corrective_actions has no site of its own — it inherits the site of the
-  // incident or finding it came from.
-  if (site === null) {
-    return res.json(db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name
-                                FROM corrective_actions c
-                                LEFT JOIN incidents i ON i.id = c.incident_id
-                                LEFT JOIN users u ON u.id = c.assignee_id
-                                WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant));
+  const sel = `SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name,
+                      d.name AS assignee_group_name
+               FROM corrective_actions c
+               LEFT JOIN incidents i ON i.id = c.incident_id
+               LEFT JOIN findings f ON f.id = c.finding_id
+               LEFT JOIN users u ON u.id = c.assignee_id
+               LEFT JOIN departments d ON d.id = c.assignee_dept_id`;
+
+  // Staff/trainer don't get the company CA list — BUT a group assignment is a
+  // direct task for them, so they see CAs assigned to them personally or to their
+  // department (optionally site-scoped to that group). Nothing else.
+  if (!CAN_SEE_CAS.includes(req.auth.role)) {
+    const me = db.prepare("SELECT department_id, site_id FROM users WHERE id = ?").get(req.auth.uid);
+    const rows = db.prepare(`${sel}
+      WHERE c.tenant_id = ?
+        AND ( c.assignee_id = ?
+              OR ( c.assignee_dept_id IS NOT NULL
+                   AND c.assignee_dept_id = ?
+                   AND (c.assignee_site_id IS NULL OR c.assignee_site_id = ?) ) )
+      ORDER BY c.due_date ASC`)
+      .all(req.auth.tenant, req.auth.uid, me?.department_id ?? -1, me?.site_id ?? -1);
+    return res.json(rows);
   }
-  res.json(db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name
-                       FROM corrective_actions c
-                       LEFT JOIN incidents i ON i.id = c.incident_id
-                       LEFT JOIN findings f ON f.id = c.finding_id
-                       LEFT JOIN users u ON u.id = c.assignee_id
+
+  const site = siteScope(req);
+  if (site === null) {
+    return res.json(db.prepare(`${sel} WHERE c.tenant_id = ? ORDER BY c.due_date ASC`).all(req.auth.tenant));
+  }
+  // Site-scoped managers: CAs whose incident/finding is at their site, OR that are
+  // group-assigned to their site.
+  res.json(db.prepare(`${sel}
                        WHERE c.tenant_id = ?
-                         AND (i.site_id = ? OR f.site_id = ?)
-                       ORDER BY c.due_date ASC`).all(req.auth.tenant, site, site));
+                         AND (i.site_id = ? OR f.site_id = ? OR c.assignee_site_id = ?)
+                       ORDER BY c.due_date ASC`).all(req.auth.tenant, site, site, site));
 });
 // Valid CA statuses. capex_blocked is "open but awaiting budget" — see reports.
 const CA_STATUSES = ["open", "in_progress", "capex_blocked", "done", "verified"];
@@ -766,19 +779,65 @@ function logCA(tenantId, caId, actorId, kind, detail) {
 const userName = (id, tenantId) =>
   id ? (db.prepare("SELECT name FROM users WHERE id = ? AND tenant_id = ?").get(id, tenantId)?.name ?? "someone") : null;
 
+// Resolve a group (department, optionally scoped to a site) to its active member
+// user-ids — this is who gets notified and who sees the item as theirs.
+function groupMemberIds(tenantId, deptId, siteId) {
+  if (!deptId) return [];
+  const rows = siteId
+    ? db.prepare("SELECT id FROM users WHERE tenant_id = ? AND department_id = ? AND site_id = ? AND active = 1").all(tenantId, deptId, siteId)
+    : db.prepare("SELECT id FROM users WHERE tenant_id = ? AND department_id = ? AND active = 1").all(tenantId, deptId);
+  return rows.map(r => r.id);
+}
+
+// Human label for a group, e.g. "Bottling (Moriah)" or "Maintenance".
+// Can this request act on a specific CA? Managers/safety always; otherwise only
+// the individual assignee or a member of the assigned group. This lets a line
+// worker close the group task assigned to their department without opening up the
+// whole CA surface to all staff.
+function canActOnCA(req, ca) {
+  if (CAN_SEE_CAS.includes(req.auth.role)) return true;
+  if (ca.assignee_id && ca.assignee_id === req.auth.uid) return true;
+  if (ca.assignee_dept_id) {
+    const me = db.prepare("SELECT department_id, site_id FROM users WHERE id = ?").get(req.auth.uid);
+    if (me && me.department_id === ca.assignee_dept_id &&
+        (!ca.assignee_site_id || ca.assignee_site_id === me.site_id)) return true;
+  }
+  return false;
+}
+
+function groupLabel(tenantId, deptId, siteId) {
+  if (!deptId) return null;
+  const dept = db.prepare("SELECT name FROM departments WHERE id = ? AND tenant_id = ?").get(deptId, tenantId)?.name ?? "a department";
+  const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ? AND tenant_id = ?").get(siteId, tenantId)?.name : null;
+  return site ? `${dept} (${site})` : dept;
+}
+
 app.post("/api/cas", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
-  const { incidentId, findingId, title, priority, assigneeId, dueDate } = req.body || {};
+  const { incidentId, findingId, title, priority, assigneeId, dueDate, assigneeDeptId, assigneeSiteId } = req.body || {};
   if (!title) return res.status(400).json({ error: "title required" });
-  const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, incident_id, finding_id, title, priority, assignee_id, due_date)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(req.auth.tenant, incidentId ?? null, findingId ?? null, title, priority ?? "medium", assigneeId ?? null, dueDate ?? null);
+  // A CA is owned by an individual OR a group, not both.
+  const indiv = assigneeDeptId ? null : (assigneeId ?? null);
+  const dept = assigneeDeptId ?? null;
+  const gsite = assigneeDeptId ? (assigneeSiteId ?? null) : null;
+  const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, incident_id, finding_id, title, priority, assignee_id, due_date, assignee_dept_id, assignee_site_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(req.auth.tenant, incidentId ?? null, findingId ?? null, title, priority ?? "medium", indiv, dueDate ?? null, dept, gsite);
+  const who = dept ? `${groupLabel(req.auth.tenant, dept, gsite)} (group)` : (indiv ? userName(indiv, req.auth.tenant) : null);
   logCA(req.auth.tenant, r.lastInsertRowid, req.auth.uid, "created",
-        `Created${assigneeId ? `, assigned to ${userName(assigneeId, req.auth.tenant)}` : ""}${dueDate ? `, due ${dueDate}` : ""}`);
+        `Created${who ? `, assigned to ${who}` : ""}${dueDate ? `, due ${dueDate}` : ""}`);
+  if (dept) {
+    const members = groupMemberIds(req.auth.tenant, dept, gsite);
+    notifyUsers(req.auth.tenant, members, {
+      title: `Corrective action assigned to your team: ${title}`,
+      body: `${groupLabel(req.auth.tenant, dept, gsite)}${dueDate ? ` · due ${dueDate}` : ""}`,
+      linkKind: "incident", linkRef: null,
+    });
+  }
   res.json({ id: r.lastInsertRowid });
 });
 
 // One CA plus its full activity trail.
-app.get("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
+app.get("/api/cas/:id", auth, (req, res) => {
   const ca = db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name, v.name AS verified_by_name
                          FROM corrective_actions c
                          LEFT JOIN incidents i ON i.id = c.incident_id
@@ -786,6 +845,12 @@ app.get("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
                          LEFT JOIN users v ON v.id = c.verified_by
                          WHERE c.id = ? AND c.tenant_id = ?`).get(req.params.id, req.auth.tenant);
   if (!ca) return res.status(404).json({ error: "Not found" });
+  if (!canActOnCA(req, ca)) return res.status(403).json({ error: "Insufficient permissions" });
+  // Surface the group as a friendly label + member count when assigned to one.
+  if (ca.assignee_dept_id) {
+    ca.assignee_group = groupLabel(req.auth.tenant, ca.assignee_dept_id, ca.assignee_site_id);
+    ca.group_member_count = groupMemberIds(req.auth.tenant, ca.assignee_dept_id, ca.assignee_site_id).length;
+  }
   const activity = db.prepare(`SELECT a.*, u.name AS actor_name FROM ca_activity a
                                LEFT JOIN users u ON u.id = a.actor_id
                                WHERE a.tenant_id = ? AND a.ca_id = ? ORDER BY a.created_at DESC`)
@@ -796,19 +861,33 @@ app.get("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
 // Full workflow update: status, assignment, due date, priority, CapEx block, and
 // free-text notes — each change is diffed against the current row and written to
 // the activity log so there's a defensible audit trail of who changed what, when.
-app.put("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
+app.put("/api/cas/:id", auth, (req, res) => {
   const t = req.auth.tenant;
   const cur = db.prepare("SELECT * FROM corrective_actions WHERE id = ? AND tenant_id = ?").get(req.params.id, t);
   if (!cur) return res.status(404).json({ error: "Not found" });
+  if (!canActOnCA(req, cur)) return res.status(403).json({ error: "Insufficient permissions" });
 
-  const { status, verified, assigneeId, dueDate, priority, note, blockedReason } = req.body || {};
+  const { status, verified, assigneeId, dueDate, priority, note, blockedReason, assigneeDeptId, assigneeSiteId } = req.body || {};
   if (status && !CA_STATUSES.includes(status))
     return res.status(400).json({ error: `Invalid status. One of: ${CA_STATUSES.join(", ")}` });
 
   const sets = [], vals = [], logs = [];
 
+  // Group assignment (a department, optionally at a site). Assigning to a group
+  // clears any individual assignee, and vice-versa — a CA is owned by one or the
+  // other, not both.
+  if (assigneeDeptId !== undefined && (assigneeDeptId ?? null) !== cur.assignee_dept_id) {
+    sets.push("assignee_dept_id = ?"); vals.push(assigneeDeptId ?? null);
+    sets.push("assignee_site_id = ?"); vals.push(assigneeDeptId ? (assigneeSiteId ?? null) : null);
+    if (assigneeDeptId) { sets.push("assignee_id = NULL"); }
+    logs.push(["assign", assigneeDeptId
+      ? `Assigned to ${groupLabel(t, assigneeDeptId, assigneeSiteId)} — all members notified`
+      : "Group assignment cleared"]);
+  }
+
   if (assigneeId !== undefined && assigneeId !== cur.assignee_id) {
     sets.push("assignee_id = ?"); vals.push(assigneeId ?? null);
+    if (assigneeId) { sets.push("assignee_dept_id = NULL"); sets.push("assignee_site_id = NULL"); }
     logs.push(["assign", assigneeId ? `Reassigned to ${userName(assigneeId, t)}` : "Unassigned"]);
   }
   if (dueDate !== undefined && dueDate !== cur.due_date) {
@@ -846,6 +925,16 @@ app.put("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
     db.prepare(`UPDATE corrective_actions SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`).run(...vals);
   }
   logs.forEach(([kind, detail]) => logCA(t, req.params.id, req.auth.uid, kind, detail));
+
+  // If this update assigned the CA to a group, notify every member.
+  if (assigneeDeptId !== undefined && assigneeDeptId && (assigneeDeptId ?? null) !== cur.assignee_dept_id) {
+    const members = groupMemberIds(t, assigneeDeptId, assigneeSiteId);
+    notifyUsers(t, members, {
+      title: `Corrective action assigned to your team: ${cur.title}`,
+      body: groupLabel(t, assigneeDeptId, assigneeSiteId),
+      linkKind: "incident", linkRef: cur.incident_id ? null : null,
+    });
+  }
 
   res.json({ ok: true, changed: sets.length > 0 || logs.length > 0 });
 });
@@ -1100,6 +1189,30 @@ app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (
 
 
 // ── Notifications ─────────────────────────────────────────────────────────────
+// Notify an explicit list of users directly (not via event rules). Used for
+// group assignment — everyone in the assigned department gets the alert. In-app
+// always; email when configured. Best-effort; never throws into the caller.
+function notifyUsers(tenantId, userIds, { title, body, linkKind, linkRef, email = true }) {
+  try {
+    const ids = [...new Set((userIds || []).filter(Boolean))];
+    if (!ids.length) return { count: 0, email: false };
+    const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref, emailed)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    ids.forEach(uid => stmt.run(tenantId, uid, title, body ?? null, linkKind ?? null, linkRef ?? null, email ? 1 : 0));
+    let emailQueued = false;
+    if (email && emailConfigured()) {
+      const emails = db.prepare(`SELECT email FROM users WHERE tenant_id = ? AND active = 1 AND id IN (${ids.map(() => "?").join(",")})`)
+        .all(tenantId, ...ids).map(u => u.email).filter(Boolean);
+      if (emails.length) {
+        emailQueued = true;
+        const company = db.prepare("SELECT name FROM tenants WHERE id = ?").get(tenantId)?.name;
+        sendAlert(emails, { title, meta: body, linkKind, linkRef, company }).catch(err => console.error("sendAlert threw:", err.message));
+      }
+    }
+    return { count: ids.length, email: emailQueued };
+  } catch (e) { console.error("notifyUsers() failed:", e.message); return null; }
+}
+
 function notify(tenantId, events, { title, body, linkKind, linkRef }) {
   try {
     const rules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId)

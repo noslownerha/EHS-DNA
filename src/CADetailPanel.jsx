@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { COLORS as C } from "./constants.js";
+import { COLORS as C, BRAND } from "./constants.js";
 import { api } from "./api.js";
 
 const STATUS_LABELS = {
@@ -49,6 +49,9 @@ export default function CADetailPanel({ caId, users = [], onClose, onChanged }) 
   const [blockReason, setBlockReason] = useState("");
   const [showBlock, setShowBlock] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [assignMode, setAssignMode] = useState(null); // null = infer from CA; "person" | "team"
+  const depts = BRAND.departmentRecords ?? [];
+  const sites = BRAND.siteRecords ?? [];
 
   function load() {
     setLoading(true);
@@ -155,14 +158,49 @@ export default function CADetailPanel({ caId, users = [], onClose, onChanged }) 
               )}
             </div>
 
-            {/* Assignee */}
+            {/* Assignee — person or a whole team */}
             <div>
               <div style={label}>Assigned to</div>
-              <select style={field} value={ca.assignee_id ?? ""} disabled={saving}
-                onChange={e => patch({ assigneeId: e.target.value ? Number(e.target.value) : null })}>
-                <option value="">Unassigned</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                {["person", "team"].map(mode => {
+                  const active = (assignMode ?? (ca.assignee_dept_id ? "team" : "person")) === mode;
+                  return (
+                    <button key={mode} onClick={() => setAssignMode(mode)} style={{
+                      flex: 1, padding: "7px", borderRadius: 8, fontSize: ".8rem", fontWeight: 600,
+                      border: active ? `1.5px solid ${C.sage}` : `1px solid ${C.line ?? "#E2EBE6"}`,
+                      background: active ? "#EEF6F0" : "#fff", color: active ? C.pine : C.slate, cursor: "pointer",
+                    }}>{mode === "person" ? "A person" : "A team"}</button>
+                  );
+                })}
+              </div>
+
+              {(assignMode ?? (ca.assignee_dept_id ? "team" : "person")) === "team" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <select style={field} value={ca.assignee_dept_id ?? ""} disabled={saving}
+                    onChange={e => patch({ assigneeDeptId: e.target.value ? Number(e.target.value) : null, assigneeSiteId: ca.assignee_site_id ?? null })}>
+                    <option value="">Choose a department…</option>
+                    {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                  {ca.assignee_dept_id && (
+                    <select style={field} value={ca.assignee_site_id ?? ""} disabled={saving}
+                      onChange={e => patch({ assigneeDeptId: ca.assignee_dept_id, assigneeSiteId: e.target.value ? Number(e.target.value) : null })}>
+                      <option value="">All sites</option>
+                      {sites.map(s => <option key={s.id} value={s.id}>{s.name} only</option>)}
+                    </select>
+                  )}
+                  {ca.assignee_group && (
+                    <div style={{ fontSize: ".78rem", color: C.mist }}>
+                      Assigned to {ca.assignee_group} — {ca.group_member_count ?? 0} {ca.group_member_count === 1 ? "person" : "people"} notified. Any of them can complete it.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <select style={field} value={ca.assignee_id ?? ""} disabled={saving}
+                  onChange={e => patch({ assigneeId: e.target.value ? Number(e.target.value) : null })}>
+                  <option value="">Unassigned</option>
+                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              )}
             </div>
 
             {/* Due date */}

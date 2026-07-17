@@ -250,6 +250,13 @@ try { db.exec("ALTER TABLE incidents ADD COLUMN client_uuid TEXT"); } catch {}
 try { db.exec("ALTER TABLE corrective_actions ADD COLUMN notes TEXT"); } catch {}
 try { db.exec("ALTER TABLE corrective_actions ADD COLUMN blocked_reason TEXT"); } catch {}
 try { db.exec("ALTER TABLE corrective_actions ADD COLUMN closed_at TEXT"); } catch {}
+// Group assignment: a CA (or task) can go to a whole department instead of one
+// person — e.g. "all of Bottling" for a tripping hazard, or "R&M at Moriah" for
+// equipment. Everyone in the group sees it and is notified; any one of them can
+// action or close it. assignee_dept_id + optional assignee_site_id define the
+// group; when set, assignee_id (the individual) is typically null.
+try { db.exec("ALTER TABLE corrective_actions ADD COLUMN assignee_dept_id INTEGER REFERENCES departments(id)"); } catch {}
+try { db.exec("ALTER TABLE corrective_actions ADD COLUMN assignee_site_id INTEGER REFERENCES sites(id)"); } catch {}
 // status now also allows 'capex_blocked' alongside open|in_progress|done|verified.
 
 db.exec(`CREATE TABLE IF NOT EXISTS ca_activity (

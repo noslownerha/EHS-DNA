@@ -628,6 +628,42 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const wfMoriah = wfSummary.find(x => x.name === "Moriah" || x.site === "Moriah") || wfSummary[0];
   ok("CapEx-blocked CA is not counted as an open/overdue CA", wfMoriah.capexBlocked >= 1);
 
+  // ── Group assignment: a whole department can own a CA; any member can close it ──
+  // Two staff in the same department + site.
+  const grpDept = 2, grpSite = 1;
+  const mk = async (email) => {
+    await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+      body: JSON.stringify({ name: email, email, role: "staff", siteId: grpSite, departmentId: grpDept, password: "Grp!2026xx" }) });
+    const lg = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: "Grp!2026xx" }) }).then(j);
+    return { "Content-Type": "application/json", Authorization: `Bearer ${lg.token}` };
+  };
+  const g1 = await mk("grp1@whistlepig.com");
+  const g2 = await mk("grp2@whistlepig.com");
+  const grpInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "near_miss", siteId: grpSite, description: "grp hazard" }) }).then(j);
+  const grpCa = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: grpInc.id, title: "Group task", assigneeDeptId: grpDept, assigneeSiteId: grpSite }) }).then(j);
+  const g1Sees = await fetch(`${B}/api/cas`, { headers: g1 }).then(j);
+  const g2Sees = await fetch(`${B}/api/cas`, { headers: g2 }).then(j);
+  ok("group members both see the group-assigned CA",
+     g1Sees.some(c => c.id === grpCa.id) && g2Sees.some(c => c.id === grpCa.id));
+  const g1Notifs = await fetch(`${B}/api/notifications`, { headers: g1 }).then(j);
+  ok("group members are notified on assignment", g1Notifs.length >= 1);
+  const g1Close = await fetch(`${B}/api/cas/${grpCa.id}`, { method: "PUT", headers: g1,
+    body: JSON.stringify({ status: "done", note: "done by g1" }) });
+  ok("any group member can action the CA", g1Close.status === 200);
+  // A staffer in a DIFFERENT department cannot see or touch it.
+  await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ name: "otherdept", email: "otherdept@whistlepig.com", role: "staff", siteId: 1, departmentId: 3, password: "Grp!2026xx" }) });
+  const oLg = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "otherdept@whistlepig.com", password: "Grp!2026xx" }) }).then(j);
+  const oH = { "Content-Type": "application/json", Authorization: `Bearer ${oLg.token}` };
+  const oSees = await fetch(`${B}/api/cas`, { headers: oH }).then(j);
+  const oTouch = await fetch(`${B}/api/cas/${grpCa.id}`, { method: "PUT", headers: oH, body: JSON.stringify({ status: "open" }) });
+  ok("a non-member cannot see or act on a group CA",
+     !oSees.some(c => c.id === grpCa.id) && oTouch.status === 403);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
