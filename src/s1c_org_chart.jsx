@@ -5,76 +5,6 @@ import { BRAND, COLORS } from "./constants.js";
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = { ...COLORS };
 
-// ── Seed data ────────────────────────────────────────────────────────────────
-const SEED_ORG = [
-  {
-    id: 1, name: "Moriah", location: "Mineville, NY", status: "Active", expanded: true,
-    departments: [
-      {
-        id: 11, emoji: "🏭", name: "Bottling & Packaging", lead: null,
-        staff: [
-          { id: 101, first: "Sarah",  last: "Mitchell" },
-          { id: 102, first: "Jake",   last: "Larson"   },
-          { id: 103, first: "Beth",   last: "Torres"   },
-        ],
-      },
-      {
-        id: 12, emoji: "📦", name: "Warehouse", lead: "Marcus Webb",
-        staff: [
-          { id: 104, first: "Marcus", last: "Webb"     },
-          { id: 105, first: "Carlos", last: "R."       },
-        ],
-      },
-      {
-        id: 13, emoji: "🔧", name: "Facility Maintenance", lead: null,
-        staff: [
-          { id: 106, first: "Tom",    last: "Rivera"   },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2, name: "Middlebury", location: "Middlebury, VT", status: "Active", expanded: false,
-    departments: [
-      {
-        id: 21, emoji: "⚗️", name: "Production / Distilling", lead: "—",
-        staff: [
-          { id: 201, first: "Dana",   last: "Kowalski" },
-          { id: 202, first: "Lena",   last: "Park"     },
-          { id: 203, first: "Ray",    last: "Santos"   },
-        ],
-      },
-      {
-        id: 22, emoji: "🔬", name: "Quality Control", lead: null,
-        staff: [
-          { id: 204, first: "Mia",    last: "Chen"     },
-        ],
-      },
-    ],
-  },
-  {
-    id: 3, name: "Shoreham", location: "Shoreham, VT", status: "Active", expanded: false,
-    departments: [
-      {
-        id: 31, emoji: "🏭", name: "Bottling & Packaging", lead: null,
-        staff: [
-          { id: 301, first: "Drew",   last: "Nash"     },
-        ],
-      },
-    ],
-  },
-  {
-    id: 4, name: "Brandenburg", location: "Brandenburg, KY", status: "Active", expanded: false,
-    departments: [
-      {
-        id: 41, emoji: "🗂",  name: "Administration", lead: "—",
-        staff: [
-          { id: 401, first: "Priya",  last: "Nair"     },
-        ],
-      },
-    ],
-  },
-];
 
 // ── Utilities ────────────────────────────────────────────────────────────────
 function initials(first, last) {
@@ -461,7 +391,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
 export default function S1cOrgChart({
   onHome,
   companyName = BRAND.company,
-  initialOrg  = SEED_ORG,
+  initialOrg  = [],
   onAddStaff,
   onAddSite,
 }) {

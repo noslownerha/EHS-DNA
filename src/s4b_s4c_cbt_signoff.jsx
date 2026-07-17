@@ -4,69 +4,6 @@ import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
 
-// ── Seed CBT data ─────────────────────────────────────────────────────────────
-const SEED_CBT = {
-  id: 1,
-  title: "Bottling Line Safety Orientation",
-  passThreshold: 80,
-  slides: [
-    {
-      id: 1, type: "content",
-      heading: "Welcome to Bottling Line Safety",
-      body: "This module covers the key hazards and safety procedures for working on or near the bottling line. Completing this training is required before your first shift.",
-      // Spec: company-specific example callouts built into every CBT slide
-      example: "At WhistlePig, the bottling line runs at up to 1,200 bottles per hour. Most injuries occur during start-up and changeover — this is when your focus matters most.",
-      image: null,
-    },
-    {
-      id: 2, type: "content",
-      heading: "PPE Requirements",
-      body: "The following PPE is mandatory at all times on the bottling floor: safety glasses, slip-resistant footwear, and hearing protection when the line is running.",
-      example: "WhistlePig Moriah uses Pyramex SB6410D safety glasses — spares are in the red cabinet by the east entrance.",
-      image: null,
-    },
-    {
-      id: 3, type: "content",
-      heading: "Lockout / Tagout (LOTO)",
-      body: "Before performing any maintenance or clearing a jam, you must follow the LOTO procedure. Never reach into a moving machine. Energy must be isolated and verified before contact.",
-      example: "The LOTO station for Line 2 is located on the north wall panel. Each technician uses their personal padlock — do not use someone else's.",
-      image: null,
-    },
-    {
-      id: 4, type: "knowledge_check",
-      heading: "Knowledge Check",
-      question: "What must you do before clearing a jam or performing maintenance on the bottling line?",
-      options: [
-        "Notify your supervisor and wait for permission",
-        "Follow the LOTO procedure and verify energy is isolated",
-        "Stop the line using the emergency stop button only",
-        "Clear the jam quickly to avoid production delay",
-      ],
-      correctIndex: 1,
-      explanation: "LOTO is required before any contact with powered equipment. The emergency stop alone does not isolate all energy sources.",
-    },
-    {
-      id: 5, type: "content",
-      heading: "Emergency Procedures",
-      body: "In case of an emergency: press the red emergency stop button, call out to alert nearby workers, and contact your supervisor immediately. Do not attempt to restart the line without authorization.",
-      example: "Emergency stops are located every 10 feet on Line 2 and are painted red. Know the two closest to your workstation.",
-      image: null,
-    },
-    {
-      id: 6, type: "knowledge_check",
-      heading: "Knowledge Check",
-      question: "Which PPE is NOT listed as mandatory on the WhistlePig bottling floor?",
-      options: [
-        "Safety glasses",
-        "Slip-resistant footwear",
-        "Cut-resistant gloves",
-        "Hearing protection when the line is running",
-      ],
-      correctIndex: 2,
-      explanation: "Cut-resistant gloves may be required for specific tasks (de-boxing) but are not listed as mandatory for all bottling floor workers. Safety glasses, slip-resistant footwear, and hearing protection are all mandatory.",
-    },
-  ],
-};
 
 // ════════════════════════════════════════════════════════════════════════════
 // S4b — CBT Player (mobile)
@@ -88,7 +25,7 @@ function SlideVideo({ url }) {
   );
 }
 
-export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onFail, onBack }) {
+export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onBack }) {
   const [slideIndex,   setSlideIndex]   = useState(0);
   const [answers,      setAnswers]      = useState({});   // slideId → selectedIndex
   const [revealed,     setRevealed]     = useState({});   // slideId → bool
@@ -96,6 +33,15 @@ export function S4bCBTPlayer({ onHome, training = SEED_CBT, onComplete, onFail, 
   const [score,        setScore]        = useState(null);
   const failLogged = useRef(false);
 
+  // No training content to play — guard rather than render placeholder data.
+  if (!training || !Array.isArray(training.slides) || training.slides.length === 0) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: C.mist, fontFamily: "'DM Sans', sans-serif" }}>
+        <p style={{ fontSize: "1rem", marginBottom: 16 }}>This training has no content to display yet.</p>
+        <button onClick={onBack ?? onHome} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: C.sage, color: "#fff", fontWeight: 700, cursor: "pointer" }}>Go back</button>
+      </div>
+    );
+  }
   const slide      = training.slides[slideIndex];
   const total      = training.slides.length;
   const isLast     = slideIndex === total - 1;
