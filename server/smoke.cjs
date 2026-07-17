@@ -664,6 +664,19 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("a non-member cannot see or act on a group CA",
      !oSees.some(c => c.id === grpCa.id) && oTouch.status === 403);
 
+  // ── Standalone tasks: a CA with no incident/finding (e.g. "clear the trash") ──
+  const task = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ title: "Clear pallet debris from dock B", priority: "low" }) }).then(j);
+  ok("standalone task can be created with no incident", !!task.id);
+  const taskDetail = await fetch(`${B}/api/cas/${task.id}`, { headers: H() }).then(j);
+  ok("standalone task has no incident ref", !taskDetail.incident_ref && taskDetail.title.includes("pallet debris"));
+  const inList = await fetch(`${B}/api/cas`, { headers: H() }).then(j);
+  ok("standalone task appears in the CA list", inList.some(c => c.id === task.id));
+  // Base staff cannot create tasks (creation is an elevated action).
+  const staffTask = await fetch(`${B}/api/cas`, { method: "POST", headers: pH,
+    body: JSON.stringify({ title: "sneaky" }) });
+  ok("base staff cannot create tasks", staffTask.status === 403);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

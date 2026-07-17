@@ -3,6 +3,7 @@ import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
 import CADetailPanel from "./CADetailPanel.jsx";
+import NewTaskModal from "./NewTaskModal.jsx";
 
 const C = { ...COLORS };
 
@@ -169,6 +170,7 @@ function CARow({ ca, onVerify, onViewIncident, onManage }) {
 export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
   const [cas,          setCas]         = useState([]);
   const [openCaId,     setOpenCaId]    = useState(null);
+  const [showNewTask,  setShowNewTask] = useState(false);
   const [users,        setUsers]       = useState([]);
   const [activeTab,    setActiveTab]   = useState("overdue"); // "overdue" | "on-track" | "closed"
   const [filterSite,   setFilterSite]  = useState("");
@@ -182,12 +184,20 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
       const incById = Object.fromEntries(incs.map(i => [i.id, i]));
       setCas(rawCAs.map(c => {
         const inc = incById[c.incident_id];
-        const overdue = c.due_date && new Date(c.due_date) < new Date() && c.status !== "done" && c.status !== "verified";
+        const overdue = c.due_date && new Date(c.due_date) < new Date()
+          && !["done", "verified", "capex_blocked"].includes(c.status);
+        // Assignee label: an individual, or the group, or Unassigned.
+        const assignee = c.assignee_name
+          ?? (c.assignee_group_name ? `${c.assignee_group_name} (team)` : "Unassigned");
+        // Site: from the linked incident, else the group's site scope, else none.
+        const site = bySite[inc?.site_id] ?? bySite[c.assignee_site_id] ?? "—";
         return {
           id: c.id, incidentId: inc?.ref ?? null, desc: c.title,
-          assignee: c.assignee_name ?? "Unassigned", due: c.due_date,
-          status: (c.status === "done" || c.status === "verified") ? "closed" : overdue ? "overdue" : "on-track",
-          priority: c.priority, site: bySite[inc?.site_id] ?? "—",
+          assignee, due: c.due_date,
+          status: ["done", "verified"].includes(c.status) ? "closed"
+            : c.status === "capex_blocked" ? "blocked"
+            : overdue ? "overdue" : "on-track",
+          priority: c.priority, site,
           escalated: overdue && c.priority === "high",
         };
       }));
@@ -207,6 +217,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
   const tabs = [
     { id: "overdue",  label: "Overdue",  color: C.red  },
     { id: "on-track", label: "On track", color: C.pine },
+    { id: "blocked",  label: "Blocked",  color: "#8A5A00" },
     { id: "closed",   label: "Closed",   color: C.slate},
   ];
 
@@ -223,6 +234,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
   const counts = {
     overdue:   cas.filter(c => c.status === "overdue").length,
     "on-track":cas.filter(c => c.status === "on-track").length,
+    blocked:   cas.filter(c => c.status === "blocked").length,
     closed:    cas.filter(c => c.status === "closed").length,
   };
 
@@ -271,6 +283,11 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
               )}
             </p>
           </div>
+          <button onClick={() => setShowNewTask(true)} style={{
+            padding: "9px 16px", borderRadius: 8, border: "none", background: C.sage, color: "#fff",
+            fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700, cursor: "pointer",
+            whiteSpace: "nowrap", flexShrink: 0,
+          }}>+ New task</button>
         </div>
 
         {/* Tab bar — spec: split overdue / on-track / closed */}
@@ -398,6 +415,13 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
           users={users}
           onClose={() => setOpenCaId(null)}
           onChanged={reload}
+        />
+      )}
+      {showNewTask && (
+        <NewTaskModal
+          users={users}
+          onClose={() => setShowNewTask(false)}
+          onCreated={reload}
         />
       )}
     </div>
