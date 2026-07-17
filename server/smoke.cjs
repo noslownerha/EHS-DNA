@@ -701,6 +701,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
      !caRems.some(n => n.link_ref === `ca-${blockedCa.id}`) &&
      caRems.filter(n => n.link_ref === `ca-${overdueCa.id}`).length === 1);
 
+  // ── Engagement report types: positive callouts & ideas (the BBS channel) ──
+  const positive = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "positive", siteId: 1, description: "caught someone doing it safe" }) }).then(j);
+  ok("positive callout gets a REP- ref (not INC-)", positive.ref && positive.ref.startsWith("REP-"));
+  const idea = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "idea", siteId: 1, description: "add a mirror at the blind corner" }) }).then(j);
+  ok("safety idea is accepted as a report type", !!idea.ref && idea.ref.startsWith("REP-"));
+  const hazard = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "hazard", siteId: 1, description: "puddle by the pump" }) }).then(j);
+  ok("hazard report keeps an INC- ref", !!hazard.ref && hazard.ref.startsWith("INC-"));
+  // Engagement reports must not inflate injury counts.
+  const engSummary = await fetch(`${B}/api/dashboard/summary`, { headers: H() }).then(j);
+  const engInjuries = engSummary.reduce((n, s2) => n + (s2.injuries || 0), 0);
+  ok("engagement reports are not counted as injuries", engInjuries === 0);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

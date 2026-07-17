@@ -633,7 +633,19 @@ app.get("/api/incidents/:id", auth, (req, res) => {
     return res.status(403).json({ error: "Insufficient permissions" });
   res.json(row);
 });
-const INCIDENT_TYPES = ["injury", "near_miss", "property", "spill", "fire", "security"];
+// Report types. The first group are "something's wrong" reports (may be OSHA-
+// relevant); the second group are the engagement channels that drive a real
+// safety culture — observations, positive callouts, and improvement ideas — which
+// most EHS tools lack entirely and which is where frontline buy-in actually comes
+// from. Workers never pick these codes directly; the entry screen offers plain-
+// language prompts that map to them, and safety can always re-triage.
+const INCIDENT_TYPES = [
+  "injury", "near_miss", "property", "spill", "fire", "security",  // incident-shaped
+  "hazard", "observation", "positive", "idea",                      // engagement-shaped
+];
+// Which types are "positive/neutral" — never treated as incidents, never OSHA,
+// routed to safety as engagement rather than as something to respond to.
+const ENGAGEMENT_TYPES = ["observation", "positive", "idea"];
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
 
 app.post("/api/incidents", auth, (req, res) => {
@@ -669,7 +681,11 @@ app.post("/api/incidents", auth, (req, res) => {
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   // Insert with an empty photo list, then write the image bytes to disk and store
   // only the refs — the row must exist before a photo can be attached to it.
-  const { ref, result: r } = refInsert("INC", "incidents", req.auth.tenant, (newRef) =>
+  // Engagement reports (positive/idea/observation) get a REP- ref, not INC- —
+  // labelling a worker's kudos as "Incident INC-…" quietly undercuts the whole
+  // point. Incident-shaped reports keep INC-.
+  const refPrefix = ENGAGEMENT_TYPES.includes(type) ? "REP" : "INC";
+  const { ref, result: r } = refInsert(refPrefix, "incidents", req.auth.tenant, (newRef) =>
     stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
              locationDetail ?? null, JSON.stringify(involved ?? []), "[]",
              req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null,
@@ -679,14 +695,25 @@ app.post("/api/incidents", auth, (req, res) => {
     db.prepare("UPDATE incidents SET photos = ? WHERE id = ? AND tenant_id = ?")
       .run(JSON.stringify(photoRefs), r.lastInsertRowid, req.auth.tenant);
   }
-  // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK)
-  const events = ["incident_any"];
+  // Rule-driven notifications (in-app always; email flag → EHS_EMAIL_WEBHOOK).
+  // Engagement reports (observation / positive / idea) are not incidents — they
+  // route to safety as engagement, never trigger the injury/critical alarms, and
+  // read as a friendly heads-up rather than "an incident was reported".
+  const isEngagement = ENGAGEMENT_TYPES.includes(type);
+  const events = isEngagement ? ["engagement_any"] : ["incident_any"];
   if (type === "injury") events.push("incident_injury");
-  if (severity === "critical" || severity === "serious") events.push("incident_critical");
+  if (!isEngagement && (severity === "critical" || severity === "serious")) events.push("incident_critical");
   const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
+  const TYPE_TITLE = {
+    injury: "Injury reported", near_miss: "Near miss reported", property: "Property damage reported",
+    spill: "Spill reported", fire: "Fire/heat event reported", security: "Security event reported",
+    hazard: "Hazard flagged", observation: "Safety observation", positive: "Positive callout 👍", idea: "Safety idea 💡",
+  };
   const notified = notify(req.auth.tenant, events, {
-    title: `${type === "injury" ? "Injury reported" : "Incident reported"}: ${ref}`,
-    body: `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,
+    title: `${TYPE_TITLE[type] ?? "Report"}: ${ref}`,
+    body: isEngagement
+      ? `${site ?? "Unassigned site"} · by ${req.auth.name}`
+      : `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,
     linkKind: "incident", linkRef: ref,
   });
   res.json({ id: r.lastInsertRowid, ref, notified: notified ?? null });
@@ -1346,6 +1373,10 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
                   VALUES (?, 250, 75, 8, 0)`).run(tid);
       db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
                   VALUES (?, 'incident_injury', '["admin","safety"]', 1)`).run(tid);
+      // Safety sees engagement reports (observations, positive callouts, ideas) in
+      // app, without the email alarm — these are culture signal, not emergencies.
+      db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
+                  VALUES (?, 'engagement_any', '["admin","safety"]', 0)`).run(tid);
       const rc = db.prepare("INSERT INTO response_checklists (tenant_id, incident_type, items) VALUES (?, ?, ?)");
       rc.run(tid, "injury", JSON.stringify(["Complete first aid log", "Notify shift supervisor",
         "Preserve scene until photos are done", "Secure the area if hazard still present",

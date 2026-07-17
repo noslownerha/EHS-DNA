@@ -64,25 +64,36 @@ export default function S2a1IncidentType({
           </button>
         )}
 
-        {/* Bucket 3: 2x2 grid — 4 types only */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
-          {INCIDENT_TYPES.map(t => (
-            <button key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
-              padding: "16px 12px", width: "100%",
-              background: selectedType === t.id ? t.bg : "#EFF6F1",
-              border: `2px solid ${selectedType === t.id ? t.color : "#C9D8D0"}`,
-              borderRadius: 12, cursor: "pointer", transition: "all .15s",
-              boxShadow: selectedType === t.id
-                ? `0 4px 14px ${t.color}33`
-                : "0 2px 8px rgba(15,31,23,.10)",
-              fontFamily: "'DM Sans', sans-serif", textAlign: "center",
-              transform: selectedType === t.id ? "translateY(-1px)" : "none",
-            }}>
-              <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>{t.icon}</div>
-              <div style={{ fontSize: ".85rem", fontWeight: 700, color: selectedType === t.id ? t.color : C.ink }}>{t.label}</div>
-            </button>
-          ))}
-        </div>
+        {/* Two groups: "Something's wrong" (may need a response) and "Speak up"
+            (engagement — positives and ideas). Plain language, sub-text for clarity. */}
+        {[
+          { key: "wrong", label: "Something's wrong", hint: "We'll get the right people on it" },
+          { key: "speak", label: "Speak up",          hint: "Help make the place safer — every voice counts" },
+        ].map(section => (
+          <div key={section.key} style={{ marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "2px 2px 8px" }}>
+              <span style={{ fontSize: ".8rem", fontWeight: 700, color: C.ink }}>{section.label}</span>
+              <span style={{ fontSize: ".68rem", color: C.mist }}>{section.hint}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+              {INCIDENT_TYPES.filter(t => t.group === section.key).map(t => (
+                <button key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
+                  padding: "14px 12px", width: "100%",
+                  background: selectedType === t.id ? t.bg : "#EFF6F1",
+                  border: `2px solid ${selectedType === t.id ? t.color : "#C9D8D0"}`,
+                  borderRadius: 12, cursor: "pointer", transition: "all .15s",
+                  boxShadow: selectedType === t.id ? `0 4px 14px ${t.color}33` : "0 2px 8px rgba(15,31,23,.10)",
+                  fontFamily: "'DM Sans', sans-serif", textAlign: "left",
+                  transform: selectedType === t.id ? "translateY(-1px)" : "none",
+                }}>
+                  <div style={{ fontSize: "1.4rem", marginBottom: 5 }}>{t.icon}</div>
+                  <div style={{ fontSize: ".85rem", fontWeight: 700, lineHeight: 1.2, color: selectedType === t.id ? t.color : C.ink }}>{t.label}</div>
+                  {t.sub && <div style={{ fontSize: ".68rem", color: C.mist, marginTop: 2, lineHeight: 1.25 }}>{t.sub}</div>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
 
         {/* Site + datetime — no department (Bucket 3) */}
         <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "14px" }}>

@@ -109,11 +109,21 @@ export const DEMO_USERS = [
 ];
 
 // ── Incident types (Round 1: Environmental Release & Vehicle Incident removed) ─
+// What the worker sees when they flag something. Deliberately plain-language, not
+// EHS jargon — "near miss" and "observation" mean nothing to most floor workers,
+// and the classification is the safety team's job, not theirs. Each prompt maps to
+// an underlying type the system uses for routing/OSHA; safety can always re-triage.
+// `group` splits the picker into "Something's wrong" (may need a response) and
+// "Speak up" (the engagement channels that build safety culture — most EHS tools
+// have none of these, and they're where frontline buy-in comes from).
 export const INCIDENT_TYPES = [
-  { id: "injury",    label: "Injury / Illness", icon: "🩹", color: "#C0392B", bg: "#FDECEA" },
-  { id: "near_miss", label: "Near Miss / Risk", icon: "⚠️", color: "#C8922A", bg: "#FDF3E3" },
-  { id: "property",  label: "Property Damage",  icon: "🔧", color: "#D4622A", bg: "#FEF0E7" },
-  { id: "security",  label: "Security Event",   icon: "🔒", color: "#4A5568", bg: "#EEF2F0" },
+  { id: "injury",    label: "Someone got hurt",        sub: "Injury or illness",            icon: "🩹", color: "#C0392B", bg: "#FDECEA", group: "wrong" },
+  { id: "near_miss", label: "Something almost happened", sub: "Close call — no one hurt",    icon: "😮‍💨", color: "#C8922A", bg: "#FDF3E3", group: "wrong" },
+  { id: "hazard",    label: "I spotted a hazard",      sub: "Something unsafe to fix",       icon: "⚠️", color: "#D4622A", bg: "#FEF0E7", group: "wrong" },
+  { id: "property",  label: "Something got damaged",   sub: "Equipment or property",         icon: "🔧", color: "#8A5A00", bg: "#FEF0E7", group: "wrong" },
+  { id: "security",  label: "Security concern",        sub: "Theft, trespass, threat",       icon: "🔒", color: "#4A5568", bg: "#EEF2F0", group: "wrong" },
+  { id: "positive",  label: "Something went right",    sub: "Caught someone doing it safe",  icon: "👍", color: "#4A8C5C", bg: "#E8F5EC", group: "speak" },
+  { id: "idea",      label: "I have an idea",          sub: "A way to make things safer",     icon: "💡", color: "#2D7D9A", bg: "#E0F2F7", group: "speak" },
 ];
 
 // ── Bottom nav tab definitions ─────────────────────────────────────────────────
