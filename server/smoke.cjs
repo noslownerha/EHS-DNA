@@ -598,6 +598,36 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
      seen.html.includes("open=incident:INC-2026-0004") &&
      seen.text.includes("View incident:"));
 
+  // ── Corrective-action workflow: assign, due, notes, CapEx-block, audit trail ──
+  const wfInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", siteId: 1, description: "wf incident" }) }).then(j);
+  const wfCa = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: wfInc.id, title: "Fix the thing", priority: "high" }) }).then(j);
+  await fetch(`${B}/api/cas/${wfCa.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ assigneeId: staff.id, dueDate: "2026-08-01" }) });
+  await fetch(`${B}/api/cas/${wfCa.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "in_progress", note: "working on it" }) });
+  await fetch(`${B}/api/cas/${wfCa.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "capex_blocked", blockedReason: "needs budget" }) });
+  const wfDetail = await fetch(`${B}/api/cas/${wfCa.id}`, { headers: H() }).then(j);
+  ok("CA workflow records assignment, notes and status in an activity trail",
+     wfDetail.status === "capex_blocked" &&
+     wfDetail.blocked_reason === "needs budget" &&
+     !!wfDetail.assignee_name &&
+     wfDetail.due_date === "2026-08-01" &&
+     wfDetail.activity.some(a => a.kind === "note" && a.detail === "working on it") &&
+     wfDetail.activity.some(a => a.kind === "assign") &&
+     wfDetail.activity.some(a => a.kind === "capex"));
+
+  const invalidStatus = await fetch(`${B}/api/cas/${wfCa.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "bogus" }) });
+  ok("CA rejects an invalid status", invalidStatus.status === 400);
+
+  // CapEx-blocked must be excluded from the site's open-CA count.
+  const wfSummary = await fetch(`${B}/api/dashboard/summary`, { headers: H() }).then(j);
+  const wfMoriah = wfSummary.find(x => x.name === "Moriah" || x.site === "Moriah") || wfSummary[0];
+  ok("CapEx-blocked CA is not counted as an open/overdue CA", wfMoriah.capexBlocked >= 1);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

@@ -752,21 +752,102 @@ app.get("/api/cas", auth, (req, res) => {
                          AND (i.site_id = ? OR f.site_id = ?)
                        ORDER BY c.due_date ASC`).all(req.auth.tenant, site, site));
 });
+// Valid CA statuses. capex_blocked is "open but awaiting budget" — see reports.
+const CA_STATUSES = ["open", "in_progress", "capex_blocked", "done", "verified"];
+
+// Record one entry in a CA's activity log. Best-effort; never blocks the action.
+function logCA(tenantId, caId, actorId, kind, detail) {
+  try {
+    db.prepare(`INSERT INTO ca_activity (tenant_id, ca_id, actor_id, kind, detail) VALUES (?, ?, ?, ?, ?)`)
+      .run(tenantId, caId, actorId ?? null, kind, detail ?? null);
+  } catch (e) { console.error("logCA failed:", e.message); }
+}
+
+const userName = (id, tenantId) =>
+  id ? (db.prepare("SELECT name FROM users WHERE id = ? AND tenant_id = ?").get(id, tenantId)?.name ?? "someone") : null;
+
 app.post("/api/cas", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
   const { incidentId, findingId, title, priority, assigneeId, dueDate } = req.body || {};
   if (!title) return res.status(400).json({ error: "title required" });
   const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, incident_id, finding_id, title, priority, assignee_id, due_date)
                         VALUES (?, ?, ?, ?, ?, ?, ?)`)
     .run(req.auth.tenant, incidentId ?? null, findingId ?? null, title, priority ?? "medium", assigneeId ?? null, dueDate ?? null);
+  logCA(req.auth.tenant, r.lastInsertRowid, req.auth.uid, "created",
+        `Created${assigneeId ? `, assigned to ${userName(assigneeId, req.auth.tenant)}` : ""}${dueDate ? `, due ${dueDate}` : ""}`);
   res.json({ id: r.lastInsertRowid });
 });
+
+// One CA plus its full activity trail.
+app.get("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
+  const ca = db.prepare(`SELECT c.*, i.ref AS incident_ref, u.name AS assignee_name, v.name AS verified_by_name
+                         FROM corrective_actions c
+                         LEFT JOIN incidents i ON i.id = c.incident_id
+                         LEFT JOIN users u ON u.id = c.assignee_id
+                         LEFT JOIN users v ON v.id = c.verified_by
+                         WHERE c.id = ? AND c.tenant_id = ?`).get(req.params.id, req.auth.tenant);
+  if (!ca) return res.status(404).json({ error: "Not found" });
+  const activity = db.prepare(`SELECT a.*, u.name AS actor_name FROM ca_activity a
+                               LEFT JOIN users u ON u.id = a.actor_id
+                               WHERE a.tenant_id = ? AND a.ca_id = ? ORDER BY a.created_at DESC`)
+    .all(req.auth.tenant, req.params.id);
+  res.json({ ...ca, activity });
+});
+
+// Full workflow update: status, assignment, due date, priority, CapEx block, and
+// free-text notes — each change is diffed against the current row and written to
+// the activity log so there's a defensible audit trail of who changed what, when.
 app.put("/api/cas/:id", auth, requireRole(...CAN_SEE_CAS), (req, res) => {
-  const { status, verified } = req.body || {};
-  db.prepare(`UPDATE corrective_actions SET status = COALESCE(?, status),
-              verified_by = CASE WHEN ? THEN ? ELSE verified_by END,
-              updated_at = datetime('now') WHERE id = ? AND tenant_id = ?`)
-    .run(status, verified ? 1 : 0, req.auth.uid, req.params.id, req.auth.tenant);
-  res.json({ ok: true });
+  const t = req.auth.tenant;
+  const cur = db.prepare("SELECT * FROM corrective_actions WHERE id = ? AND tenant_id = ?").get(req.params.id, t);
+  if (!cur) return res.status(404).json({ error: "Not found" });
+
+  const { status, verified, assigneeId, dueDate, priority, note, blockedReason } = req.body || {};
+  if (status && !CA_STATUSES.includes(status))
+    return res.status(400).json({ error: `Invalid status. One of: ${CA_STATUSES.join(", ")}` });
+
+  const sets = [], vals = [], logs = [];
+
+  if (assigneeId !== undefined && assigneeId !== cur.assignee_id) {
+    sets.push("assignee_id = ?"); vals.push(assigneeId ?? null);
+    logs.push(["assign", assigneeId ? `Reassigned to ${userName(assigneeId, t)}` : "Unassigned"]);
+  }
+  if (dueDate !== undefined && dueDate !== cur.due_date) {
+    sets.push("due_date = ?"); vals.push(dueDate ?? null);
+    logs.push(["due", dueDate ? `Due date set to ${dueDate}` : "Due date cleared"]);
+  }
+  if (priority !== undefined && priority !== cur.priority) {
+    sets.push("priority = ?"); vals.push(priority);
+    logs.push(["status", `Priority changed to ${priority}`]);
+  }
+  if (blockedReason !== undefined) {
+    sets.push("blocked_reason = ?"); vals.push(blockedReason ?? null);
+  }
+  if (status && status !== cur.status) {
+    sets.push("status = ?"); vals.push(status);
+    if (["done", "verified"].includes(status)) { sets.push("closed_at = datetime('now')"); }
+    else if (["open", "in_progress", "capex_blocked"].includes(status) && cur.closed_at) { sets.push("closed_at = NULL"); }
+    if (status === "capex_blocked")
+      logs.push(["capex", `Marked CapEx-blocked${blockedReason ? `: ${blockedReason}` : ""} — stays open, not counted overdue`]);
+    else
+      logs.push(["status", `Status → ${status.replace("_", " ")}`]);
+  }
+  if (verified) {
+    sets.push("verified_by = ?"); vals.push(req.auth.uid);
+    if (!status) { sets.push("status = ?"); vals.push("verified"); sets.push("closed_at = datetime('now')"); }
+    logs.push(["status", "Verified & closed"]);
+  }
+  if (note && String(note).trim()) {
+    logs.push(["note", String(note).trim().slice(0, 2000)]);
+  }
+
+  if (sets.length) {
+    sets.push("updated_at = datetime('now')");
+    vals.push(req.params.id, t);
+    db.prepare(`UPDATE corrective_actions SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`).run(...vals);
+  }
+  logs.forEach(([kind, detail]) => logCA(t, req.params.id, req.auth.uid, kind, detail));
+
+  res.json({ ok: true, changed: sets.length > 0 || logs.length > 0 });
 });
 
 // ── Checklists / inspections / findings ──────────────────────────────────────
@@ -997,8 +1078,13 @@ app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (
     const openIncidents = db.prepare("SELECT COUNT(*) n FROM incidents WHERE tenant_id = ? AND site_id = ? AND status != 'closed'").get(t, site.id).n;
     const openCAs = db.prepare(`SELECT COUNT(*) n FROM corrective_actions c
                                 JOIN incidents i ON i.id = c.incident_id
-                                WHERE c.tenant_id = ? AND i.site_id = ? AND c.status NOT IN ('done','verified')`).get(t, site.id).n;
+                                WHERE c.tenant_id = ? AND i.site_id = ? AND c.status NOT IN ('done','verified','capex_blocked')`).get(t, site.id).n;
     const criticalFindings = db.prepare("SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? AND status = 'open' AND severity IN ('high','critical')").get(t, site.id).n;
+    // CapEx-blocked CAs are legitimately open (awaiting budget) but must NOT read
+    // as overdue/lingering — surface them separately so the number is honest.
+    const capexBlocked = db.prepare(`SELECT COUNT(*) n FROM corrective_actions c
+                                     LEFT JOIN incidents i ON i.id = c.incident_id
+                                     WHERE c.tenant_id = ? AND i.site_id = ? AND c.status = 'capex_blocked'`).get(t, site.id).n;
     const lastIncident = db.prepare("SELECT MAX(created_at) d FROM incidents WHERE tenant_id = ? AND site_id = ?").get(t, site.id).d;
     const daysSince = lastIncident ? Math.floor((Date.now() - new Date(lastIncident).getTime()) / 86400000) : 999;
     // Compliance: % of active site staff who are fully current on every required training
@@ -1007,7 +1093,7 @@ app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (
     const fullyCompliant = siteRows.filter(r => r.total === 0 || r.current === r.total).length;
     const compliance = siteRows.length > 0 ? Math.round((fullyCompliant / siteRows.length) * 100) : 100;
     return { name: site.name, location: site.location, staff, daysSince, compliance,
-             openIncidents, openCAs, criticalFindings };
+             openIncidents, openCAs, criticalFindings, capexBlocked };
   });
   res.json(summary);
 });
@@ -1040,7 +1126,8 @@ function notify(tenantId, events, { title, body, linkKind, linkRef }) {
         emailQueued = true;
         // Fire-and-forget: a slow or failing mail provider must never delay or
         // roll back the incident that triggered it.
-        sendAlert(emails, { title, meta: body, linkKind, linkRef }).catch(err => console.error("sendAlert threw:", err.message));
+        const company = db.prepare("SELECT name FROM tenants WHERE id = ?").get(tenantId)?.name;
+        sendAlert(emails, { title, meta: body, linkKind, linkRef, company }).catch(err => console.error("sendAlert threw:", err.message));
       }
     }
     return { count: recipients.size, email: emailQueued, events: [...new Set(rules.map(r => r.event))] };

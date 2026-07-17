@@ -35,7 +35,7 @@ const escapeHtml = (s) => String(s ?? "")
  * one-line "Site · severity · by reporter" summary; `link` deep-links to the
  * record so a manager can act without hunting for it.
  */
-function renderAlertHtml({ heading, meta, link, linkLabel }) {
+function renderAlertHtml({ heading, meta, link, linkLabel, company }) {
   const button = link ? `
     <tr><td style="padding:24px 32px 8px;">
       <a href="${escapeHtml(link)}" style="display:inline-block;background:${BRAND.sage};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 28px;border-radius:8px;font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(linkLabel || "View in EHS DNA")}</a>
@@ -47,7 +47,7 @@ function renderAlertHtml({ heading, meta, link, linkLabel }) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BRAND.line};">
         <tr><td style="background:${BRAND.forest};padding:18px 32px;">
-          <span style="color:#ffffff;font-weight:700;font-size:16px;font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:.3px;">EHS&nbsp;<span style="color:${BRAND.sage};">DNA</span></span>
+          <span style="color:#ffffff;font-weight:700;font-size:16px;font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:.3px;">EHS&nbsp;<span style="color:${BRAND.sage};">DNA</span></span>${company ? `<span style="color:${BRAND.mist};font-size:13px;font-family:'Helvetica Neue',Arial,sans-serif;"> &nbsp;·&nbsp; ${escapeHtml(company)}</span>` : ""}
         </td></tr>
         <tr><td style="padding:28px 32px 4px;">
           <h1 style="margin:0;font-size:19px;line-height:1.35;color:${BRAND.ink};font-family:'Helvetica Neue',Arial,sans-serif;font-weight:700;">${escapeHtml(heading)}</h1>
@@ -147,7 +147,7 @@ function emailConfigured() {
  * notify() uses, so every incident/finding alert gets the same clean layout and
  * a deep link straight to the record instead of a bare one-liner.
  */
-async function sendAlert(to, { title, meta, linkKind, linkRef }) {
+async function sendAlert(to, { title, meta, linkKind, linkRef, company }) {
   // Deep link to the specific record when we know how to address it.
   const link = linkKind && linkRef
     ? `${APP_URL}/?open=${encodeURIComponent(linkKind)}:${encodeURIComponent(linkRef)}`
@@ -156,7 +156,7 @@ async function sendAlert(to, { title, meta, linkKind, linkRef }) {
     : linkKind === "finding" ? "View finding"
     : "Open EHS DNA";
 
-  const html = renderAlertHtml({ heading: title, meta, link, linkLabel });
+  const html = renderAlertHtml({ heading: title, meta, link, linkLabel, company });
   // Plain-text fallback for clients that don't render HTML — still useful.
   const text = [title, meta, "", `${linkLabel}: ${link}`].filter(Boolean).join("\n");
 

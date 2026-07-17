@@ -241,6 +241,28 @@ try { db.exec("ALTER TABLE incidents ADD COLUMN osha_classification TEXT"); } ca
 // a duplicate. Unique per tenant; NULLs are allowed and don't collide in SQLite.
 try { db.exec("ALTER TABLE incidents ADD COLUMN client_uuid TEXT"); } catch {}
 
+// ── Corrective-action workflow ────────────────────────────────────────────────
+// The CA table shipped with assignee_id/due_date/status/priority but no way to
+// evolve a CA over its life. These columns + an activity log add the workflow:
+// reassignment, notes, and a "capex_blocked" state that keeps a CA open (it is
+// NOT done) without counting it as overdue — a budget-blocked fix can legitimately
+// sit for a year awaiting approval and shouldn't read as a lingering failure.
+try { db.exec("ALTER TABLE corrective_actions ADD COLUMN notes TEXT"); } catch {}
+try { db.exec("ALTER TABLE corrective_actions ADD COLUMN blocked_reason TEXT"); } catch {}
+try { db.exec("ALTER TABLE corrective_actions ADD COLUMN closed_at TEXT"); } catch {}
+// status now also allows 'capex_blocked' alongside open|in_progress|done|verified.
+
+db.exec(`CREATE TABLE IF NOT EXISTS ca_activity (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  ca_id INTEGER NOT NULL REFERENCES corrective_actions(id),
+  actor_id INTEGER REFERENCES users(id),
+  kind TEXT NOT NULL,               -- note | status | assign | due | created | capex
+  detail TEXT,                      -- human-readable summary of what changed
+  created_at TEXT DEFAULT (datetime('now'))
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_ca_activity ON ca_activity(tenant_id, ca_id, created_at)"); } catch {}
+
 // ── Photo storage ────────────────────────────────────────────────────────────
 // Photos used to be stored as base64 INSIDE the incidents/findings rows. A single
 // photo-heavy incident is ~4 MB, so the DB — and the whole-file nightly backup that
