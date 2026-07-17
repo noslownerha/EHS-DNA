@@ -103,6 +103,7 @@ export const api = {
   updateIncident: (id, patch) => req(`/incidents/${id}`, { method: "PUT", body: patch }),
   saveResponseProgress: (id, progress) => req(`/incidents/${id}/response`, { method: "PUT", body: { progress } }),
   listCAs: () => req("/cas"),
+  getCA: (id) => req(`/cas/${id}`),
   createCA: (c) => req("/cas", { method: "POST", body: c }),
   updateCA: (id, patch) => req(`/cas/${id}`, { method: "PUT", body: patch }),
 

@@ -2,24 +2,9 @@ import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
+import CADetailPanel from "./CADetailPanel.jsx";
 
 const C = { ...COLORS };
-
-// Seed CAs
-const SEED_CAS = [
-  { id: 1,  incidentId: "INC-2024-0087", desc: "Complete first aid log entry",                   assignee: "Unassigned",   due: "2024-06-13", status: "overdue",  priority: "high",   site: "Moriah",      escalated: true  },
-  { id: 2,  incidentId: "INC-2024-0087", desc: "Review incident with involved worker",           assignee: "Department Lead", due: "2024-06-15", status: "overdue",  priority: "medium", site: "Moriah",      escalated: false },
-  { id: 3,  incidentId: "INC-2024-0087", desc: "Conduct root cause analysis",                   assignee: "Unassigned",       due: "2024-06-19", status: "on-track", priority: "high",   site: "Moriah",      escalated: false },
-  { id: 4,  incidentId: "INC-2024-0087", desc: "Review PPE adequacy for task",                  assignee: "Unassigned",       due: "2024-06-17", status: "on-track", priority: "medium", site: "Moriah",      escalated: false },
-  { id: 5,  incidentId: "INC-2024-0082", desc: "Assess and document vehicle damage",            assignee: "Unassigned",   due: "2024-05-21", status: "overdue",  priority: "medium", site: "Moriah",      escalated: true  },
-  { id: 6,  incidentId: "INC-2024-0082", desc: "Review vehicle inspection records",             assignee: "Site Manager",    due: "2024-05-25", status: "overdue",  priority: "high",   site: "Moriah",      escalated: true  },
-  { id: 7,  incidentId: "INC-2024-0086", desc: "Document near-miss in safety log",              assignee: "Unassigned",       due: "2024-06-11", status: "on-track", priority: "medium", site: "Middlebury",  escalated: false },
-  { id: 8,  incidentId: "INC-2024-0086", desc: "Identify and eliminate slipping hazard",        assignee: "Unassigned",   due: "2024-06-13", status: "on-track", priority: "high",   site: "Middlebury",  escalated: false },
-  { id: 9,  incidentId: "INC-2024-0084", desc: "Review ergonomics of workstation",              assignee: "Site Manager",    due: "2024-06-08", status: "on-track", priority: "low",    site: "Brandenburg", escalated: false },
-  { id: 10, incidentId: "INC-2024-0085", desc: "Complete forklift inspection checklist",        assignee: "Marcus Webb",     due: "2024-06-06", status: "closed",   priority: "high",   site: "Moriah",      escalated: false },
-  { id: 11, incidentId: "INC-2024-0085", desc: "Retrain forklift operators",                   assignee: "Unassigned",       due: "2024-06-10", status: "closed",   priority: "medium", site: "Moriah",      escalated: false },
-  { id: 12, incidentId: "INC-2024-0083", desc: "Notify environmental agency (OSHA requirement)",assignee: "Company Admin",   due: "2024-05-29", status: "closed",   priority: "high",   site: "Shoreham",    escalated: false },
-];
 
 const PRIORITY_MAP = {
   high:   { bg: C.redLt,  color: C.red,   label: "High"   },
@@ -49,7 +34,7 @@ function DesktopNav({ companyName = BRAND.company, onHome }) {
 // Mobile card for a corrective action. The 7-column table (minWidth 620) forced
 // horizontal scrolling on a phone — the Verify button and due date sat off-screen,
 // which is fatal for the one screen people are supposed to ACT on.
-function CACard({ ca, onVerify, onViewIncident }) {
+function CACard({ ca, onVerify, onViewIncident, onManage }) {
   const [verifying, setVerifying] = useState(false);
   const pri = PRIORITY_MAP[ca.priority] ?? PRIORITY_MAP.low;
 
@@ -94,19 +79,26 @@ function CACard({ ca, onVerify, onViewIncident }) {
         )}
       </div>
 
-      {ca.status !== "closed" && (
-        <button onClick={handleVerify} disabled={verifying} style={{
-          width: "100%", padding: "10px", borderRadius: 8, border: "none",
-          background: verifying ? C.mint : C.sage, color: verifying ? C.forest : C.white,
-          fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
-          cursor: verifying ? "default" : "pointer",
-        }}>{verifying ? "Verifying…" : "✓ Verify & close"}</button>
-      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={() => onManage?.(ca.id)} style={{
+          flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.sage}`,
+          background: "#fff", color: C.pine, fontFamily: "'DM Sans', sans-serif",
+          fontSize: ".85rem", fontWeight: 700, cursor: "pointer",
+        }}>Manage</button>
+        {ca.status !== "closed" && (
+          <button onClick={handleVerify} disabled={verifying} style={{
+            flex: 1, padding: "10px", borderRadius: 8, border: "none",
+            background: verifying ? C.mint : C.sage, color: verifying ? C.forest : C.white,
+            fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
+            cursor: verifying ? "default" : "pointer",
+          }}>{verifying ? "Verifying…" : "✓ Verify"}</button>
+        )}
+      </div>
     </div>
   );
 }
 
-function CARow({ ca, onVerify, onViewIncident }) {
+function CARow({ ca, onVerify, onViewIncident, onManage }) {
   const [verifying, setVerifying] = useState(false);
   const pri = PRIORITY_MAP[ca.priority] ?? PRIORITY_MAP.low;
 
@@ -146,8 +138,14 @@ function CARow({ ca, onVerify, onViewIncident }) {
         {ca.site}
       </td>
       <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", verticalAlign: "middle" }}>
+        <button onClick={() => onManage?.(ca.id)} style={{
+          padding: "5px 12px", background: C.white, color: C.pine, marginRight: 6,
+          border: `1.5px solid ${C.line ?? "#E2EBE6"}`, borderRadius: 6,
+          fontFamily: "'DM Sans', sans-serif", fontSize: ".75rem", fontWeight: 600,
+          cursor: "pointer", whiteSpace: "nowrap",
+        }}>Manage</button>
         {ca.status === "closed" ? (
-          <span style={{ fontSize: ".78rem", color: C.sage, display: "flex", alignItems: "center", gap: 4 }}>✓ Verified</span>
+          <span style={{ fontSize: ".78rem", color: C.sage, display: "inline-flex", alignItems: "center", gap: 4 }}>✓ Verified</span>
         ) : (
           <button
             onClick={handleVerify}
@@ -170,11 +168,15 @@ function CARow({ ca, onVerify, onViewIncident }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
   const [cas,          setCas]         = useState([]);
+  const [openCaId,     setOpenCaId]    = useState(null);
+  const [users,        setUsers]       = useState([]);
   const [activeTab,    setActiveTab]   = useState("overdue"); // "overdue" | "on-track" | "closed"
   const [filterSite,   setFilterSite]  = useState("");
   const [filterAssignee, setFilterAssignee] = useState("");
 
-  useEffect(() => {
+  useEffect(() => { api.listUsers().then(setUsers).catch(() => {}); }, []);
+
+  function reload() {
     Promise.all([api.listCAs(), api.listIncidents()]).then(([rawCAs, incs]) => {
       const bySite = Object.fromEntries((BRAND.siteRecords ?? []).map(s => [s.id, s.name]));
       const incById = Object.fromEntries(incs.map(i => [i.id, i]));
@@ -190,7 +192,8 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
         };
       }));
     }).catch(err => console.error("Failed to load corrective actions:", err.message));
-  }, []);
+  }
+  useEffect(() => { reload(); }, []);
 
   const sites     = [...new Set(cas.map(c => c.site))];
   const assignees = [...new Set(cas.map(c => c.assignee))];
@@ -341,7 +344,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
               No {activeTab} corrective actions{filterSite || filterAssignee ? " matching filters" : ""}.
             </div>
           ) : filtered.map(ca => (
-            <CACard key={ca.id} ca={ca} onVerify={handleVerify} onViewIncident={onViewIncident} />
+            <CACard key={ca.id} ca={ca} onVerify={handleVerify} onViewIncident={onViewIncident} onManage={() => setOpenCaId(ca.id)} />
           ))}
         </div>
 
@@ -367,6 +370,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
                   ca={ca}
                   onVerify={handleVerify}
                   onViewIncident={onViewIncident}
+                  onManage={() => setOpenCaId(ca.id)}
                 />
               ))}
             </tbody>
@@ -386,17 +390,16 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
           )}
         </div>
 
-        {/* Annotation */}
-        <div className="anim" style={{
-          marginTop: 16,
-          position: "relative", padding: "10px 14px 10px 36px",
-          background: "#FFF8E7", border: "1px dashed #E8C87A",
-          borderRadius: 7, fontSize: ".78rem", color: "#7A5A1A", lineHeight: 1.5,
-        }}>
-          <span style={{ position: "absolute", left: 10, top: 10 }}>✏️</span>
-          Spec §12.9: Split overdue / on-track / closed. One-tap verify closes a CA. Escalation status visible. Overdue items auto-escalate after 5 days with no activity.
-        </div>
+        
       </div>
+      {openCaId && (
+        <CADetailPanel
+          caId={openCaId}
+          users={users}
+          onClose={() => setOpenCaId(null)}
+          onChanged={reload}
+        />
+      )}
     </div>
   );
 }
