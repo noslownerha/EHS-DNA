@@ -1277,6 +1277,14 @@ app.delete("/api/notification-rules/:id", auth, requireRole(...ADMINISH), (req, 
 // ── Operator console (EHS DNA staff only) ────────────────────────────────────
 // Operator-only: send a test email to confirm the provider is wired up correctly.
 // GET /api/op/email-test?to=you@example.com
+// Operator-only: run the reminder sweeps on demand (rather than waiting for the
+// twice-daily interval). Useful for verifying reminders after setup.
+app.post("/api/op/run-reminders", auth, requireOperator, (req, res) => {
+  runCAReminders();
+  runTrainingReminders();
+  res.json({ ok: true, ran: ["ca", "training"] });
+});
+
 app.get("/api/op/email-test", auth, requireOperator, async (req, res) => {
   const to = String(req.query.to || req.auth.email || "").trim();
   if (!to) return res.status(400).json({ error: "pass ?to=an@email.com" });
@@ -1516,6 +1524,79 @@ function runTrainingReminders() {
 }
 setTimeout(runTrainingReminders, 30000);
 setInterval(runTrainingReminders, 12 * 3600 * 1000);
+
+// ── Corrective-action due / overdue reminders (email + in-app) ───────────────
+// Nudges the people responsible for a CA as it approaches its due date and again
+// once it's overdue. Reminds the individual assignee, or every member of the
+// assigned group. Skips CapEx-blocked CAs (they legitimately sit awaiting budget)
+// and anything already done/verified. Deduped so we don't spam: an approaching
+// reminder goes out once per 3-day window, an overdue reminder once per 3 days.
+function runCAReminders() {
+  try {
+    const APPROACH_DAYS = 3;      // remind when due within this many days
+    const now = Date.now();
+    const cas = db.prepare(`
+      SELECT c.id, c.tenant_id, c.title, c.due_date, c.status,
+             c.assignee_id, c.assignee_dept_id, c.assignee_site_id,
+             i.ref AS incident_ref
+      FROM corrective_actions c
+      LEFT JOIN incidents i ON i.id = c.incident_id
+      WHERE c.due_date IS NOT NULL
+        AND c.status NOT IN ('done','verified','capex_blocked')
+    `).all();
+
+    const recent = db.prepare(`SELECT 1 FROM notifications
+                               WHERE user_id = ? AND link_kind = 'ca' AND link_ref = ?
+                                 AND created_at > datetime('now', '-3 days') LIMIT 1`);
+    const inApp = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref, emailed)
+                              VALUES (?, ?, ?, ?, 'ca', ?, ?)`);
+    let sent = 0;
+
+    for (const ca of cas) {
+      const due = new Date(ca.due_date).getTime();
+      if (Number.isNaN(due)) continue;
+      const days = Math.round((due - now) / 86400000);
+      // Only act when overdue, or due within the approach window.
+      if (days > APPROACH_DAYS) continue;
+
+      // Resolve who to remind.
+      let recipients = [];
+      if (ca.assignee_id) recipients = [ca.assignee_id];
+      else if (ca.assignee_dept_id) recipients = groupMemberIds(ca.tenant_id, ca.assignee_dept_id, ca.assignee_site_id);
+      if (!recipients.length) continue;   // nobody assigned — nothing to nudge
+
+      const ref = `ca-${ca.id}`;
+      const overdue = days < 0;
+      const title = overdue
+        ? `⚠️ Overdue corrective action: ${ca.title}`
+        : `⏳ Corrective action due soon: ${ca.title}`;
+      const body = overdue
+        ? `Was due ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago${ca.incident_ref ? ` · ${ca.incident_ref}` : ""}. Please complete it or update its status.`
+        : `Due in ${days} day${days === 1 ? "" : "s"}${ca.incident_ref ? ` · ${ca.incident_ref}` : ""}.`;
+
+      // Send to each recipient not already reminded in the dedup window.
+      const toEmail = [];
+      for (const uid of recipients) {
+        if (recent.get(uid, ref)) continue;
+        const u = db.prepare("SELECT email, active, is_operator FROM users WHERE id = ? AND tenant_id = ?").get(uid, ca.tenant_id);
+        if (!u || !u.active || u.is_operator) continue;
+        inApp.run(ca.tenant_id, uid, title, body, ref, emailConfigured() ? 1 : 0);
+        if (u.email) toEmail.push(u.email);
+        sent++;
+      }
+      if (toEmail.length && emailConfigured()) {
+        const company = db.prepare("SELECT name FROM tenants WHERE id = ?").get(ca.tenant_id)?.name;
+        sendAlert(toEmail, {
+          title, meta: body,
+          linkKind: "incident", linkRef: ca.incident_ref ?? null, company,
+        }).catch(err => console.error("CA reminder email failed:", err.message));
+      }
+    }
+    if (sent) console.log(`CA reminders sent: ${sent}`);
+  } catch (e) { console.error("CA reminder run failed:", e.message); }
+}
+setTimeout(runCAReminders, 45000);                 // shortly after boot, staggered from training
+setInterval(runCAReminders, 12 * 3600 * 1000);     // twice daily
 
 // ── Billing module ────────────────────────────────────────────────────────────
 require("./billing.cjs")(app, db, auth, () => requireOperator);

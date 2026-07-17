@@ -677,6 +677,30 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ title: "sneaky" }) });
   ok("base staff cannot create tasks", staffTask.status === 403);
 
+  // ── CA due/overdue reminders: right CAs, right people, dedup, skip CapEx ──
+  const remInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", siteId: 1, description: "rem" }) }).then(j);
+  const overdueCa = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: remInc.id, title: "Overdue reminder CA", assigneeId: staff.id, dueDate: "2026-07-01" }) }).then(j);
+  const farDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: remInc.id, title: "Far CA", assigneeId: staff.id, dueDate: farDate }) });
+  const blockedCa = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: remInc.id, title: "Blocked reminder CA", assigneeId: staff.id, dueDate: "2026-07-01" }) }).then(j);
+  await fetch(`${B}/api/cas/${blockedCa.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "capex_blocked", blockedReason: "budget" }) });
+
+  // Trigger the sweep twice (operator endpoint) — second run must dedup.
+  await fetch(`${B}/api/op/run-reminders`, { method: "POST", headers: opH() });
+  await fetch(`${B}/api/op/run-reminders`, { method: "POST", headers: opH() });
+
+  const staffNotifs = await fetch(`${B}/api/notifications`, { headers: sH }).then(j);
+  const caRems = staffNotifs.filter(n => (n.link_ref || "").startsWith("ca-"));
+  ok("CA reminder fires for an overdue CA", caRems.some(n => n.link_ref === `ca-${overdueCa.id}`));
+  ok("CA reminder skips far-future and CapEx-blocked CAs",
+     !caRems.some(n => n.link_ref === `ca-${blockedCa.id}`) &&
+     caRems.filter(n => n.link_ref === `ca-${overdueCa.id}`).length === 1);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
