@@ -54,7 +54,7 @@ const OUTCOMES = {
   "firstaid": {
     emoji: "🩹",
     color: C.pine,
-    bgGrad: "linear-gradient(160deg, #1C3A2A 0%, #0A1510 100%)",
+    bgGrad: `linear-gradient(160deg, ${C.forest} 0%, #0A1510 100%)`,
     heading: "Administer first aid",
     subheading: "Treat the injury on site. No outside medical care needed right now.",
     primaryAction: null,

@@ -1,14 +1,34 @@
 // ── Canonical color tokens — edit here to rebrand the entire app ─────────────
+// ── Brand palette (THE rebrand surface) ───────────────────────────────────────
+// These seven values ARE the brand. To rebrand EHS DNA, change them here and the
+// whole app follows — COLORS.forest/pine/sage/mint/foam/ink/chalk derive from
+// these, and the components reference those tokens (not raw hex). Semantic colours
+// (red = danger, gold = warning, etc.) live in COLORS below and DON'T change on a
+// rebrand. NOTE: email (server/email.cjs), the PWA manifest, and index.html each
+// carry their own copy of the primary colour because they run outside the JS
+// bundle — keep them in sync with `primary` when rebranding.
+export const BRAND_COLORS = {
+  primary:   "#1C3A2A",   // forest — headers, primary surfaces
+  primary2:  "#2D5A3D",   // pine — gradients, hover
+  accent:    "#4A8C5C",   // sage — buttons, links, active
+  accentSoft:"#A8D5B5",   // mint — soft accents
+  wash:      "#E8F5EC",   // foam — tinted backgrounds
+  textDark:  "#0F1F17",   // ink — primary text on light
+  surface:   "#F4F7F5",   // chalk — app background
+};
+
 export const COLORS = {
-  forest: "#1C3A2A",
-  pine: "#2D5A3D",
-  sage: "#4A8C5C",
-  mint: "#A8D5B5",
-  foam: "#E8F5EC",
-  ink: "#0F1F17",
+  // Brand tokens — derived from BRAND_COLORS so there is ONE source of truth.
+  forest: BRAND_COLORS.primary,
+  pine:   BRAND_COLORS.primary2,
+  sage:   BRAND_COLORS.accent,
+  mint:   BRAND_COLORS.accentSoft,
+  foam:   BRAND_COLORS.wash,
+  ink:    BRAND_COLORS.textDark,
+  chalk:  BRAND_COLORS.surface,
+  // Semantic / neutral tokens — constant across any rebrand.
   slate: "#4A5568",
   mist: "#8FA3A0",
-  chalk: "#F4F7F5",
   white: "#FFFFFF",
   dark: "#1A1A2E",
   mid: "#16213E",
@@ -35,24 +55,6 @@ export const COLORS = {
 // Round 1 review applied: buckets 1–4
 
 // ── Brand identity ────────────────────────────────────────────────────────────
-// THE rebrand surface. When EHS DNA gets its new logo + palette, these are the
-// values to change — brand colours are deliberately separated from the semantic
-// colours in COLORS (red = danger, gold = warning, etc.), which stay constant
-// through any rebrand. The primary/accent/etc. here mirror the forest/sage family
-// in COLORS today; a rebrand swaps these and the COLORS brand entries together.
-// NOTE: email (server/email.cjs), the PWA manifest, and index.html each carry
-// their own copy of the primary colour because they run outside the JS bundle and
-// can't import this file — keep them in sync with brandPrimary when rebranding.
-export const BRAND_COLORS = {
-  primary:   "#1C3A2A",   // forest — headers, primary surfaces  (COLORS.forest)
-  primary2:  "#2D5A3D",   // pine — gradients, hover              (COLORS.pine)
-  accent:    "#4A8C5C",   // sage — buttons, links, active        (COLORS.sage)
-  accentSoft:"#A8D5B5",   // mint — soft accents                  (COLORS.mint)
-  wash:      "#E8F5EC",   // foam — tinted backgrounds            (COLORS.foam)
-  textDark:  "#0F1F17",   // ink — primary text on light          (COLORS.ink)
-  surface:   "#F4F7F5",   // chalk — app background               (COLORS.chalk)
-};
-
 export const BRAND = {
   name:     "EHS DNA",
   tagline:  "Keeping the right eyes on what matters.",

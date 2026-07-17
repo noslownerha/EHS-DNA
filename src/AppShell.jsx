@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { BRAND, ROLE_PERMS, TAB_CONFIG, visibleTabs } from "./constants.js";
+import { BRAND, ROLE_PERMS, TAB_CONFIG, visibleTabs, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 import { onQueueChange, queueCount } from "./offlineQueue.js";
 
@@ -15,8 +15,8 @@ export function useRole() {
 
 // ── EHS DNA header — on every screen, logo taps to role dashboard ─────────────
 export function EHSHeader({ onHome, title, rightContent, dark = false }) {
-  const bg     = dark ? "#1A1A2E" : "#1C3A2A";
-  const accent = dark ? "#00B4D8" : "#A8D5B5";
+  const bg     = dark ? "#1A1A2E" : C.forest;
+  const accent = dark ? "#00B4D8" : C.mint;
   return (
     <div style={{
       height: 52, background: bg,
@@ -96,7 +96,7 @@ function NotificationBell() {
           width: "min(320px, 88vw)", maxHeight: 380, overflowY: "auto",
           fontFamily: "'DM Sans', sans-serif",
         }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid #EEF2F0", fontSize: ".85rem", fontWeight: 700, color: "#0F1F17" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #EEF2F0", fontSize: ".85rem", fontWeight: 700, color: C.ink }}>
             Notifications
           </div>
           {items.length === 0 && <div style={{ padding: 18, fontSize: ".8rem", color: "#8FA3A0" }}>Nothing yet.</div>}
@@ -104,7 +104,7 @@ function NotificationBell() {
             <div key={n.id}
               onClick={() => { if (n.link_kind) { setOpen(false); window.dispatchEvent(new CustomEvent("ehs:navigate", { detail: { kind: n.link_kind, ref: n.link_ref } })); } }}
               style={{ padding: "10px 14px", borderBottom: "1px solid #F5F8F6", background: n.read ? "#fff" : "#F3FAF5", cursor: n.link_kind ? "pointer" : "default" }}>
-              <div style={{ fontSize: ".82rem", fontWeight: 700, color: "#0F1F17" }}>{n.title}</div>
+              <div style={{ fontSize: ".82rem", fontWeight: 700, color: C.ink }}>{n.title}</div>
               {n.body && <div style={{ fontSize: ".76rem", color: "#4A5568", marginTop: 2 }}>{n.body}</div>}
               <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 3 }}>
                 {(n.created_at ?? "").slice(0, 16).replace("T", " ")}{n.emailed ? " · 📧 emailed" : ""}
@@ -139,7 +139,7 @@ function AccountButton() {
           minWidth: 190, overflow: "hidden", fontFamily: "'DM Sans', sans-serif",
         }}>
           <div style={{ padding: "10px 14px", borderBottom: "1px solid #EEF2F0" }}>
-            <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#0F1F17" }}>{account.user.name}</div>
+            <div style={{ fontSize: ".85rem", fontWeight: 700, color: C.ink }}>{account.user.name}</div>
             <div style={{ fontSize: ".72rem", color: "#8FA3A0" }}>{account.user.email ?? account.user.role}</div>
           </div>
           {sessionStorage.getItem("ehs_operator_token") && (
@@ -149,7 +149,7 @@ function AccountButton() {
               sessionStorage.removeItem("ehs_operator_token");
               sessionStorage.removeItem("ehs_operator_user");
               window.location.reload();
-            }} style={{ ...menuItemStyle, color: "#2D5A3D", fontWeight: 700 }}>← Return to operator</button>
+            }} style={{ ...menuItemStyle, color: C.pine, fontWeight: 700 }}>← Return to operator</button>
           )}
           <button onClick={() => { setShowPw(true); setOpen(false); }} style={menuItemStyle}>Change password</button>
           <button onClick={() => { setOpen(false); account.onLogout?.(); }} style={{ ...menuItemStyle, color: "#C0392B" }}>Sign out</button>
@@ -162,7 +162,7 @@ function AccountButton() {
 const menuItemStyle = {
   display: "block", width: "100%", textAlign: "left", padding: "10px 14px",
   background: "none", border: "none", cursor: "pointer",
-  fontSize: ".85rem", color: "#0F1F17", fontFamily: "'DM Sans', sans-serif",
+  fontSize: ".85rem", color: C.ink, fontFamily: "'DM Sans', sans-serif",
 };
 
 function ChangePasswordModal({ onClose }) {
@@ -173,7 +173,7 @@ function ChangePasswordModal({ onClose }) {
   const input = {
     width: "100%", padding: "10px 12px", border: "1.5px solid #D0DEDB",
     borderRadius: 7, fontSize: ".88rem", fontFamily: "'DM Sans', sans-serif",
-    color: "#0F1F17", outline: "none", boxSizing: "border-box", marginBottom: 10,
+    color: C.ink, outline: "none", boxSizing: "border-box", marginBottom: 10,
   };
   async function submit(e) {
     e.preventDefault();
@@ -195,15 +195,15 @@ function ChangePasswordModal({ onClose }) {
         background: "#fff", borderRadius: 12, padding: 22, width: "100%", maxWidth: 360,
         fontFamily: "'DM Sans', sans-serif", boxShadow: "0 20px 60px rgba(0,0,0,.3)",
       }}>
-        <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#0F1F17", marginBottom: 14 }}>Change password</h3>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, color: C.ink, marginBottom: 14 }}>Change password</h3>
         <input type="password" required placeholder="Current password" autoComplete="current-password"
           value={current} onChange={e => setCurrent(e.target.value)} style={input} />
         <input type="password" required minLength={8} placeholder="New password (8+ characters)" autoComplete="new-password"
           value={next} onChange={e => setNext(e.target.value)} style={input} />
-        {msg && <div style={{ fontSize: ".8rem", marginBottom: 10, color: msg.ok ? "#4A8C5C" : "#C0392B" }}>{msg.text}</div>}
+        {msg && <div style={{ fontSize: ".8rem", marginBottom: 10, color: msg.ok ? C.sage : "#C0392B" }}>{msg.text}</div>}
         <div style={{ display: "flex", gap: 10 }}>
           <button type="submit" disabled={busy} style={{
-            flex: 1, padding: "10px 0", background: busy ? "#9BBBA6" : "#4A8C5C", color: "#fff",
+            flex: 1, padding: "10px 0", background: busy ? "#9BBBA6" : C.sage, color: "#fff",
             border: "none", borderRadius: 7, fontSize: ".88rem", fontWeight: 700, cursor: "pointer",
             fontFamily: "'DM Sans', sans-serif",
           }}>{busy ? "Saving…" : "Update"}</button>
@@ -241,7 +241,7 @@ function BottomTabBar({ tabs, activeTab, onTab }) {
             gap: 3, padding: "6px 2px 4px", position: "relative",
           }}>
             {active && (
-              <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 24, height: 2, background: "#4A8C5C", borderRadius: "0 0 2px 2px" }} />
+              <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 24, height: 2, background: C.sage, borderRadius: "0 0 2px 2px" }} />
             )}
             <div className="tab-btn-inner">
               <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>{cfg.icon}</span>
@@ -367,7 +367,7 @@ export default function AppShell({ user, children, activeTab, onTab }) {
           }
         }
       `}</style>
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F4F7F5", fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
         {/* Content wrapper — gives global bottom clearance */}
         <div className="ehs-content-root" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {children}

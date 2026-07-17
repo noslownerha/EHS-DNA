@@ -171,7 +171,7 @@ export default function S5eManageStaff({ companyName, onHome }) {
             fontWeight: 600, cursor: "pointer",
           }}>{showAdd ? "Cancel" : "+ Add staff"}</button>
           <button onClick={() => { setShowImport(true); setImportRows(null); setImportResult(null); }} style={{
-            padding: "9px 16px", background: C.foam, color: C.pine, border: "1.5px solid #A8D5B5",
+            padding: "9px 16px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`,
             borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".84rem", fontWeight: 700,
             cursor: "pointer",
           }}>📥 Bulk import</button>
@@ -284,8 +284,8 @@ export default function S5eManageStaff({ companyName, onHome }) {
               1. Download the template · 2. Fill one row per person · 3. Upload — accounts are created with temp passwords.
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-              <button onClick={downloadTemplate} style={{ padding: "9px 16px", background: C.white, color: C.pine, border: "1.5px solid #A8D5B5", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>⬇ Download template (CSV)</button>
-              <label style={{ padding: "9px 16px", background: C.foam, color: C.pine, borderRadius: 7, fontSize: ".82rem", fontWeight: 700, cursor: "pointer", border: "1.5px solid #A8D5B5" }}>
+              <button onClick={downloadTemplate} style={{ padding: "9px 16px", background: C.white, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>⬇ Download template (CSV)</button>
+              <label style={{ padding: "9px 16px", background: C.foam, color: C.pine, borderRadius: 7, fontSize: ".82rem", fontWeight: 700, cursor: "pointer", border: `1.5px solid ${C.mint}` }}>
                 ⬆ Upload filled template
                 <input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={handleImportFile} />
               </label>

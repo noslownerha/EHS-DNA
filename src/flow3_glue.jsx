@@ -18,7 +18,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback } from "react";
-import { BRAND } from "./constants.js";
+import { BRAND, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 
 import { S3a0ChecklistPicker, S3a5Schedule } from "./s3a0_s3a5_picker_schedule";
@@ -364,18 +364,18 @@ export function InspectionDevPanel() {
   return (
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
-      background: "#080F0C", borderTop: "2px solid #1C3A2A",
+      background: "#080F0C", borderTop: `2px solid ${C.forest}`,
       display: "flex", alignItems: "center", overflowX: "auto",
       scrollbarWidth: "none", padding: "0 8px",
     }}>
-      <span style={{ fontSize: ".68rem", color: "#4A8C5C", fontFamily: "monospace", padding: "0 10px", flexShrink: 0, letterSpacing: ".05em" }}>DEV · F3</span>
+      <span style={{ fontSize: ".68rem", color: C.sage, fontFamily: "monospace", padding: "0 10px", flexShrink: 0, letterSpacing: ".05em" }}>DEV · F3</span>
       {screens.map(s => (
         <button key={s.id} onClick={() => navigate(s.id, { replace: true })} style={{
           padding: "9px 14px",
-          background: state.screen === s.id ? "#1C3A2A" : "none",
-          color: state.screen === s.id ? "#A8D5B5" : "#8FA3A0",
+          background: state.screen === s.id ? C.forest : "none",
+          color: state.screen === s.id ? C.mint : "#8FA3A0",
           border: "none",
-          borderBottom: state.screen === s.id ? "2px solid #4A8C5C" : "2px solid transparent",
+          borderBottom: state.screen === s.id ? `2px solid ${C.sage}` : "2px solid transparent",
           fontFamily: "monospace", fontSize: ".72rem",
           fontWeight: state.screen === s.id ? 700 : 400,
           cursor: "pointer", whiteSpace: "nowrap", transition: "all .15s",

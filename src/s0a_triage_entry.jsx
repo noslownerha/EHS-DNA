@@ -11,7 +11,7 @@ export default function S0aTriageEntry({
 }) {
   return (
     <div style={{
-      minHeight: "100vh", background: "#0F1F17",
+      minHeight: "100vh", background: C.ink,
       fontFamily: "'DM Sans', sans-serif",
       display: "flex", flexDirection: "column",
     }}>

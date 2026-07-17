@@ -21,6 +21,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback } from "react";
+import { COLORS as C } from "./constants.js";
 
 import S1aLogin                      from "./s1a_login";
 import S1b1CompanyInfo               from "./s1b1_company_info";
@@ -351,13 +352,13 @@ export function DevPanel() {
   return (
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
-      background: "#0F1F17", borderTop: "2px solid #2D5A3D",
+      background: C.ink, borderTop: `2px solid ${C.pine}`,
       display: "flex", alignItems: "center", gap: 0,
       overflowX: "auto", scrollbarWidth: "none",
       padding: "0 8px",
     }}>
       <span style={{
-        fontSize: ".68rem", color: "#4A8C5C", fontFamily: "monospace",
+        fontSize: ".68rem", color: C.sage, fontFamily: "monospace",
         padding: "0 10px", flexShrink: 0, letterSpacing: ".05em",
       }}>DEV</span>
       {screens.map(s => (
@@ -366,9 +367,9 @@ export function DevPanel() {
           onClick={() => navigate(s.id, { replace: true })}
           style={{
             padding: "9px 14px",
-            background: state.screen === s.id ? "#2D5A3D" : "none",
-            color: state.screen === s.id ? "#A8D5B5" : "#8FA3A0",
-            border: "none", borderBottom: state.screen === s.id ? "2px solid #4A8C5C" : "2px solid transparent",
+            background: state.screen === s.id ? C.pine : "none",
+            color: state.screen === s.id ? C.mint : "#8FA3A0",
+            border: "none", borderBottom: state.screen === s.id ? `2px solid ${C.sage}` : "2px solid transparent",
             fontFamily: "'DM Sans', monospace", fontSize: ".72rem",
             fontWeight: state.screen === s.id ? 700 : 400,
             cursor: "pointer", whiteSpace: "nowrap",

@@ -212,18 +212,18 @@ export function printCertificate(comp, training, companyName) {
   w.document.write(`<!DOCTYPE html><html><head><title>Certificate — ${comp.staffName}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=DM+Mono&display=swap');
-      body { font-family:'DM Sans',sans-serif; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#F4F7F5; }
-      .cert { width:820px; background:#fff; border:10px solid #1C3A2A; border-radius:6px; padding:60px 70px; text-align:center; position:relative; }
-      .inner { border:2px solid #A8D5B5; border-radius:4px; padding:40px 30px; }
-      .co { font-family:'DM Mono',monospace; letter-spacing:.2em; text-transform:uppercase; font-size:.75rem; color:#4A8C5C; }
-      h1 { font-size:2rem; font-weight:900; color:#0F1F17; margin:14px 0 4px; letter-spacing:-.5px; }
+      body { font-family:'DM Sans',sans-serif; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:${C.chalk}; }
+      .cert { width:820px; background:#fff; border:10px solid ${C.forest}; border-radius:6px; padding:60px 70px; text-align:center; position:relative; }
+      .inner { border:2px solid ${C.mint}; border-radius:4px; padding:40px 30px; }
+      .co { font-family:'DM Mono',monospace; letter-spacing:.2em; text-transform:uppercase; font-size:.75rem; color:${C.sage}; }
+      h1 { font-size:2rem; font-weight:900; color:${C.ink}; margin:14px 0 4px; letter-spacing:-.5px; }
       .sub { color:#8FA3A0; font-size:.85rem; margin-bottom:26px; }
-      .name { font-size:1.7rem; font-weight:700; color:#2D5A3D; margin:8px 0; }
-      .course { font-size:1.15rem; font-weight:700; color:#0F1F17; margin:6px 0 20px; }
+      .name { font-size:1.7rem; font-weight:700; color:${C.pine}; margin:8px 0; }
+      .course { font-size:1.15rem; font-weight:700; color:${C.ink}; margin:6px 0 20px; }
       .meta { display:flex; justify-content:center; gap:40px; font-size:.8rem; color:#4A5568; margin-top:24px; }
-      .meta b { display:block; color:#0F1F17; font-size:.92rem; }
+      .meta b { display:block; color:${C.ink}; font-size:.92rem; }
       .foot { margin-top:34px; font-size:.68rem; color:#8FA3A0; font-family:'DM Mono',monospace; }
-      @media print { body { background:#fff; } .cert { border-color:#1C3A2A; } }
+      @media print { body { background:#fff; } .cert { border-color:${C.forest}; } }
     </style></head><body>
     <div class="cert"><div class="inner">
       <div class="co">${companyName ?? "EHS DNA"}</div>

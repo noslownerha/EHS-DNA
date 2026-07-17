@@ -253,7 +253,7 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                       Turn modules on or off for this account. Changes take effect immediately.
                     </div>
                     {moduleData.modules.map(m => (
-                      <div key={m.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid #F4F7F5" }}>
+                      <div key={m.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${C.chalk}` }}>
                         <div style={{ flex: 1, paddingRight: 12 }}>
                           <div style={{ fontSize: ".85rem", fontWeight: 700, color: C.ink }}>{m.label}</div>
                           <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>{m.blurb}</div>

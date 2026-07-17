@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BRAND } from "./constants.js";
+import { BRAND, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 
 const inputStyle = {
@@ -85,7 +85,7 @@ export default function LandingPage({ onEnter }) {
         <div className="a1" style={{ marginBottom: 10 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 13,
-            background: "linear-gradient(135deg, #2D5A3D, #4A8C5C)",
+            background: `linear-gradient(135deg, ${C.pine}, ${C.sage})`,
             display: "flex", alignItems: "center", justifyContent: "center",
             boxShadow: "0 4px 20px rgba(74,140,92,.3)",
             animation: "pulse-ring 3s ease infinite",
@@ -97,7 +97,7 @@ export default function LandingPage({ onEnter }) {
         {/* Brand */}
         <div className="a1" style={{ marginBottom: 5, textAlign: "center" }}>
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "1.85rem", fontWeight: 600, letterSpacing: ".08em", color: "#fff" }}>
-            <span style={{ color: "#A8D5B5" }}>EHS</span> DNA
+            <span style={{ color: C.mint }}>EHS</span> DNA
           </div>
         </div>
 
@@ -142,7 +142,7 @@ export default function LandingPage({ onEnter }) {
           )}
           <button type="submit" disabled={busy} style={{
             width: "100%", padding: "14px 18px", marginTop: 2,
-            background: busy ? "rgba(74,140,92,.5)" : "#4A8C5C",
+            background: busy ? "rgba(74,140,92,.5)" : C.sage,
             border: "1px solid rgba(168,213,181,.2)",
             borderRadius: 11, cursor: busy ? "default" : "pointer",
             fontSize: ".95rem", fontWeight: 700, color: "#fff",

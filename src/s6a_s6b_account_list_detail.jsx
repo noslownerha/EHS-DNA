@@ -133,7 +133,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .anim { animation: fadeUp .25s ease both; }
         input::placeholder { color: rgba(255,255,255,.2); }
-        select option { color: #0F1F17; background: #fff; }
+        select option { color: ${COLORS.ink}; background: #fff; }
         .acct-row:hover td { background: rgba(255,255,255,.04) !important; cursor: pointer; }
         .create-btn:hover { background: ${C.teal}cc !important; transform: translateY(-1px); }
         .filter-sel:focus { outline: none; }

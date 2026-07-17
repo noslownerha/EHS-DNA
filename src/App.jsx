@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { api, getToken } from "./api.js";
 import { startAutoFlush } from "./offlineQueue.js";
-import { ROLE_PERMS } from "./constants.js";
+import { ROLE_PERMS, COLORS as C } from "./constants.js";
 import LandingPage                   from "./LandingPage.jsx";
 import AppShell, { EHSHeader, AccountContext } from "./AppShell.jsx";
 import { BRAND } from "./constants.js";
@@ -17,11 +17,11 @@ import { DashboardProvider, DashboardRouter, DASHBOARD_SCREENS, defaultScreenFor
 // Placeholder for screens not yet built
 function Placeholder({ title, icon, onHome }) {
   return (
-    <div style={{ minHeight: "100vh", background: "#F4F7F5", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
       <EHSHeader onHome={onHome} title={title} />
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 48, minHeight: "60vh", gap: 14 }}>
         <span style={{ fontSize: "2.5rem" }}>{icon}</span>
-        <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0F1F17" }}>{title}</h2>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>{title}</h2>
         <p style={{ fontSize: ".85rem", color: "#8FA3A0", textAlign: "center", maxWidth: 280, lineHeight: 1.6 }}>
           This section is coming soon.
         </p>
@@ -62,10 +62,10 @@ class CrashShield extends Component {
         <p style={{ fontSize: ".85rem", color: "#4A5568", margin: "10px 0" }}>
           Screenshot this and send it to support — then tap reload.
         </p>
-        <pre style={{ background: "#F4F7F5", padding: 12, borderRadius: 8, fontSize: ".7rem", whiteSpace: "pre-wrap", color: "#0F1F17" }}>
+        <pre style={{ background: C.chalk, padding: 12, borderRadius: 8, fontSize: ".7rem", whiteSpace: "pre-wrap", color: C.ink }}>
           {String(this.state.err?.message ?? this.state.err)}{"\n"}{(this.state.err?.stack ?? "").split("\n").slice(1, 5).join("\n")}
         </pre>
-        <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: "10px 24px", background: "#4A8C5C", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Reload</button>
+        <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: "10px 24px", background: C.sage, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Reload</button>
       </div>
     );
   }
@@ -326,7 +326,7 @@ function ForcePasswordChange({ onDone, onLogout }) {
           </div>
         )}
         <button type="submit" disabled={busy} style={{
-          width: "100%", padding: "14px 18px", background: busy ? "#7FA890" : "#A8D5B5",
+          width: "100%", padding: "14px 18px", background: busy ? "#7FA890" : C.mint,
           color: "#1E3328", border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
           fontSize: ".95rem", fontWeight: 700, cursor: busy ? "default" : "pointer",
         }}>{busy ? "Saving…" : "Set password & continue"}</button>
