@@ -1590,6 +1590,12 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
       rc.run(tid, "injury", JSON.stringify(["Complete first aid log", "Notify shift supervisor",
         "Preserve scene until photos are done", "Secure the area if hazard still present",
         "Check in with the injured person within 24 hours"]));
+      // Seed explicit module rows from the registry defaults, so the operator's
+      // module grid starts from a concrete, editable state rather than implicit
+      // defaults. New tenants get every live module on by default.
+      const modStmt = db.prepare(`INSERT INTO tenant_modules (tenant_id, module, enabled) VALUES (?, ?, ?)
+                                  ON CONFLICT(tenant_id, module) DO NOTHING`);
+      for (const key of LIVE_MODULES) modStmt.run(tid, key, MODULES[key].default !== false ? 1 : 0);
       return tid;
     });
     const tenantId = tx();

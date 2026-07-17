@@ -20,7 +20,25 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
   const [busy, setBusy] = useState(false);
   const [openUsers, setOpenUsers] = useState(null);   // tenantId whose users are expanded
   const [userRows, setUserRows] = useState([]);
+  const [openModules, setOpenModules] = useState(null); // tenantId whose modules are expanded
+  const [moduleData, setModuleData] = useState(null);   // { modules:[], reserved:[] }
+  const [moduleBusy, setModuleBusy] = useState(null);   // module key mid-toggle
   const [resetInfo, setResetInfo] = useState(null);   // { email, tempPassword }
+
+  async function toggleModules(t) {
+    if (openModules === t.id) { setOpenModules(null); return; }
+    setOpenModules(t.id); setModuleData(null);
+    try { setModuleData(await api.opTenantModules(t.id)); }
+    catch (err) { setError(err.message); }
+  }
+  async function flipModule(tenantId, key, next) {
+    setModuleBusy(key);
+    try {
+      await api.opSetTenantModule(tenantId, key, next);
+      setModuleData(await api.opTenantModules(tenantId));
+    } catch (err) { setError(err.message); }
+    finally { setModuleBusy(null); }
+  }
 
   async function toggleUsers(t) {
     if (openUsers === t.id) { setOpenUsers(null); return; }
@@ -170,6 +188,10 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                 padding: "7px 16px", background: "#EEF2F0", color: C.slate, border: "none",
                 borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
               }}>{openUsers === t.id ? "Hide users" : "Users"}</button>
+              <button onClick={() => toggleModules(t)} style={{
+                padding: "7px 16px", background: "#EEF2F0", color: C.slate, border: "none",
+                borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+              }}>{openModules === t.id ? "Hide modules" : "Modules"}</button>
               {t.active ? (
                 <>
                   <button onClick={async () => {
@@ -218,6 +240,52 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                     }} style={{ background: "none", border: "1px solid #D0DEDB", borderRadius: 6, padding: "4px 10px", fontSize: ".72rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Reset password</button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {openModules === t.id && (
+              <div style={{ marginTop: 12, borderTop: "1px solid #F0F4F2", paddingTop: 12 }}>
+                {!moduleData ? (
+                  <div style={{ fontSize: ".8rem", color: C.mist }}>Loading modules…</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: ".74rem", color: C.mist, marginBottom: 10 }}>
+                      Turn modules on or off for this account. Changes take effect immediately.
+                    </div>
+                    {moduleData.modules.map(m => (
+                      <div key={m.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid #F4F7F5" }}>
+                        <div style={{ flex: 1, paddingRight: 12 }}>
+                          <div style={{ fontSize: ".85rem", fontWeight: 700, color: C.ink }}>{m.label}</div>
+                          <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>{m.blurb}</div>
+                        </div>
+                        {/* Toggle switch */}
+                        <button
+                          onClick={() => flipModule(t.id, m.key, !m.enabled)}
+                          disabled={moduleBusy === m.key}
+                          aria-pressed={m.enabled}
+                          style={{
+                            width: 46, height: 26, borderRadius: 13, border: "none", cursor: moduleBusy === m.key ? "wait" : "pointer",
+                            background: m.enabled ? C.sage : "#CBD5D1", position: "relative", transition: "background .15s", flexShrink: 0,
+                          }}>
+                          <span style={{
+                            position: "absolute", top: 3, left: m.enabled ? 23 : 3, width: 20, height: 20, borderRadius: "50%",
+                            background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                          }} />
+                        </button>
+                      </div>
+                    ))}
+                    {/* Reserved / coming-soon modules (not yet toggleable) */}
+                    {(moduleData.reserved ?? []).map(m => (
+                      <div key={m.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", opacity: .55 }}>
+                        <div style={{ flex: 1, paddingRight: 12 }}>
+                          <div style={{ fontSize: ".85rem", fontWeight: 700, color: C.ink }}>{m.label}</div>
+                          <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>{m.blurb}</div>
+                        </div>
+                        <span style={{ fontSize: ".68rem", fontWeight: 700, color: C.mist, background: "#EEF2F0", padding: "4px 9px", borderRadius: 6, flexShrink: 0 }}>Coming soon</span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>

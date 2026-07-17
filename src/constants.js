@@ -160,6 +160,17 @@ export function visibleTabs(roleTabs, enabledModules) {
   });
 }
 
+// Is a given feature module enabled for the current tenant? Reads BRAND.modules
+// (populated from /api/config). Returns true when modules aren't loaded yet, so
+// dashboard cards don't flicker-hide before config arrives — a safe default given
+// the server-side gate is the real enforcement. Dashboard cards use this to avoid
+// showing a metric (e.g. "Open CAs: 0") for a module the tenant doesn't have,
+// which would misleadingly read as "all clear".
+export function moduleEnabled(moduleKey) {
+  if (!Array.isArray(BRAND.modules)) return true;
+  return BRAND.modules.includes(moduleKey);
+}
+
 // ── Role permissions & tab access ──────────────────────────────────────────────
 // Reports restricted to Site Manager and above (Round 1 decision).
 // Triage accessible to all roles.

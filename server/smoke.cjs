@@ -789,6 +789,19 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const inspBack = await fetch(`${B}/api/inspections`, { headers: H() });
   ok("re-enabling a module restores access", inspBack.status === 200);
 
+  // ── Operator module grid: read + seeded-on-create ──
+  const grid = await fetch(`${B}/api/op/tenants/1/modules`, { headers: opH() }).then(j);
+  ok("operator module grid lists live modules + reserved",
+     Array.isArray(grid.modules) && grid.modules.some(m => m.key === "incidents") &&
+     Array.isArray(grid.reserved) && grid.reserved.some(m => m.key === "equipment"));
+  // Create a tenant and confirm module rows are seeded explicitly.
+  const newT = await fetch(`${B}/api/op/tenants`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ name: "Smoke Foods Co", industry: "Food", adminEmail: "smokefoods@example.com", adminName: "SF Admin" }) }).then(j);
+  const allT = await fetch(`${B}/api/op/tenants`, { headers: opH() }).then(j);
+  const sfId = (allT.find(t => t.name === "Smoke Foods Co") || {}).id;
+  const sfGrid = await fetch(`${B}/api/op/tenants/${sfId}/modules`, { headers: opH() }).then(j);
+  ok("new tenant seeds explicit module rows", sfGrid.modules.every(m => m.explicit === true));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
-import { BRAND, COLORS } from "./constants.js";
+import { BRAND, COLORS, moduleEnabled } from "./constants.js";
 import { api } from "./api.js";
 
 const C = { ...COLORS };
@@ -66,11 +66,11 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
   const bestDays        = SITES.length ? Math.max(...SITES.map(s => s.daysSince)) : 0;
 
   const kpis = [
-    { label: "Open incidents",      value: totalIncidents, color: C.red,    dest: "incidents" },
-    { label: "Open CAs",            value: totalCAs,       color: C.orange, dest: "cas"       },
-    { label: "Critical findings",   value: totalCritical,  color: C.gold,   dest: "findings"  },
-    { label: "Sites < 80% training",value: belowThreshold, color: C.purple, dest: "training"  },
-  ];
+    { label: "Open incidents",      value: totalIncidents, color: C.red,    dest: "incidents", module: "incidents" },
+    { label: "Open CAs",            value: totalCAs,       color: C.orange, dest: "cas",       module: "corrective_actions" },
+    { label: "Critical findings",   value: totalCritical,  color: C.gold,   dest: "findings",  module: "inspections" },
+    { label: "Sites < 80% training",value: belowThreshold, color: C.purple, dest: "training",  module: "lms" },
+  ].filter(k => !k.module || moduleEnabled(k.module));
 
   const thStyle = {
     padding: "9px 14px", textAlign: "left",
@@ -311,6 +311,7 @@ export function S5cStaffMobileHome({
 
         {/* Secondary actions */}
         <div className="anim-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+          {moduleEnabled("incidents") && (
           <button className="action-tile" onClick={onReportIncident} style={{
             padding: "14px 12px",
             background: "rgba(255,255,255,.06)",
@@ -322,6 +323,8 @@ export function S5cStaffMobileHome({
             <div style={{ fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.8)" }}>Report incident</div>
             <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 2 }}>After the fact</div>
           </button>
+          )}
+          {moduleEnabled("lms") && (
           <button className="action-tile" onClick={onTraining} style={{
             padding: "14px 12px",
             background: "rgba(255,255,255,.06)",
@@ -345,6 +348,7 @@ export function S5cStaffMobileHome({
               {overdueTrainings > 0 ? `${overdueTrainings} overdue` : "Up to date"}
             </div>
           </button>
+          )}
         </div>
 
         {/* Training nudge banner */}

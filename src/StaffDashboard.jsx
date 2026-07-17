@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BRAND, SITES, COLORS } from "./constants.js";
+import { BRAND, SITES, COLORS, moduleEnabled } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
 
@@ -87,6 +87,7 @@ export default function StaffDashboard({ user, onHome, onNavigate }) {
             </div>
 
             {/* Overdue training */}
+            {moduleEnabled("lms") && (
             <div className="tile" onClick={() => onNavigate("training")} style={{
               background: overdueTrainings > 0 ? C.goldLt : C.foam,
               border: `1.5px solid ${overdueTrainings > 0 ? C.gold + "44" : C.mint}`,
@@ -100,9 +101,11 @@ export default function StaffDashboard({ user, onHome, onNavigate }) {
                 {overdueTrainings > 0 ? "Action needed" : "All current"}
               </div>
             </div>
+            )}
           </div>
 
           {/* Recognition — points & this month's leaders */}
+          {moduleEnabled("recognition") && (
           <div className="tile" onClick={() => onNavigate("recognition")} style={{
             background: "linear-gradient(135deg, #EEF6F0, #E0F2F7)",
             border: `1.5px solid ${C.mint}`,
@@ -117,6 +120,7 @@ export default function StaffDashboard({ user, onHome, onNavigate }) {
             </div>
             <div style={{ fontSize: "1rem", color: C.sage }}>→</div>
           </div>
+          )}
           <div
             className="tile triage-tile"
             onClick={() => onNavigate("triage")}
