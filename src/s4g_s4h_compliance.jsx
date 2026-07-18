@@ -168,7 +168,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
               onClick={async () => {
                 try {
                   const r = await api.remindTraining();
-                  setReminderSent(r?.reminded ?? true);
+                  setReminderSent(r?.emailed ? `${r.reminded} (＋email)` : (r?.reminded ?? true));
                 } catch { setReminderSent(true); }
                 setTimeout(() => setReminderSent(false), 4000);
               }}
@@ -181,7 +181,8 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
               }}
             >
               {reminderSent !== false
-                ? (typeof reminderSent === "number" ? `✓ Reminded ${reminderSent}` : "✓ Reminders sent")
+                ? (typeof reminderSent === "number" ? `✓ Reminded ${reminderSent}`
+                   : typeof reminderSent === "string" ? `✓ Reminded ${reminderSent}` : "✓ Reminders sent")
                 : `Send reminders (${overdueStaff})`}
             </button>
           )}

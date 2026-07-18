@@ -1360,11 +1360,13 @@ app.post("/api/completions", auth, (req, res) => {
 app.post("/api/trainings/remind", auth, requireRole(...["admin", "safety", "trainer", "site_manager"]), (req, res) => {
   const t = req.auth.tenant;
   const now = Date.now();
-  const users = db.prepare("SELECT id, name, role, department_id, site_id FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0").all(t);
+  const users = db.prepare("SELECT id, name, email, role, department_id, site_id FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0").all(t);
   const trainings = db.prepare("SELECT id, title, required_roles, required_departments, required_users FROM trainings WHERE tenant_id = ? AND active = 1").all(t);
   const comps = db.prepare("SELECT user_id, training_id, expires_at, passed FROM training_completions WHERE tenant_id = ?").all(t);
   const notif = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref) VALUES (?, ?, ?, ?, 'training', ?)`);
   const recent = db.prepare(`SELECT 1 FROM notifications WHERE user_id = ? AND link_kind = 'training' AND link_ref = ? AND created_at > datetime('now','-3 days') LIMIT 1`);
+  const company = db.prepare("SELECT name FROM tenants WHERE id = ?").get(t)?.name;
+  const emailTargets = [];
   let reminded = 0;
   for (const u of users) {
     // Which required trainings is this user missing or overdue on?
@@ -1386,9 +1388,23 @@ app.post("/api/trainings/remind", auth, requireRole(...["admin", "safety", "trai
     if (recent.get(u.id, ref)) continue;                          // don't spam
     notif.run(t, u.id, `📚 ${overdue.length} training${overdue.length === 1 ? "" : "s"} need your attention`,
       `You have ${overdue.length} required training${overdue.length === 1 ? "" : "s"} overdue or not yet completed. Open your Training queue to get current.`, ref);
+    if (u.email) emailTargets.push({ email: u.email, count: overdue.length });
     reminded++;
   }
-  res.json({ ok: true, reminded });
+  // A manually-pushed reminder should be loud — send email too, not just in-app.
+  // Fire-and-forget so the response isn't blocked on delivery.
+  let emailed = 0;
+  if (emailConfigured()) {
+    for (const tgt of emailTargets) {
+      emailed++;
+      sendAlert([tgt.email], {
+        title: `Action needed: ${tgt.count} training${tgt.count === 1 ? "" : "s"} overdue`,
+        meta: `You have ${tgt.count} required training${tgt.count === 1 ? "" : "s"} to complete`,
+        linkKind: "training", linkRef: "queue", company,
+      }).catch(() => {});
+    }
+  }
+  res.json({ ok: true, reminded, emailed });
 });
 app.post("/api/triage", auth, (req, res) => {
   const { siteId, outcome, stepsCompleted, notified, linkedIncidentId } = req.body || {};
