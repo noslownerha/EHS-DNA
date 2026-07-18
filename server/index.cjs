@@ -776,6 +776,11 @@ app.post("/api/incidents", auth, (req, res) => {
   // route to safety as engagement, never trigger the injury/critical alarms, and
   // read as a friendly heads-up rather than "an incident was reported".
   const isEngagement = ENGAGEMENT_TYPES.includes(type);
+  // Category for notification matching. Engagement types collapse to "engagement";
+  // incident types map to their category (injury/near_miss/property/security/etc.).
+  const notifyCategory = isEngagement ? "engagement" : (type || "any");
+  const notifyMatch = { category: notifyCategory, severity: isEngagement ? "any" : (severity || "any") };
+  // Legacy event strings kept for any rules not yet migrated to the matrix.
   const events = isEngagement ? ["engagement_any"] : ["incident_any"];
   if (type === "injury") events.push("incident_injury");
   if (!isEngagement && (severity === "critical" || severity === "serious")) events.push("incident_critical");
@@ -790,7 +795,7 @@ app.post("/api/incidents", auth, (req, res) => {
     body: isEngagement
       ? `${site ?? "Unassigned site"} · by ${req.auth.name}`
       : `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,
-    linkKind: "incident", linkRef: ref,
+    linkKind: "incident", linkRef: ref, match: notifyMatch,
   });
   // Recognition points (leading-indicator rewards). Report-linked points start as
   // 'pending' and are confirmed when safety reviews/closes the report — this is
@@ -1475,10 +1480,28 @@ function notifyUsers(tenantId, userIds, { title, body, linkKind, linkRef, email 
   } catch (e) { console.error("notifyUsers() failed:", e.message); return null; }
 }
 
-function notify(tenantId, events, { title, body, linkKind, linkRef }) {
+// Severity ordering for threshold comparison. A rule with min_severity "serious"
+// fires for serious AND critical; "any" fires for everything.
+const SEVERITY_RANK = { any: 0, minor: 1, significant: 2, serious: 3, critical: 4 };
+
+function ruleMatches(rule, match) {
+  // match = { category, severity }. A rule matches when its category is "any" or
+  // equals the incident category, AND the incident severity meets the rule's
+  // minimum. Engagement reports have no severity → treated as rank 0 ("any").
+  const catOk = !rule.category || rule.category === "any" || rule.category === match.category;
+  const ruleMin = SEVERITY_RANK[rule.min_severity || "any"] ?? 0;
+  const evtRank = SEVERITY_RANK[match.severity || "any"] ?? 0;
+  return catOk && evtRank >= ruleMin;
+}
+
+function notify(tenantId, events, { title, body, linkKind, linkRef, match }) {
   try {
-    const rules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId)
-      .filter(r => events.includes(r.event));
+    const allRules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId);
+    // Two matching paths: the new category×severity matrix (when `match` is given,
+    // i.e. an incident/engagement), and the legacy event-string path (findings).
+    const rules = match
+      ? allRules.filter(r => ruleMatches(r, match))
+      : allRules.filter(r => events.includes(r.event));
     if (!rules.length) return { count: 0, email: false, events: [] };
     const recipients = new Set();
     let wantsEmail = false;
@@ -1525,10 +1548,14 @@ app.put("/api/notifications/read", auth, (req, res) => {
 app.get("/api/notification-rules", auth, requireRole(...ADMINISH), (req, res) =>
   res.json(db.prepare("SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1").all(req.auth.tenant)));
 app.post("/api/notification-rules", auth, requireRole(...ADMINISH), (req, res) => {
-  const { event, recipientRoles, recipientUsers, email } = req.body || {};
-  if (!event) return res.status(400).json({ error: "event required" });
-  const r = db.prepare("INSERT INTO notification_rules (tenant_id, event, recipient_roles, recipient_users, email) VALUES (?, ?, ?, ?, ?)")
-    .run(req.auth.tenant, event, JSON.stringify(recipientRoles ?? []), JSON.stringify(recipientUsers ?? []), email ? 1 : 0);
+  const { event, category, minSeverity, recipientRoles, recipientUsers, email } = req.body || {};
+  // New rules use category × severity; keep a synthetic event string for back-compat
+  // with any code still reading `event`.
+  const cat = category || "any";
+  const sev = minSeverity || "any";
+  const evt = event || (cat === "engagement" ? "engagement_any" : "incident_any");
+  const r = db.prepare("INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, recipient_users, email) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(req.auth.tenant, evt, cat, sev, JSON.stringify(recipientRoles ?? []), JSON.stringify(recipientUsers ?? []), email ? 1 : 0);
   res.json({ id: r.lastInsertRowid });
 });
 app.delete("/api/notification-rules/:id", auth, requireRole(...ADMINISH), (req, res) => {
@@ -1636,12 +1663,12 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
         .run(tid, String(adminEmail).toLowerCase().trim(), bcrypt2.hashSync(tempPassword, 10), adminName ?? "Admin");
       db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve)
                   VALUES (?, 250, 75, 8, 0)`).run(tid);
-      db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
-                  VALUES (?, 'incident_injury', '["admin","safety"]', 1)`).run(tid);
+      db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)
+                  VALUES (?, 'incident_injury', 'injury', 'any', '["admin","safety"]', 1)`).run(tid);
       // Safety sees engagement reports (observations, positive callouts, ideas) in
       // app, without the email alarm — these are culture signal, not emergencies.
-      db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
-                  VALUES (?, 'engagement_any', '["admin","safety"]', 0)`).run(tid);
+      db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)
+                  VALUES (?, 'engagement_any', 'engagement', 'any', '["admin","safety"]', 0)`).run(tid);
       const rc = db.prepare("INSERT INTO response_checklists (tenant_id, incident_type, items) VALUES (?, ?, ?)");
       rc.run(tid, "injury", JSON.stringify(["Complete first aid log", "Notify shift supervisor",
         "Preserve scene until photos are done", "Secure the area if hazard still present",

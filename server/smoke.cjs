@@ -802,6 +802,27 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const sfGrid = await fetch(`${B}/api/op/tenants/${sfId}/modules`, { headers: opH() }).then(j);
   ok("new tenant seeds explicit module rows", sfGrid.modules.every(m => m.explicit === true));
 
+  // ── Notification rules: category × severity matrix ──
+  // A "hazard / serious+" rule must fire for a serious hazard, not a minor one,
+  // and not for a different category.
+  const smRule = await fetch(`${B}/api/notification-rules`, { method: "POST", headers: H(),
+    body: JSON.stringify({ category: "hazard", minSeverity: "serious", recipientRoles: ["site_manager"], email: false }) }).then(j);
+  ok("create category×severity rule", !!smRule.id);
+  // A site_manager to receive it.
+  const smEmail = `notifmgr_${Date.now()}@ex.com`;
+  const smUser = await fetch(`${B}/api/users`, { method: "POST", headers: H(), body: JSON.stringify({
+    name: "Notif Mgr", email: smEmail, role: "site_manager", siteId: 1, departmentId: 2, password: "Work!2026x" }) }).then(j);
+  const smTok = (await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: smEmail, password: "Work!2026x" }) }).then(j)).token;
+  const smH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${smTok}` });
+  const before = (await fetch(`${B}/api/notifications`, { headers: smH() }).then(j)).length;
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(), body: JSON.stringify({ type: "hazard", severity: "serious", description: "serious hazard for notif test", siteId: 1 }) }).then(j);
+  const afterSerious = (await fetch(`${B}/api/notifications`, { headers: smH() }).then(j)).length;
+  ok("serious hazard notifies site_manager", afterSerious > before);
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(), body: JSON.stringify({ type: "hazard", severity: "minor", description: "minor hazard below threshold", siteId: 1 }) }).then(j);
+  const afterMinor = (await fetch(`${B}/api/notifications`, { headers: smH() }).then(j)).length;
+  ok("minor hazard below threshold does not notify", afterMinor === afterSerious);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

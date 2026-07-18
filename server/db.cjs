@@ -236,6 +236,23 @@ try { db.exec("ALTER TABLE tenants ADD COLUMN suspension_reason TEXT"); } catch 
 try { db.exec("ALTER TABLE training_completions ADD COLUMN passed INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN department TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN osha_classification TEXT"); } catch {}
+// Notification rules: move from discrete event strings to a category × severity
+// matrix. category = injury|hazard|near_miss|property|security|engagement|any;
+// min_severity = the lowest severity that triggers (any|significant|serious|critical).
+// Backfill existing rules from their legacy `event` value so nothing is lost.
+try { db.exec("ALTER TABLE notification_rules ADD COLUMN category TEXT DEFAULT 'any'"); } catch {}
+try { db.exec("ALTER TABLE notification_rules ADD COLUMN min_severity TEXT DEFAULT 'any'"); } catch {}
+try {
+  const legacy = db.prepare("SELECT id, event, category FROM notification_rules").all();
+  const setCat = db.prepare("UPDATE notification_rules SET category = ?, min_severity = ? WHERE id = ?");
+  for (const r of legacy) {
+    if (r.category && r.category !== "any") continue; // already migrated
+    if (r.event === "incident_injury")        setCat.run("injury", "any", r.id);
+    else if (r.event === "incident_critical") setCat.run("any", "serious", r.id);
+    else if (r.event === "engagement_any")    setCat.run("engagement", "any", r.id);
+    else if (r.event === "incident_any")      setCat.run("any", "any", r.id);
+  }
+} catch {}
 // Idempotency for the offline queue: the client mints a UUID per report, so a
 // retry after a flaky reconnect returns the existing incident instead of filing
 // a duplicate. Unique per tenant; NULLs are allowed and don't collide in SQLite.
@@ -557,8 +574,8 @@ function ensureDefaults() {
 
   const hasRulesTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notification_rules'").get();
   if (hasRulesTable && db.prepare("SELECT COUNT(*) n FROM notification_rules WHERE tenant_id = 1").get().n === 0) {
-    db.prepare(`INSERT INTO notification_rules (tenant_id, event, recipient_roles, email)
-                VALUES (1, 'incident_injury', '["admin","safety"]', 1)`).run();
+    db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)
+                VALUES (1, 'incident_injury', 'injury', 'any', '["admin","safety"]', 1)`).run();
     console.log("Backfilled: default injury notification rule");
   }
 }

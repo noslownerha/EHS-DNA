@@ -32,7 +32,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
   const [newSite, setNewSite] = useState({ name: "", location: "" });
   const [rules, setRules] = useState([]);
   const [users, setUsers] = useState([]);
-  const [newRule, setNewRule] = useState({ event: "incident_injury", recipientRoles: ["admin", "safety"], recipientUsers: [], email: true });
+  const [newRule, setNewRule] = useState({ category: "injury", minSeverity: "any", recipientRoles: ["admin", "safety"], recipientUsers: [], email: true });
   const [checklists, setChecklists] = useState({});
   const [clType, setClType] = useState("injury");
   const [clText, setClText] = useState("");
@@ -46,11 +46,26 @@ export default function S5fCompanySettings({ companyName, onHome }) {
     api.listUsers().then(setUsers).catch(() => {});
   }, []);
 
-  const EVENTS = [
-    { value: "incident_any",      label: "Any incident" },
-    { value: "incident_injury",   label: "Injury / illness incident" },
-    { value: "incident_critical", label: "Serious or critical severity" },
+  // Notification rules are a category × severity matrix: pick what kind of report
+  // (any / injury / hazard / near-miss / property / security / engagement) and the
+  // lowest severity that should trigger it. Engagement has no severity.
+  const CATEGORIES = [
+    { value: "any",        label: "Any report" },
+    { value: "injury",     label: "Injury / illness" },
+    { value: "hazard",     label: "Hazard" },
+    { value: "near_miss",  label: "Near miss" },
+    { value: "property",   label: "Property / equipment damage" },
+    { value: "security",   label: "Security concern" },
+    { value: "engagement", label: "Idea / shout-out" },
   ];
+  const SEVERITIES = [
+    { value: "any",         label: "Any severity" },
+    { value: "significant", label: "Significant or higher" },
+    { value: "serious",     label: "Serious or higher" },
+    { value: "critical",    label: "Critical only" },
+  ];
+  const catLabel = v => (CATEGORIES.find(c => c.value === v)?.label ?? v);
+  const sevLabel = v => (SEVERITIES.find(s => s.value === v)?.label ?? v);
   const ROLES = ["admin", "safety", "site_manager", "trainer"];
   const toggleIn = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
 
@@ -244,9 +259,10 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           {rules.map(r => (
             <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #F0F4F2", fontSize: ".84rem", flexWrap: "wrap", gap: 6 }}>
               <div>
-                <b style={{ color: C.ink }}>{(
-                  { incident_any: "Any incident", incident_injury: "Injury / illness", incident_critical: "Serious / critical" }[r.event] ?? r.event
-                )}</b>
+                <b style={{ color: C.ink }}>{catLabel(r.category ?? "any")}</b>
+                {r.min_severity && r.min_severity !== "any" && r.category !== "engagement" && (
+                  <span style={{ color: C.slate, marginLeft: 6, fontSize: ".78rem" }}>· {sevLabel(r.min_severity)}</span>
+                )}
                 <span style={{ color: C.mist, marginLeft: 8 }}>
                   → {[...JSON.parse(r.recipient_roles || "[]"),
                        ...JSON.parse(r.recipient_users || "[]").map(id => users.find(u => u.id === id)?.name ?? `#${id}`)
@@ -259,9 +275,15 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           ))}
           <form onSubmit={addRule} style={{ marginTop: 14 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-              <select style={{ ...inputStyle, width: "100%", maxWidth: 220 }} value={newRule.event}
-                onChange={e => setNewRule(r => ({ ...r, event: e.target.value }))}>
-                {EVENTS.map(ev => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
+              <select style={{ ...inputStyle, width: "100%", maxWidth: 220 }} value={newRule.category}
+                onChange={e => setNewRule(r => ({ ...r, category: e.target.value }))}>
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+              <select style={{ ...inputStyle, width: "100%", maxWidth: 220, opacity: newRule.category === "engagement" ? 0.5 : 1 }}
+                value={newRule.category === "engagement" ? "any" : newRule.minSeverity}
+                disabled={newRule.category === "engagement"}
+                onChange={e => setNewRule(r => ({ ...r, minSeverity: e.target.value }))}>
+                {SEVERITIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".82rem", color: C.ink }}>
                 <input type="checkbox" checked={newRule.email} style={{ accentColor: C.sage }}
