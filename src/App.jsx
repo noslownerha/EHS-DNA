@@ -191,7 +191,7 @@ function App() {
         return (
           <MobileFrame>
             <IncidentProvider key={flagScreen} user={userObj} companyName={COMPANY} initialScreen={flagScreen}>
-              <IncidentRouter onDone={handleHome} />
+              <IncidentRouter onDone={handleHome} onGoToTriage={() => setActiveTab("triage")} />
             </IncidentProvider>
           </MobileFrame>
         );

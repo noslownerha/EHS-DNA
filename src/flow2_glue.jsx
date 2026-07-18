@@ -309,6 +309,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           onHome={onHome ?? onDone}
           user={user}
           onBack={onDone ?? back}
+          onTriage={onGoToTriage}
           onContinue={data => {
             saveType(data);
             navigate(INCIDENT_SCREENS.WHAT);

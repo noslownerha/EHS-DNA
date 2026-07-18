@@ -74,7 +74,6 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site, initialPh
     }
   }, [siteRec?.id]);
   const [photos,     setPhotos]    = useState(initialPhotos);
-  const [anonymous,  setAnonymous] = useState(false);
   const [gpsGranted, setGps]       = useState(false);
   const [floorPlan,  setFloorPlan] = useState(false);
   const fileRef = useRef(null);
@@ -273,22 +272,6 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site, initialPh
           </div>
         </div>
 
-        </>)}
-
-        {/* Anonymous submission removed by policy */}
-        {false && (<>
-        <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16 }}>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer" }}>
-            <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)}
-              style={{ width: "auto", accentColor: C.sage, marginTop: 2 }} />
-            <div>
-              <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.ink }}>Submit anonymously</div>
-              <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2, lineHeight: 1.4 }}>
-                Your name won't appear on the report. Site Manager will still be notified of the incident.
-              </div>
-            </div>
-          </label>
-        </div>
         </>)}
       </div>
 

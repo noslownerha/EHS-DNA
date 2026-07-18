@@ -131,11 +131,11 @@ export const INCIDENT_TYPES = [
 // ── Bottom nav tab definitions ─────────────────────────────────────────────────
 export const TAB_CONFIG = {
   home:     { icon: "🏠", label: "Home"     },
-  flag:     { icon: "🚩", label: "Flag Issue" },
+  flag:     { icon: "🚩", label: "Flag" },
   triage:   { icon: "⛑️", label: "Triage"   },
   inspect:  { icon: "📋", label: "Inspect"  },
   training: { icon: "🎓", label: "Training" },
-  reports:  { icon: "📊", label: "Reports"  },
+  reports:  { icon: "📊", label: "Analyze"  },
 };
 
 // Which module powers each nav tab. Mirrors server/modules.cjs (keep in sync).
@@ -177,9 +177,9 @@ export function moduleEnabled(moduleKey) {
 // Reports restricted to Site Manager and above (Round 1 decision).
 // Triage accessible to all roles.
 export const ROLE_PERMS = {
-  admin:        { dashboard: "admin",   seeCAs: true,  tabs: ["home", "flag", "triage", "inspect", "training", "reports"] },
-  safety:       { dashboard: "admin",   seeCAs: true,  tabs: ["home", "flag", "triage", "inspect", "training", "reports"] },
-  site_manager: { dashboard: "manager", seeCAs: true,  tabs: ["home", "flag", "triage", "inspect", "training", "reports"] },
-  trainer:      { dashboard: "staff",   seeCAs: false, tabs: ["home", "flag", "triage", "inspect", "training"] },
-  staff:        { dashboard: "staff",   seeCAs: false, tabs: ["home", "flag", "triage", "inspect", "training"] },
+  admin:        { dashboard: "admin",   seeCAs: true,  tabs: ["home", "flag", "inspect", "training", "reports"] },
+  safety:       { dashboard: "admin",   seeCAs: true,  tabs: ["home", "flag", "inspect", "training", "reports"] },
+  site_manager: { dashboard: "manager", seeCAs: true,  tabs: ["home", "flag", "inspect", "training", "reports"] },
+  trainer:      { dashboard: "staff",   seeCAs: false, tabs: ["home", "flag", "inspect", "training"] },
+  staff:        { dashboard: "staff",   seeCAs: false, tabs: ["home", "flag", "inspect", "training"] },
 };
