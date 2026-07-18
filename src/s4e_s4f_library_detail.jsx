@@ -207,6 +207,9 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
 // Spec §14.1: expiration derived from recurrence_months; status chips
 // ════════════════════════════════════════════════════════════════════════════
 export function printCertificate(comp, training, companyName) {
+  // Never issue a certificate for a non-passed completion — a certificate asserts
+  // successful completion, so a failed/incomplete attempt must not produce one.
+  if (comp.passed === false || comp.passed === 0) return;
   const w = window.open("", "_blank", "width=900,height=650");
   if (!w) return;
   w.document.write(`<!DOCTYPE html><html><head><title>Certificate — ${comp.staffName}</title>

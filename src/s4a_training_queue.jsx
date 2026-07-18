@@ -14,6 +14,7 @@ const STATUS = {
   overdue:       { label: "Overdue",       bg: C.redLt,    color: C.red,    icon: "!" },
   expired:       { label: "Expired",       bg: "#EEF1F0",  color: C.slate,  icon: "×" },
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple, icon: "→" },
+  needs_retake:  { label: "Needs retake",   bg: C.redLt,    color: C.red,    icon: "↻" },
 };
 
 const TYPE = {
@@ -63,16 +64,24 @@ export default function S4aTrainingQueue({ onHome,
         return (roles.length === 0 && depts.length === 0 && users.length === 0)
           || roles.includes(me.role) || users.includes(me.id) || depts.includes(me.departmentId);
       }).map(tr => {
-        const comp = comps.filter(c => c.training_id === tr.id && c.user_id === me.id)
+        // Status must reflect a PASSED completion. A failed attempt logs a row
+        // (for the audit trail) but with no expiry and passed=0 — it must NOT count
+        // as "current". Use the latest passed completion for status; keep the latest
+        // attempt of any kind for showing the last score.
+        const passedComp = comps.filter(c => c.training_id === tr.id && c.user_id === me.id && c.passed !== 0)
           .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+        const lastAttempt = comps.filter(c => c.training_id === tr.id && c.user_id === me.id)
+          .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+        const comp = passedComp; // only a pass satisfies the requirement
         let status;
-        if (!comp) status = "not_started";
+        if (!comp) status = lastAttempt ? "needs_retake" : "not_started";
         else if (comp.expires_at && new Date(comp.expires_at).getTime() < now) status = "expired";
         else if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) status = "expiring_soon";
         else status = "current";
         return {
           id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status, content: tr.content,
-          lastScore: comp?.score ?? null, lastCompletedAt: comp?.completed_at ? comp.completed_at.slice(0, 10) : null,
+          lastScore: lastAttempt?.score ?? null, lastCompletedAt: comp?.completed_at ? comp.completed_at.slice(0, 10) : null,
+          passed: !!passedComp,
           due: null,
           duration: (() => {
             if (tr.kind === "in_person") return "In person";
