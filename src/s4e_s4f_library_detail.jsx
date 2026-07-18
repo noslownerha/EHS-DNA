@@ -46,7 +46,7 @@ function pill(label, bg, color) {
 // S4e — Training Library (desktop)
 // Spec §14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
 // ════════════════════════════════════════════════════════════════════════════
-export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining }) {
+export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining, onBack }) {
   const [SEED_LIBRARY, setLibrary] = useState([]);
   const [filterType, setFilterType] = useState("");
   const [search,     setSearch]     = useState("");
@@ -101,6 +101,10 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
       <DesktopNav companyName={companyName} active="Training Library" onHome={onHome} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
+
+        {onBack && (
+          <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 12, padding: 0 }}>← Compliance</button>
+        )}
 
         {/* Header — Spec §14.2: "Log Group Session" alongside "Create Training" as top-level actions */}
         <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>

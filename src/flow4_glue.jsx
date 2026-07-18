@@ -328,6 +328,7 @@ export function TrainingRouter({ onDone, onHome }) {
           onHome={onHome ?? onDone}
             companyName={companyName}
             userRole={user.role}
+            onBack={back}
             onViewTraining={viewTraining}
             onLogGroupSession={openGroupLog}
             onCreateTraining={() => navigate(TRAINING_SCREENS.BUILDER)}
@@ -370,6 +371,8 @@ export function TrainingRouter({ onDone, onHome }) {
           onHome={onHome ?? onDone}
             companyName={companyName}
             onViewStaff={viewStaff}
+            onManageCourses={() => navigate(TRAINING_SCREENS.LIBRARY)}
+            onCreateTraining={() => navigate(TRAINING_SCREENS.BUILDER)}
           />
         </>
       );

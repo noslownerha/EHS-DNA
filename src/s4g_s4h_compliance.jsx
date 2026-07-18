@@ -56,7 +56,7 @@ function ComplianceBar({ pct, compact = false }) {
 // S4g — Compliance Dashboard (desktop)
 // Spec §14.3: 4 KPI tiles (value + label only), "Send Reminders" BELOW tile row
 // ════════════════════════════════════════════════════════════════════════════
-export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
+export function S4gComplianceDashboard({ onHome, companyName, onViewStaff, onManageCourses, onCreateTraining }) {
   const [SEED_STAFF, setStaff] = useState([]);
   const [filterSite, setFilterSite] = useState("");
   const [filterDept, setFilterDept] = useState("");
@@ -127,9 +127,29 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff }) {
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>
 
-        <div className="anim" style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Training Compliance</h1>
-          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>All sites · {SEED_STAFF.length} staff · avg {avgCompliance}% compliant</p>
+        <div className="anim" style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Training Compliance</h1>
+            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>All sites · {SEED_STAFF.length} staff · avg {avgCompliance}% compliant</p>
+          </div>
+          {(onManageCourses || onCreateTraining) && (
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {onManageCourses && (
+                <button onClick={onManageCourses} style={{
+                  padding: "8px 14px", background: C.white, color: C.pine,
+                  border: `1.5px solid ${C.mint}`, borderRadius: 8, cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700,
+                }}>📚 Manage courses</button>
+              )}
+              {onCreateTraining && (
+                <button onClick={onCreateTraining} style={{
+                  padding: "8px 14px", background: C.sage, color: C.white,
+                  border: "none", borderRadius: 8, cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700,
+                }}>+ New course</button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Spec §14.3: 4 KPI tiles — value and label ONLY, fixed height, no actions inside */}
