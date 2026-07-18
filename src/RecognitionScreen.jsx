@@ -15,14 +15,28 @@ const REASON_ICON = {
   report_reviewed: "📋", idea: "💡", kudos_given: "🙌", kudos_received: "👏", training: "🎓", manual: "⭐",
 };
 
+// "2026-06" → "June". Used for the champion banner heading.
+function lastMonthName(period) {
+  if (!period) return "Last month";
+  const [y, m] = period.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long" });
+}
+
 export default function RecognitionScreen({ onHome, currentUserName }) {
   const [me, setMe] = useState(null);
   const [board, setBoard] = useState(null);
+  const [champ, setChamp] = useState(null);
+  const [badgeData, setBadgeData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.myPoints().catch(() => null), api.leaderboard().catch(() => null)])
-      .then(([m, b]) => { setMe(m); setBoard(b); })
+    Promise.all([
+      api.myPoints().catch(() => null),
+      api.leaderboard().catch(() => null),
+      api.champion().catch(() => null),
+      api.myBadges().catch(() => null),
+    ])
+      .then(([m, b, c, bd]) => { setMe(m); setBoard(b); setChamp(c); setBadgeData(bd); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -61,7 +75,49 @@ export default function RecognitionScreen({ onHome, currentUserName }) {
               </div>
             </div>
 
-            {/* Leaderboard — top performers this month (no shame list; only top-N shown) */}
+            {/* Last month's champion — the "reset ceremony". Celebrates the winner
+                of the month just ended so the contest has a real finish line. */}
+            {champ?.champion && (
+              <div style={{ background: `linear-gradient(135deg, ${C.gold}, #E0A93A)`, borderRadius: 14, padding: "16px 18px", marginBottom: 16, color: "#fff", boxShadow: "0 2px 10px rgba(200,146,42,.25)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ fontSize: "2.2rem", lineHeight: 1 }}>🏆</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: ".72rem", opacity: .9, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 700 }}>
+                      {lastMonthName(champ.period)} Champion
+                    </div>
+                    <div style={{ fontSize: "1.2rem", fontWeight: 800, marginTop: 1 }}>
+                      {champ.champion.isMe ? "You! 🎉" : champ.champion.name}
+                    </div>
+                    <div style={{ fontSize: ".76rem", opacity: .9 }}>{champ.champion.points} points</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Badges — persistent achievements anyone can earn (anti-shame). */}
+            {badgeData?.badges && (
+              <div style={{ background: "#fff", borderRadius: 14, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 8px rgba(15,31,23,.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}>🎖 Your badges</div>
+                  <div style={{ fontSize: ".78rem", color: C.mist }}>
+                    {badgeData.earnedCount}/{badgeData.total}{badgeData.streak >= 2 ? ` · 🔥 ${badgeData.streak}mo streak` : ""}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 8, marginTop: 12 }}>
+                  {badgeData.badges.map(b => (
+                    <div key={b.id} title={b.desc} style={{
+                      textAlign: "center", padding: "10px 4px", borderRadius: 10,
+                      background: b.earned ? C.foam : "#F4F6F5",
+                      opacity: b.earned ? 1 : .45, filter: b.earned ? "none" : "grayscale(1)",
+                    }}>
+                      <div style={{ fontSize: "1.5rem", lineHeight: 1.1 }}>{b.icon}</div>
+                      <div style={{ fontSize: ".62rem", fontWeight: 600, color: C.ink, marginTop: 3, lineHeight: 1.2 }}>{b.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ background: "#fff", borderRadius: 14, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 8px rgba(15,31,23,.06)" }}>
               <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>🏆 {monthName} leaders</div>
               <div style={{ fontSize: ".74rem", color: C.mist, marginBottom: 12 }}>Points reset at the start of each month — everyone gets a fresh shot.</div>

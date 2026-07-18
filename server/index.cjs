@@ -921,6 +921,90 @@ app.get("/api/points/leaderboard", auth, (req, res) => {
              me: { points: mine, rank: mine > 0 ? ahead + 1 : null } });
 });
 
+// The previous month's champion — powers the "reset ceremony": when a new month
+// starts, everyone sees who won the month just ended. Returns the top scorer of the
+// prior period (null if nobody scored), plus a short hall-of-fame of past winners.
+const prevPeriod = (d = new Date()) => {
+  const x = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`;
+};
+app.get("/api/points/champion", auth, (req, res) => {
+  const t = req.auth.tenant;
+  const period = String(req.query.period || prevPeriod());
+  const champ = db.prepare(`SELECT u.id, u.name, SUM(l.points) AS pts
+                            FROM points_ledger l JOIN users u ON u.id = l.user_id
+                            WHERE l.tenant_id=? AND l.status='confirmed' AND l.period=? AND u.active=1
+                            GROUP BY u.id ORDER BY pts DESC, u.name ASC LIMIT 1`).get(t, period);
+  // Hall of fame: the champion of each of the last several completed months.
+  const periods = db.prepare(`SELECT DISTINCT period FROM points_ledger
+                              WHERE tenant_id=? AND status='confirmed' AND period < ?
+                              ORDER BY period DESC LIMIT 6`).all(t, periodOf());
+  const hallOfFame = periods.map(({ period: pr }) => {
+    const w = db.prepare(`SELECT u.name, SUM(l.points) AS pts
+                          FROM points_ledger l JOIN users u ON u.id = l.user_id
+                          WHERE l.tenant_id=? AND l.status='confirmed' AND l.period=? AND u.active=1
+                          GROUP BY u.id ORDER BY pts DESC, u.name ASC LIMIT 1`).get(t, pr);
+    return w ? { period: pr, name: w.name, points: w.pts } : null;
+  }).filter(Boolean);
+  res.json({
+    period,
+    champion: champ ? { name: champ.name, points: champ.pts, isMe: champ.id === req.auth.uid } : null,
+    hallOfFame,
+  });
+});
+
+// Badges: persistent, attainable-by-anyone achievements (anti-shame — unlike the
+// monthly race, everyone can earn every badge by participating). Computed on-read
+// from the caller's ledger so there's no separate award job to run.
+const BADGE_DEFS = [
+  { id: "first_report",  icon: "📝", name: "First Report",     desc: "Filed your first report",            test: s => s.reportCount >= 1 },
+  { id: "reporter_10",   icon: "🔍", name: "Sharp Eyes",       desc: "Filed 10 reports",                   test: s => s.reportCount >= 10 },
+  { id: "reporter_25",   icon: "🦅", name: "Eagle Eye",        desc: "Filed 25 reports",                   test: s => s.reportCount >= 25 },
+  { id: "first_kudos",   icon: "👏", name: "Team Player",      desc: "Gave your first shout-out",          test: s => s.kudosGiven >= 1 },
+  { id: "kudos_10",      icon: "🤝", name: "Culture Builder",  desc: "Gave 10 shout-outs",                 test: s => s.kudosGiven >= 10 },
+  { id: "recognized",    icon: "⭐", name: "Recognized",       desc: "Received a shout-out",               test: s => s.kudosReceived >= 1 },
+  { id: "idea_person",   icon: "💡", name: "Idea Person",      desc: "Shared a safety idea",               test: s => s.ideaCount >= 1 },
+  { id: "streak_3",      icon: "🔥", name: "On a Roll",        desc: "Active 3 months in a row",           test: s => s.streak >= 3 },
+  { id: "streak_6",      icon: "🚀", name: "Committed",        desc: "Active 6 months in a row",           test: s => s.streak >= 6 },
+  { id: "champion",      icon: "🏆", name: "Monthly Champion", desc: "Won a monthly leaderboard",          test: s => s.championMonths >= 1 },
+];
+app.get("/api/points/badges", auth, (req, res) => {
+  const t = req.auth.tenant, u = req.auth.uid;
+  // Participation badges count the ACTION taken, even if the points are still
+  // pending review — filing a report is an achievement the moment you file it.
+  const allRows = db.prepare(`SELECT reason, period, status FROM points_ledger WHERE tenant_id=? AND user_id=?`).all(t, u);
+  const count = (fn) => allRows.filter(fn).length;
+  const stats = {
+    reportCount:   count(r => r.reason === "report_reviewed" || r.reason === "idea"),
+    ideaCount:     count(r => r.reason === "idea"),
+    kudosGiven:    count(r => r.reason === "kudos_given"),
+    kudosReceived: count(r => r.reason === "kudos_received"),
+  };
+  // Streak & champion use CONFIRMED activity (they're about the competitive race).
+  const rows = allRows.filter(r => r.status === "confirmed");
+  // Streak: consecutive months (up to and including last month) with any activity.
+  const active = new Set(rows.map(r => r.period));
+  let streak = 0;
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const per = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (active.has(per)) streak++;
+    else if (i > 0) break; // current month not yet active is OK; a gap before that ends the streak
+  }
+  stats.streak = streak;
+  // Champion months: how many completed months this user topped.
+  const periods = [...active].filter(p => p < periodOf());
+  let championMonths = 0;
+  for (const p of periods) {
+    const top = db.prepare(`SELECT user_id FROM points_ledger WHERE tenant_id=? AND status='confirmed' AND period=?
+                            GROUP BY user_id ORDER BY SUM(points) DESC LIMIT 1`).get(t, p);
+    if (top && top.user_id === u) championMonths++;
+  }
+  stats.championMonths = championMonths;
+  const badges = BADGE_DEFS.map(b => ({ id: b.id, icon: b.icon, name: b.name, desc: b.desc, earned: b.test(stats) }));
+  res.json({ badges, earnedCount: badges.filter(b => b.earned).length, total: badges.length, streak });
+});
+
 // Operator/admin: award manual recognition points to someone.
 app.post("/api/points/award", auth, requireRole(...ADMINISH), (req, res) => {
   const { userId, points, note } = req.body || {};

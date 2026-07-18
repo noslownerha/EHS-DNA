@@ -110,6 +110,8 @@ export const api = {
   // Recognition / points
   myPoints: () => req("/points/me"),
   leaderboard: (period) => req(`/points/leaderboard${period ? `?period=${period}` : ""}`),
+  champion: () => req("/points/champion"),
+  myBadges: () => req("/points/badges"),
   awardPoints: (body) => req("/points/award", { method: "POST", body }),
 
   listCAs: () => req("/cas"),

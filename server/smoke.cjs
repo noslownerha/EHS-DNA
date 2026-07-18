@@ -849,6 +849,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const cd = await fetch(`${B}/api/assets/${created.id}`, { headers: H() }).then(j);
   ok("equipment: created asset reads back with its procedure", cd.loto && cd.loto.length === 1);
 
+  // ── Recognition: champion + badges ──
+  const champ = await fetch(`${B}/api/points/champion`, { headers: sH }).then(j);
+  ok("recognition: champion endpoint returns shape",
+     champ && "champion" in champ && Array.isArray(champ.hallOfFame));
+  // Staff files an idea → should earn participation badges even while pending.
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: sH,
+    body: JSON.stringify({ type: "idea", description: "Badge test idea for recognition", severity: null }) }).then(j);
+  const badges = await fetch(`${B}/api/points/badges`, { headers: sH }).then(j);
+  ok("recognition: badges endpoint returns badge list with earned flags",
+     badges && Array.isArray(badges.badges) && badges.badges.length >= 5 &&
+     badges.badges.every(b => "earned" in b && "name" in b));
+  ok("recognition: filing an idea earns participation badges (pending-inclusive)",
+     badges.badges.find(b => b.id === "first_report")?.earned === true &&
+     badges.badges.find(b => b.id === "idea_person")?.earned === true);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
