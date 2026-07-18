@@ -133,6 +133,7 @@ export const api = {
   // trainings
   listTrainings: () => req("/trainings"),
   createTraining: (t) => req("/trainings", { method: "POST", body: t }),
+  remindTraining: () => req("/trainings/remind", { method: "POST" }),
   updateTraining: (id, patch) => req(`/trainings/${id}`, { method: "PUT", body: patch }),
   listCompletions: () => req("/completions"),
   logCompletion: (c) => req("/completions", { method: "POST", body: c }),

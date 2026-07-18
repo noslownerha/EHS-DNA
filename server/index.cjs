@@ -1354,8 +1354,42 @@ app.post("/api/completions", auth, (req, res) => {
   res.json({ ok: true, sessionId: sid, count: targets.length });
 });
 
-// ── Triage records ───────────────────────────────────────────────────────────
-app.get("/api/triage", auth, listAll("triage_records", "created_at DESC"));
+// Admin/trainer: send a reminder now to staff with overdue or missing required
+// trainings (what the compliance screen's "Send reminders" button triggers).
+// Covers both expired completions AND never-started required trainings.
+app.post("/api/trainings/remind", auth, requireRole(...["admin", "safety", "trainer", "site_manager"]), (req, res) => {
+  const t = req.auth.tenant;
+  const now = Date.now();
+  const users = db.prepare("SELECT id, name, role, department_id, site_id FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0").all(t);
+  const trainings = db.prepare("SELECT id, title, required_roles, required_departments, required_users FROM trainings WHERE tenant_id = ? AND active = 1").all(t);
+  const comps = db.prepare("SELECT user_id, training_id, expires_at, passed FROM training_completions WHERE tenant_id = ?").all(t);
+  const notif = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref) VALUES (?, ?, ?, ?, 'training', ?)`);
+  const recent = db.prepare(`SELECT 1 FROM notifications WHERE user_id = ? AND link_kind = 'training' AND link_ref = ? AND created_at > datetime('now','-3 days') LIMIT 1`);
+  let reminded = 0;
+  for (const u of users) {
+    // Which required trainings is this user missing or overdue on?
+    const overdue = trainings.filter(tr => {
+      const roles = JSON.parse(tr.required_roles || "[]");
+      const depts = JSON.parse(tr.required_departments || "[]");
+      const usrs = JSON.parse(tr.required_users || "[]");
+      const required = (roles.length === 0 && depts.length === 0 && usrs.length === 0)
+        || roles.includes(u.role) || usrs.includes(u.id) || depts.includes(u.department_id);
+      if (!required) return false;
+      const passed = comps.filter(c => c.user_id === u.id && c.training_id === tr.id && c.passed !== 0)
+        .sort((a, b) => (b.expires_at || "").localeCompare(a.expires_at || ""))[0];
+      if (!passed) return true;                                   // never passed
+      if (passed.expires_at && new Date(passed.expires_at).getTime() < now) return true; // expired
+      return false;
+    });
+    if (!overdue.length) continue;
+    const ref = "reminder-overdue";
+    if (recent.get(u.id, ref)) continue;                          // don't spam
+    notif.run(t, u.id, `📚 ${overdue.length} training${overdue.length === 1 ? "" : "s"} need your attention`,
+      `You have ${overdue.length} required training${overdue.length === 1 ? "" : "s"} overdue or not yet completed. Open your Training queue to get current.`, ref);
+    reminded++;
+  }
+  res.json({ ok: true, reminded });
+});
 app.post("/api/triage", auth, (req, res) => {
   const { siteId, outcome, stepsCompleted, notified, linkedIncidentId } = req.body || {};
   const tstmt = db.prepare(`INSERT INTO triage_records (tenant_id, ref, responder_id, site_id, outcome, steps_completed, notified, linked_incident_id)
