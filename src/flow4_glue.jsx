@@ -88,9 +88,8 @@ function reducer(state, action) {
       return {
         ...state,
         activeTraining: action.training,
-        screen: action.training?.type === "cbt"
-          ? TRAINING_SCREENS.CBT
-          : TRAINING_SCREENS.SIGN_OFF,
+        screen: action.targetScreen
+          ?? (action.training?.type === "cbt" ? TRAINING_SCREENS.CBT : TRAINING_SCREENS.SIGN_OFF),
         history: [...state.history, state.screen],
       };
 
@@ -161,8 +160,33 @@ export function TrainingProvider({
         }],
       };
     }
-    dispatch({ type: "OPEN_TRAINING", training });
-  }, []);
+    // Route by role: a trainer/manager opening a non-CBT training records it via
+    // in-person sign-off (they're attesting for others). A staff member is taking
+    // the training themselves, so they always get the self-serve player — never the
+    // sign-off screen (which they can't use and which would defeat verification).
+    // Non-CBT trainings for staff fall back to a simple acknowledge-to-complete.
+    const isTrainer = ["trainer", "safety", "site_manager", "admin"].includes(user.role);
+    let targetScreen;
+    if (training?.type === "cbt") {
+      targetScreen = TRAINING_SCREENS.CBT;
+    } else if (isTrainer) {
+      targetScreen = TRAINING_SCREENS.SIGN_OFF;
+    } else {
+      // Staff self-serve on a non-CBT training: present it as a CBT with a single
+      // acknowledge slide so they can record their own completion.
+      targetScreen = TRAINING_SCREENS.CBT;
+      training = {
+        ...training,
+        passThreshold: 0,
+        slides: [{
+          id: "ack", type: "content", heading: training.title,
+          body: "Review this training's material with your supervisor or trainer, then tap Finish to record your completion.",
+          example: null, image: null,
+        }],
+      };
+    }
+    dispatch({ type: "OPEN_TRAINING", training, targetScreen });
+  }, [user.role]);
   const viewTraining   = useCallback(id  => dispatch({ type: "VIEW_TRAINING", id }), []);
   const viewStaff      = useCallback(id  => dispatch({ type: "VIEW_STAFF",    id }), []);
   const openGroupLog   = useCallback(()  => dispatch({ type: "OPEN_GROUP_LOG"  }), []);

@@ -1325,10 +1325,16 @@ app.post("/api/completions", auth, (req, res) => {
   const didPass = passed === undefined ? 1 : (passed ? 1 : 0);
   if (!trainingId) return res.status(400).json({ error: "trainingId required" });
   const targets = Array.isArray(userIds) && userIds.length ? userIds : [req.auth.uid];
+  const trainerRoles = ["admin", "safety", "trainer", "site_manager"];
   // Group logging requires trainer+; self-completion is open to all
   if ((targets.length > 1 || targets[0] !== req.auth.uid) &&
-      !["admin", "safety", "trainer", "site_manager"].includes(req.auth.role))
+      !trainerRoles.includes(req.auth.role))
     return res.status(403).json({ error: "Insufficient permissions" });
+  // In-person sign-off ATTESTS that someone verified the completion — it must be
+  // recorded by a trainer/safety/manager/admin, never self-signed by staff, even
+  // for oneself. (CBT/self-serve completion stays open to all.)
+  if ((method === "inperson" || method === "signoff") && !trainerRoles.includes(req.auth.role))
+    return res.status(403).json({ error: "In-person sign-off must be recorded by a trainer or manager" });
   const training = db.prepare("SELECT frequency_months FROM trainings WHERE id = ? AND tenant_id = ?").get(trainingId, req.auth.tenant);
   if (!training) return res.status(404).json({ error: "Training not found" });
   const sid = sessionId ?? `SES-${Date.now()}`;

@@ -374,6 +374,33 @@ db.exec(`CREATE TABLE IF NOT EXISTS labor_hours (
   PRIMARY KEY (tenant_id, site_id, month)
 )`);
 
+// Backfill: give the "Ethanol & Flammable Liquids Safety" CBT real content if it
+// exists without any (e.g. on a DB seeded before the sample course was added), so
+// the self-serve training flow is testable on existing installs. Idempotent — only
+// fills when content is null/empty.
+try {
+  const sample = JSON.stringify({
+    passThreshold: 100,
+    slides: [
+      { heading: "Why ethanol demands respect",
+        body: "Ethanol vapor is heavier than air, spreads along the floor, and ignites from a spark, static, or hot surface — often with a nearly invisible flame. Keep ignition sources away from any area where you can smell it." },
+      { heading: "Your part in preventing a fire",
+        body: "Bond and ground containers when transferring. Clean spills immediately. Never use a phone or non-rated equipment in a classified area. If you smell a strong ethanol odor where you shouldn't, stop work and tell your supervisor." },
+    ],
+    questions: [
+      { q: "Should you keep sparks, flames, and hot surfaces away from areas where ethanol vapor may be present?",
+        choices: ["Yes", "No"], correctIndex: 0,
+        explanation: "Ethanol vapor ignites easily — ignition sources must be kept away." },
+      { q: "If you notice a strong ethanol smell where there shouldn't be one, should you stop and report it?",
+        choices: ["Yes", "No"], correctIndex: 0,
+        explanation: "An unexpected strong odor can mean a leak or spill — stop work and report it." },
+    ],
+  });
+  db.prepare(`UPDATE trainings SET content = ?, kind = 'cbt'
+              WHERE title = 'Ethanol & Flammable Liquids Safety'
+                AND (content IS NULL OR content = '')`).run(sample);
+} catch (e) { /* backfill is best-effort */ }
+
 // ── Seed: WhistlePig as tenant 1 ─────────────────────────────────────────────
 function seed() {
   const t = db.prepare("SELECT id FROM tenants WHERE id = 1").get();
@@ -402,20 +429,41 @@ function seed() {
 
     // Starter training catalog — standard distillery/manufacturing EHS set.
     // All editable/deactivatable through the training library.
-    const trStmt = db.prepare(`INSERT INTO trainings (tenant_id, title, kind, frequency_months, required_roles, required_departments)
-                               VALUES (1, ?, ?, ?, '[]', '[]')`);
+    const trStmt = db.prepare(`INSERT INTO trainings (tenant_id, title, kind, content, frequency_months, required_roles, required_departments)
+                               VALUES (1, ?, ?, ?, ?, '[]', '[]')`);
+    // A ready-to-take sample CBT so the self-serve flow can be tested end to end:
+    // two short content slides, then two yes/no questions. Correct answer to both
+    // is "Yes" (index 0); passThreshold 100 means BOTH must be Yes to pass — any
+    // other combination fails.
+    const ethanolContent = JSON.stringify({
+      passThreshold: 100,
+      slides: [
+        { heading: "Why ethanol demands respect",
+          body: "Ethanol vapor is heavier than air, spreads along the floor, and ignites from a spark, static, or hot surface — often with a nearly invisible flame. Keep ignition sources away from any area where you can smell it." },
+        { heading: "Your part in preventing a fire",
+          body: "Bond and ground containers when transferring. Clean spills immediately. Never use a phone or non-rated equipment in a classified area. If you smell a strong ethanol odor where you shouldn't, stop work and tell your supervisor." },
+      ],
+      questions: [
+        { q: "Should you keep sparks, flames, and hot surfaces away from areas where ethanol vapor may be present?",
+          choices: ["Yes", "No"], correctIndex: 0,
+          explanation: "Ethanol vapor ignites easily — ignition sources must be kept away." },
+        { q: "If you notice a strong ethanol smell where there shouldn't be one, should you stop and report it?",
+          choices: ["Yes", "No"], correctIndex: 0,
+          explanation: "An unexpected strong odor can mean a leak or spill — stop work and report it." },
+      ],
+    });
     [
-      ["New Hire Safety Orientation",        "in_person", null],
-      ["Hazard Communication (HazCom/GHS)",  "cbt",       12],
-      ["Lockout/Tagout (LOTO) Awareness",    "cbt",       12],
-      ["Forklift / PIT Operator",            "in_person", 36],
-      ["PPE Selection & Use",                "cbt",       12],
-      ["Emergency Action Plan & Evacuation", "cbt",       12],
-      ["Fire Extinguisher Use",              "in_person", 12],
-      ["Confined Space Awareness",           "cbt",       12],
-      ["Hot Work Awareness",                 "cbt",       12],
-      ["Ethanol & Flammable Liquids Safety", "cbt",       12],
-    ].forEach(([title, kind, freq]) => trStmt.run(title, kind, freq));
+      ["New Hire Safety Orientation",        "in_person", null, null],
+      ["Hazard Communication (HazCom/GHS)",  "cbt",       12,   null],
+      ["Lockout/Tagout (LOTO) Awareness",    "cbt",       12,   null],
+      ["Forklift / PIT Operator",            "in_person", 36,   null],
+      ["PPE Selection & Use",                "cbt",       12,   null],
+      ["Emergency Action Plan & Evacuation", "cbt",       12,   null],
+      ["Fire Extinguisher Use",              "in_person", 12,   null],
+      ["Confined Space Awareness",           "cbt",       12,   null],
+      ["Hot Work Awareness",                 "cbt",       12,   null],
+      ["Ethanol & Flammable Liquids Safety", "cbt",       12,   ethanolContent],
+    ].forEach(([title, kind, freq, content]) => trStmt.run(title, kind, content, freq));
     // Starter inspection checklists — editable in the builder; per-site schedules
     const clStmt = db.prepare(`INSERT INTO checklists (tenant_id, name, items, kind, frequency_days)
                                VALUES (1, ?, ?, ?, ?)`);

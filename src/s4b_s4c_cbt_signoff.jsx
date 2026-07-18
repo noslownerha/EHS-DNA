@@ -312,16 +312,20 @@ export function S4cInPersonSignOff({ onHome,
   const [submitted,        setSubmitted]        = useState(false);
   const [notesFocused,     setNotesFocused]     = useState(false);
 
-  // Spec: role gate — Department Lead excluded
-  const BLOCKED_ROLES = ["dept_lead"];
-  if (BLOCKED_ROLES.includes(trainerRole)) {
+  // Role gate: in-person sign-off attests that SOMEONE ELSE verified a person's
+  // completion — so it must be restricted to trainer/safety/site_manager/admin.
+  // A staff member must never be able to sign off their own completion (that
+  // defeats the point of a verified record). Allowlist, not blocklist, so any new
+  // role is denied by default rather than accidentally permitted.
+  const ALLOWED_ROLES = ["trainer", "safety", "site_manager", "admin"];
+  if (!ALLOWED_ROLES.includes(trainerRole)) {
     return (
       <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ textAlign: "center", maxWidth: 300 }}>
           <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>Access restricted</h2>
           <p style={{ fontSize: ".85rem", color: C.mist, lineHeight: 1.5 }}>
-            In-person sign-off requires Trainer, Safety Officer, Site Manager, or Company Admin role. Department Lead is excluded from this action.
+            In-person sign-off must be recorded by a trainer, safety officer, site manager, or company admin — not by the person completing the training.
           </p>
         </div>
       </div>
