@@ -4,6 +4,7 @@ import { startAutoFlush } from "./offlineQueue.js";
 import { ROLE_PERMS, COLORS as C } from "./constants.js";
 import LandingPage                   from "./LandingPage.jsx";
 import AppShell, { EHSHeader, AccountContext } from "./AppShell.jsx";
+import S7aAssetDetail from "./s7a_asset_detail.jsx";
 import { BRAND } from "./constants.js";
 import StaffDashboard                from "./StaffDashboard.jsx";
 import RecognitionScreen            from "./RecognitionScreen.jsx";
@@ -74,6 +75,7 @@ class CrashShield extends Component {
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
+  const [assetIdView, setAssetIdView] = useState(null);
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
   const [pickerStep,  setPickerStep]  = useState("top");
@@ -113,6 +115,7 @@ function App() {
       if (kind === "incident") { setFlagScreen(INCIDENT_SCREENS.LIST); handleTab("flag"); }
       else if (kind === "training") handleTab("training");
       else if (kind === "finding") handleTab("inspect");
+      else if (kind === "asset") { setAssetIdView(e.detail.ref); setActiveTab("asset"); }
       else handleTab("home");
     }
     window.addEventListener("ehs:navigate", onDeepLink);
@@ -195,6 +198,23 @@ function App() {
             <IncidentProvider key={flagScreen} user={userObj} companyName={COMPANY} initialScreen={flagScreen}>
               <IncidentRouter onDone={handleHome} onGoToTriage={() => setActiveTab("triage")} pickerStep={pickerStep} />
             </IncidentProvider>
+          </MobileFrame>
+        );
+
+      // ── ASSET (equipment scan-result / deep link) ────────────────────────
+      case "asset":
+        return (
+          <MobileFrame>
+            <S7aAssetDetail
+              assetId={assetIdView}
+              user={userObj}
+              onHome={handleHome}
+              onBack={handleHome}
+              onRunInspection={(checklistId, asset) => {
+                // Jump into the inspection flow for this asset's checklist.
+                setActiveTab("inspect");
+              }}
+            />
           </MobileFrame>
         );
 

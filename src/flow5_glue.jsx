@@ -35,6 +35,8 @@ import S5aSiteManagerDashboard                        from "./s5a_site_manager_d
 import { S5bCompanyAdminDashboard, S5cStaffMobileHome } from "./s5b_s5c_admin_dashboard_mobile_home";
 import S5dReportBuilder                                from "./s5d_report_builder";
 import S5eManageStaff                                  from "./s5e_manage_staff";
+import S7bAssetRegistry                                from "./s7b_asset_registry.jsx";
+import S7aAssetDetail                                  from "./s7a_asset_detail.jsx";
 import S5fCompanySettings                              from "./s5f_company_settings";
 import S5gBilling                                      from "./s5g_billing";
 import S5hOpsConsole                                   from "./s5h_ops_console";
@@ -51,6 +53,8 @@ export const DASHBOARD_SCREENS = {
   SETTINGS:     "s5f",
   BILLING:      "s5g",
   OPS:          "s5h",
+  EQUIPMENT:    "s7b",   // asset registry
+  ASSET:        "s7a",   // single asset detail
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,7 +81,8 @@ function reducer(state, action) {
       const history = action.replace
         ? state.history
         : [...state.history, state.screen];
-      return { ...state, screen: action.screen, history };
+      return { ...state, screen: action.screen, history,
+               assetId: action.assetId !== undefined ? action.assetId : state.assetId };
     }
     case "BACK": {
       if (state.history.length === 0) return state;
@@ -104,8 +109,8 @@ export function DashboardProvider({
   const startScreen = initialScreen ?? defaultScreenForRole(user.role);
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: startScreen });
 
-  const navigate = useCallback((screen, { replace = false } = {}) =>
-    dispatch({ type: "NAVIGATE", screen, replace }), []);
+  const navigate = useCallback((screen, { replace = false, assetId } = {}) =>
+    dispatch({ type: "NAVIGATE", screen, replace, assetId }), []);
   const back = useCallback(() => dispatch({ type: "BACK" }), []);
 
   return (
@@ -145,6 +150,7 @@ export function DashboardRouter({
       case "report":    return navigate(DASHBOARD_SCREENS.REPORT);
       case "staff":     return navigate(DASHBOARD_SCREENS.STAFF_MGMT);
       case "settings":  return navigate(DASHBOARD_SCREENS.SETTINGS);
+      case "equipment": return navigate(DASHBOARD_SCREENS.EQUIPMENT);
       case "billing":   return navigate(DASHBOARD_SCREENS.BILLING);
       case "ops":       return navigate(DASHBOARD_SCREENS.OPS);
       case "incidents": return onIncidents?.();
@@ -209,6 +215,28 @@ export function DashboardRouter({
         <S5eManageStaff
           onHome={onHome ?? onDone}
           companyName={companyName}
+        />
+      );
+
+    // ── s7b: Equipment & Assets registry ────────────────────────────────────
+    case DASHBOARD_SCREENS.EQUIPMENT:
+      return (
+        <S7bAssetRegistry
+          onHome={onHome ?? onDone}
+          user={user}
+          onBack={back}
+          onOpenAsset={(id) => navigate(DASHBOARD_SCREENS.ASSET, { assetId: id })}
+        />
+      );
+
+    // ── s7a: Single asset detail ────────────────────────────────────────────
+    case DASHBOARD_SCREENS.ASSET:
+      return (
+        <S7aAssetDetail
+          assetId={state.assetId}
+          user={user}
+          onHome={onHome ?? onDone}
+          onBack={back}
         />
       );
 
