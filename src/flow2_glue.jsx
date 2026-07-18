@@ -291,7 +291,7 @@ export function useIncident() {
 // ─────────────────────────────────────────────────────────────────────────────
 // IncidentRouter
 // ─────────────────────────────────────────────────────────────────────────────
-export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
+export function IncidentRouter({ onDone, onGoToTriage, onHome, pickerStep = "top" }) {
   const {
     state, navigate, back,
     saveType, saveWhat, saveWho, savePhotos, submit, viewIncident, resetDraft,
@@ -310,6 +310,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
           user={user}
           onBack={onDone ?? back}
           onTriage={onGoToTriage}
+          initialStep={pickerStep}
           onContinue={data => {
             saveType(data);
             navigate(INCIDENT_SCREENS.WHAT);

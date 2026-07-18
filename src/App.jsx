@@ -76,6 +76,7 @@ function App() {
   const [activeTab,   setActiveTab]   = useState("home");
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
+  const [pickerStep,  setPickerStep]  = useState("top");
 
   // Drain any incident reports queued while offline (dead zones on the plant floor).
   // Safe to run always: it no-ops when the queue is empty or the device is offline.
@@ -140,6 +141,7 @@ function App() {
   function handleTab(tabId) {
     if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
     else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);
+    if (tabId === "flag") setPickerStep("top"); // normal Flag entry starts at top
     setActiveTab(tabId);
   }
   function handleNavigate(dest) { setActiveTab(dest); }
@@ -191,7 +193,7 @@ function App() {
         return (
           <MobileFrame>
             <IncidentProvider key={flagScreen} user={userObj} companyName={COMPANY} initialScreen={flagScreen}>
-              <IncidentRouter onDone={handleHome} onGoToTriage={() => setActiveTab("triage")} />
+              <IncidentRouter onDone={handleHome} onGoToTriage={() => setActiveTab("triage")} pickerStep={pickerStep} />
             </IncidentProvider>
           </MobileFrame>
         );
@@ -202,7 +204,7 @@ function App() {
         return (
           <MobileFrame>
             <TriageProvider user={userObj} companyName={COMPANY}>
-              <TriageRouter onDone={handleHome} onFileReport={() => setActiveTab("flag")} />
+              <TriageRouter onDone={handleHome} onFileReport={() => { setPickerStep("flag"); setFlagScreen(INCIDENT_SCREENS.TYPE); setActiveTab("flag"); }} />
             </TriageProvider>
           </MobileFrame>
         );

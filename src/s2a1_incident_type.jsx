@@ -40,23 +40,26 @@ function Card({ icon, label, sub, tone = "neutral", onClick }) {
 
 export default function S2a1IncidentType({
   user = { name: "Responder", site: "Moriah" },
-  onContinue, onBack, onTriage, onHome,
+  onContinue, onBack, onTriage, onHome, initialStep = "top",
 }) {
   // step: "top" -> "flag" -> "idea". Injury peels off to triage; terminal tiles
   // call proceed() with a resolved type. Fewer taps than the old flat grid, and
   // every tap encodes a real routing distinction rather than making the worker
-  // read a wall of options.
-  const [step, setStep] = useState("top");
+  // read a wall of options. initialStep lets other entry points (e.g. coming back
+  // from triage once the situation is handled) skip the top-level choice.
+  const [step, setStep] = useState(initialStep);
   const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const [site] = useState(user.site ?? SITES[0]);
   const [datetime] = useState(nowStr);
 
   const proceed = (type) => onContinue?.({ type, site, datetime });
-  const goBack  = () => step === "idea" ? setStep("flag") : step === "flag" ? setStep("top") : onBack?.();
+  const goBack  = () => step === "idea" ? setStep("flag")
+                      : step === "flag" && initialStep !== "flag" ? setStep("top")
+                      : onBack?.();
 
   const HEAD = {
     top:  { h: "What's going on?", p: "Pick the closest — it only takes a moment." },
-    flag: { h: "What kind of thing?", p: "Just the closest fit. You can add detail next." },
+    flag: { h: "What would you like to flag?", p: "Pick the closest fit — you can add detail next." },
     idea: { h: "What would you like to share?", p: "" },
   }[step];
 
@@ -66,7 +69,6 @@ export default function S2a1IncidentType({
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .type-tile:hover { transform: translateY(-2px); } .type-tile:active { transform: scale(.98); }
-        .triage-hint:hover { background: ${C.redLt} !important; }
       `}</style>
 
       <EHSHeader onHome={onHome} rightContent={<button onClick={goBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>&larr; Back</button>} />
@@ -109,20 +111,6 @@ export default function S2a1IncidentType({
           </>
         )}
 
-        {step === "top" && onTriage && (
-          <button className="triage-hint" onClick={onTriage} style={{
-            marginTop: 4, width: "100%", padding: "11px 14px", background: C.redLt,
-            border: `1.5px solid ${C.red}33`, borderRadius: 9, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 10, fontFamily: "'DM Sans', sans-serif", transition: "background .15s",
-          }}>
-            <span style={{ fontSize: "1rem" }}>🚨</span>
-            <div style={{ textAlign: "left", flex: 1 }}>
-              <div style={{ fontSize: ".83rem", fontWeight: 700, color: C.red }}>Something happening right now?</div>
-              <div style={{ fontSize: ".7rem", color: C.mist }}>Get live step-by-step guidance &rarr;</div>
-            </div>
-            <span style={{ color: C.red }}>&rarr;</span>
-          </button>
-        )}
       </div>
     </div>
   );
