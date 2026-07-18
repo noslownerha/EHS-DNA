@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { INCIDENT_TYPES, COLORS } from "./constants.js";
+import { COLORS } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
@@ -16,114 +16,113 @@ function Progress({ step, total }) {
   );
 }
 
+// A single choice card. Big tap target, icon + label + one-line sub.
+function Card({ icon, label, sub, tone = "neutral", onClick }) {
+  const accent = tone === "injury" ? C.red : tone === "good" ? C.sage : C.ink;
+  const bg     = tone === "injury" ? C.redLt : tone === "good" ? C.foam : "#EFF6F1";
+  const border = tone === "injury" ? `${C.red}44` : tone === "good" ? `${C.sage}55` : "#C9D8D0";
+  return (
+    <button className="type-tile" onClick={onClick} style={{
+      width: "100%", padding: "18px 16px", textAlign: "left",
+      background: bg, border: `1.5px solid ${border}`, borderRadius: 13, cursor: "pointer",
+      boxShadow: "0 2px 8px rgba(15,31,23,.08)", fontFamily: "'DM Sans', sans-serif",
+      display: "flex", alignItems: "center", gap: 14, transition: "transform .12s",
+    }}>
+      <span style={{ fontSize: "1.7rem", flexShrink: 0 }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: "1rem", fontWeight: 700, lineHeight: 1.2, color: accent }}>{label}</div>
+        {sub && <div style={{ fontSize: ".76rem", color: C.mist, marginTop: 2, lineHeight: 1.3 }}>{sub}</div>}
+      </div>
+      <span style={{ color: accent, fontSize: "1.1rem", flexShrink: 0 }}>›</span>
+    </button>
+  );
+}
+
 export default function S2a1IncidentType({
   user = { name: "Responder", site: "Moriah" },
   onContinue, onBack, onTriage, onHome,
 }) {
+  // step: "top" -> "flag" -> "idea". Injury peels off to triage; terminal tiles
+  // call proceed() with a resolved type. Fewer taps than the old flat grid, and
+  // every tap encodes a real routing distinction rather than making the worker
+  // read a wall of options.
+  const [step, setStep] = useState("top");
   const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const [selectedType, setSelectedType] = useState(null);
-  const [site,         setSite]         = useState(user.site ?? SITES[0]);
-  const [datetime,     setDatetime]     = useState(nowStr);
+  const [site] = useState(user.site ?? SITES[0]);
+  const [datetime] = useState(nowStr);
+
+  const proceed = (type) => onContinue?.({ type, site, datetime });
+  const goBack  = () => step === "idea" ? setStep("flag") : step === "flag" ? setStep("top") : onBack?.();
+
+  const HEAD = {
+    top:  { h: "What's going on?", p: "Pick the closest — it only takes a moment." },
+    flag: { h: "What kind of thing?", p: "Just the closest fit. You can add detail next." },
+    idea: { h: "What would you like to share?", p: "" },
+  }[step];
 
   return (
     <div style={{ height: "100dvh", minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .type-tile:hover { transform: translateY(-2px); } .type-tile:active { transform: scale(.97); }
-        .continue-btn:hover:not(:disabled) { background: ${C.pine} !important; }
+        .type-tile:hover { transform: translateY(-2px); } .type-tile:active { transform: scale(.98); }
         .triage-hint:hover { background: ${C.redLt} !important; }
-        select, input { appearance: none; color-scheme: light; }
       `}</style>
 
-      <EHSHeader onHome={onHome} rightContent={<button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>} />
+      <EHSHeader onHome={onHome} rightContent={<button onClick={goBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>&larr; Back</button>} />
 
-      <div style={{ padding: "10px 0 6px", flexShrink: 0 }}><Progress step={0} total={5} /></div>
+      <div style={{ padding: "10px 0 6px", flexShrink: 0 }}><Progress step={step === "top" ? 0 : 1} total={5} /></div>
 
-      <div style={{ flex: 1, padding: "12px 18px 80px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, padding: "16px 18px 40px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
 
         <div>
-          <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink }}>Report an incident</h1>
-          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>The immediate situation is handled — what happened?</p>
+          <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink }}>{HEAD.h}</h1>
+          {HEAD.p && <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>{HEAD.p}</p>}
         </div>
 
-        {/* Bucket 3: triage shortcut above incident type grid */}
-        {onTriage && (
+        {step === "top" && (
+          <>
+            <Card icon="🩹" label="Report an injury" sub="Someone got hurt or ill" tone="injury"
+              onClick={() => (onTriage ? onTriage() : proceed("injury"))} />
+            <Card icon="🚩" label="Flag something" sub="A hazard, damage, or an idea to share"
+              onClick={() => setStep("flag")} />
+          </>
+        )}
+
+        {step === "flag" && (
+          <>
+            <Card icon="⚠️" label="A risk or hazard" sub="Something unsafe, or a close call"
+              onClick={() => proceed("hazard")} />
+            <Card icon="🔧" label="Damage or a security issue" sub="Property, equipment, or a security concern"
+              onClick={() => proceed("property")} />
+            <Card icon="💡" label="An idea or a shout-out" sub="A better way, or someone doing it right" tone="good"
+              onClick={() => setStep("idea")} />
+          </>
+        )}
+
+        {step === "idea" && (
+          <>
+            <Card icon="💡" label="I have an idea" sub="A way to make things safer or better" tone="good"
+              onClick={() => proceed("idea")} />
+            <Card icon="👏" label="Give a shout-out" sub="Someone did something right" tone="good"
+              onClick={() => proceed("positive")} />
+          </>
+        )}
+
+        {step === "top" && onTriage && (
           <button className="triage-hint" onClick={onTriage} style={{
-            width: "100%", padding: "11px 14px", background: C.redLt,
+            marginTop: 4, width: "100%", padding: "11px 14px", background: C.redLt,
             border: `1.5px solid ${C.red}33`, borderRadius: 9, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 10,
-            fontFamily: "'DM Sans', sans-serif", transition: "background .15s",
+            display: "flex", alignItems: "center", gap: 10, fontFamily: "'DM Sans', sans-serif", transition: "background .15s",
           }}>
             <span style={{ fontSize: "1rem" }}>🚨</span>
             <div style={{ textAlign: "left", flex: 1 }}>
-              <div style={{ fontSize: ".83rem", fontWeight: 700, color: C.red }}>Something still happening right now?</div>
-              <div style={{ fontSize: ".7rem", color: C.mist }}>Get live guidance instead → Triage</div>
+              <div style={{ fontSize: ".83rem", fontWeight: 700, color: C.red }}>Something happening right now?</div>
+              <div style={{ fontSize: ".7rem", color: C.mist }}>Get live step-by-step guidance &rarr;</div>
             </div>
-            <span style={{ color: C.red }}>→</span>
+            <span style={{ color: C.red }}>&rarr;</span>
           </button>
         )}
-
-        {/* Two groups: "Something's wrong" (may need a response) and "Speak up"
-            (engagement — positives and ideas). Plain language, sub-text for clarity. */}
-        {[
-          { key: "wrong", label: "Something's wrong", hint: "We'll get the right people on it" },
-          { key: "speak", label: "Speak up",          hint: "Help make the place safer — every voice counts" },
-        ].map(section => (
-          <div key={section.key} style={{ marginBottom: 4 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "2px 2px 8px" }}>
-              <span style={{ fontSize: ".8rem", fontWeight: 700, color: C.ink }}>{section.label}</span>
-              <span style={{ fontSize: ".68rem", color: C.mist }}>{section.hint}</span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
-              {INCIDENT_TYPES.filter(t => t.group === section.key).map(t => (
-                <button key={t.id} className="type-tile" onClick={() => setSelectedType(t.id)} style={{
-                  padding: "14px 12px", width: "100%",
-                  background: selectedType === t.id ? t.bg : "#EFF6F1",
-                  border: `2px solid ${selectedType === t.id ? t.color : "#C9D8D0"}`,
-                  borderRadius: 12, cursor: "pointer", transition: "all .15s",
-                  boxShadow: selectedType === t.id ? `0 4px 14px ${t.color}33` : "0 2px 8px rgba(15,31,23,.10)",
-                  fontFamily: "'DM Sans', sans-serif", textAlign: "left",
-                  transform: selectedType === t.id ? "translateY(-1px)" : "none",
-                }}>
-                  <div style={{ fontSize: "1.4rem", marginBottom: 5 }}>{t.icon}</div>
-                  <div style={{ fontSize: ".85rem", fontWeight: 700, lineHeight: 1.2, color: selectedType === t.id ? t.color : C.ink }}>{t.label}</div>
-                  {t.sub && <div style={{ fontSize: ".68rem", color: C.mist, marginTop: 2, lineHeight: 1.25 }}>{t.sub}</div>}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Site + datetime — no department (Bucket 3) */}
-        <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "14px" }}>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>Site</div>
-            <select value={site} onChange={e => setSite(e.target.value)} style={{ width: "100%", padding: "9px 28px 9px 10px", border: "1.5px solid #D0DEDB", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, background: `${C.white} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238FA3A0'/%3E%3C/svg%3E") no-repeat right 10px center`, outline: "none" }}>
-              {SITES.map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <div style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>Date & time</div>
-            <input type="datetime-local" value={datetime} onChange={e => setDatetime(e.target.value)} style={{ width: "100%", padding: "9px 10px", border: "1.5px solid #D0DEDB", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink, outline: "none", background: C.white }} />
-            <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 4 }}>Defaults to now — edit if reporting after the fact</div>
-          </div>
-        </div>
-
-        <div style={{ height: 86, flexShrink: 0 }} />
-      </div>
-
-      {/* Bottom CTA — fixed above the tab bar so it is always visible */}
-      <div style={{ position: "fixed", left: 0, right: 0, bottom: 58, zIndex: 90, padding: "10px 18px 12px", background: C.white, borderTop: "1px solid #E2EBE6", boxShadow: "0 -4px 20px rgba(0,0,0,.08)" }}>
-        <button className="continue-btn" onClick={() => selectedType && onContinue?.({ type: selectedType, site, datetime })} disabled={!selectedType} style={{
-          width: "100%", padding: "14px",
-          background: selectedType ? C.sage : "#B0C8BA",
-          color: C.white, border: "none", borderRadius: 9,
-          fontFamily: "'DM Sans', sans-serif", fontSize: ".95rem", fontWeight: 700,
-          cursor: selectedType ? "pointer" : "default", transition: "all .18s",
-        }}>
-          {selectedType ? `Continue — ${INCIDENT_TYPES.find(t => t.id === selectedType)?.label} →` : "Select an incident type to continue"}
-        </button>
       </div>
     </div>
   );

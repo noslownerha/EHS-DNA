@@ -352,6 +352,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome }) {
         <S2a4PhotosLocation
           onHome={onHome ?? onDone}
           site={state.draft.site}
+          initialPhotos={state.draft.photos ?? []}
           onBack={back}
           onContinue={data => {
             savePhotos(data);

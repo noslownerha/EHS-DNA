@@ -63,7 +63,7 @@ function PhotoThumb({ photo, onRemove }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S2a4 — Photos & Location
 // ════════════════════════════════════════════════════════════════════════════
-export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
+export function S2a4PhotosLocation({ onContinue, onBack, onHome, site, initialPhotos = [] }) {
   const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === site);
   const [plan, setPlan] = useState(null);
   const [showPlan, setShowPlan] = useState(false);
@@ -73,13 +73,13 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site }) {
       api.siteFloorplan(siteRec.id).then(r => setPlan(r.floorplan)).catch(() => {});
     }
   }, [siteRec?.id]);
-  const [photos,     setPhotos]    = useState([]);
+  const [photos,     setPhotos]    = useState(initialPhotos);
   const [anonymous,  setAnonymous] = useState(false);
   const [gpsGranted, setGps]       = useState(false);
   const [floorPlan,  setFloorPlan] = useState(false);
   const fileRef = useRef(null);
   const cameraRef = useRef(null);
-  const nextId  = useRef(1);
+  const nextId  = useRef((initialPhotos.reduce((m, p) => Math.max(m, p.id ?? 0), 0)) + 1);
 
   async function compressPhoto(file) {
     const url = URL.createObjectURL(file);

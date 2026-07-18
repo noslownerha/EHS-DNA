@@ -1,5 +1,5 @@
 import { COLORS } from "./constants.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
 
@@ -100,14 +100,43 @@ export default function S2a2WhatHappened({
   const [locFocused,  setLocFocused]  = useState(false);
   const [recognizedUserId, setRecognizedUserId] = useState("");
   const [users, setUsers] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const photoInput = useRef(null);
+  const nextPhotoId = useRef(1);
+
+  // Compress a captured photo to a reasonable size before we carry it in state.
+  async function compressPhoto(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+      const MAX = 1280;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", 0.72);
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function handlePhotoSelect(e) {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      compressPhoto(file)
+        .then(dataUrl => setPhotos(p => [...p, { id: nextPhotoId.current++, url: dataUrl, dataUrl, name: file.name }]))
+        .catch(() => setPhotos(p => [...p, { id: nextPhotoId.current++, url: URL.createObjectURL(file), dataUrl: null, name: file.name }]));
+    });
+    e.target.value = "";
+  }
 
   const isInjury   = incidentType === "injury";
   const isPositive = incidentType === "positive";
   const isIdea     = incidentType === "idea";
   const isEngagement = isPositive || isIdea || incidentType === "observation";
   const showOsha   = isInjury && injuryType !== "";
-  // Engagement reports don't need a severity; everything else does.
-  const canContinue = description.trim() && (isEngagement || severity);
+  // At least one of {a photo, a description} is required — the two are
+  // interchangeably optional, so every report carries some context while the
+  // barrier stays as low as possible. Severity is still required for non-engagement.
+  const hasContext = description.trim() || photos.length > 0;
+  const canContinue = hasContext && (isEngagement || severity);
 
   // Load the roster for the "who are you recognising?" picker (positives only).
   useEffect(() => {
@@ -157,9 +186,45 @@ export default function S2a2WhatHappened({
           <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>{copy.p}</p>
         </div>
 
+        {/* Photo — lead with it. A photo of the thing is worth more than a
+            sentence a busy worker won't write, and it satisfies the "add some
+            context" requirement on its own. */}
+        <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "16px", marginBottom: 14 }}>
+          <Label>Add a photo</Label>
+          <input ref={photoInput} type="file" accept="image/*" capture="environment" multiple onChange={handlePhotoSelect} style={{ display: "none" }} />
+          {photos.length === 0 ? (
+            <button onClick={() => photoInput.current?.click()} style={{
+              width: "100%", padding: "22px 14px", background: C.foam,
+              border: `1.5px dashed ${C.sage}`, borderRadius: 10, cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 6,
+            }}>
+              <span style={{ fontSize: "1.8rem" }}>📷</span>
+              <span style={{ fontSize: ".88rem", fontWeight: 700, color: C.pine }}>Take or choose a photo</span>
+              <span style={{ fontSize: ".72rem", color: C.mist }}>A quick picture says a lot</span>
+            </button>
+          ) : (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {photos.map(p => (
+                <div key={p.id} style={{ position: "relative", width: 72, height: 72, borderRadius: 8, overflow: "hidden", border: `1px solid ${C.mint}` }}>
+                  <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <button onClick={() => setPhotos(ps => ps.filter(x => x.id !== p.id))} style={{
+                    position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: "50%",
+                    background: "rgba(0,0,0,.6)", color: "#fff", border: "none", fontSize: ".7rem", cursor: "pointer", lineHeight: 1,
+                  }}>×</button>
+                </div>
+              ))}
+              <button onClick={() => photoInput.current?.click()} style={{
+                width: 72, height: 72, borderRadius: 8, background: C.foam,
+                border: `1.5px dashed ${C.sage}`, cursor: "pointer", fontSize: "1.4rem", color: C.sage,
+              }}>+</button>
+            </div>
+          )}
+        </div>
+
         {/* Description */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "16px", marginBottom: 14 }}>
-          <Label>Description</Label>
+          <Label>Describe what happened</Label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
@@ -305,7 +370,7 @@ export default function S2a2WhatHappened({
       }}>
         <button
           className="continue-btn"
-          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, recognizedUserId: recognizedUserId || null })}
+          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, recognizedUserId: recognizedUserId || null, photos })}
           disabled={!canContinue}
           style={{
             width: "100%", padding: "14px",
@@ -316,7 +381,7 @@ export default function S2a2WhatHappened({
             cursor: canContinue ? "pointer" : "default",
             transition: "all .18s",
           }}
-        >Who was involved →</button>
+        >{!hasContext ? "Add a photo or a few words to continue" : "Who was involved →"}</button>
       </div>
     </div>
   );
