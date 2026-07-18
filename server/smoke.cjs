@@ -872,6 +872,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ values: { idea: 42 } }) }).then(j);
   ok("recognition: point values settable (idea→42)", setPv && setPv.values && setPv.values.idea === 42);
 
+  // ── Recognition module on/off (single switch controls awards + endpoints) ──
+  const recOn = await fetch(`${B}/api/points/me`, { headers: H() });
+  ok("recognition on: /api/points/me accessible", recOn.status === 200);
+  // Operator disables the recognition module for tenant 1.
+  await fetch(`${B}/api/op/tenants/1/modules/recognition`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ enabled: false }) }).then(j);
+  const recOff = await fetch(`${B}/api/points/me`, { headers: H() });
+  ok("recognition off: /api/points endpoints gate (403)", recOff.status === 403);
+  const recCfg = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  ok("recognition off: config no longer lists the module (UI hides)",
+     Array.isArray(recCfg.modules) && !recCfg.modules.includes("recognition"));
+  // Re-enable so state is clean.
+  await fetch(`${B}/api/op/tenants/1/modules/recognition`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ enabled: true }) }).then(j);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

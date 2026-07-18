@@ -171,6 +171,13 @@ function enabledModules(tenantId) {
   return set;
 }
 
+// Single-module check for a tenant — the one source of truth for whether a feature
+// is on (operator-controlled via the module grid). Use this instead of ad-hoc
+// per-feature flags.
+function moduleOn(tenantId, key) {
+  return enabledModules(tenantId).has(key);
+}
+
 // Gate: block requests whose path is owned by a module this tenant doesn't have.
 // Deliberately conservative — it only blocks a path it can POSITIVELY attribute to
 // a KNOWN, DISABLED, LIVE module. Unrecognized paths, core paths, and operator
@@ -810,7 +817,7 @@ app.post("/api/incidents", auth, (req, res) => {
   // 'pending' and are confirmed when safety reviews/closes the report — this is
   // the anti-gaming guard (spamming junk reports earns nothing until reviewed).
   // Kudos are immediate: naming a colleague recognises them now.
-  const recoOn = db.prepare("SELECT recognition_enabled FROM tenants WHERE id = ?").get(req.auth.tenant)?.recognition_enabled;
+  const recoOn = moduleOn(req.auth.tenant, "recognition");
   if (recoOn) {
     const isIdea = type === "idea";
     const pv = pointsFor(req.auth.tenant);
@@ -1461,7 +1468,7 @@ app.post("/api/completions", auth, (req, res) => {
   tx();
   // Recognition: reward passing a training (a leading indicator). One award per
   // (user, training) via the source dedup, so retakes don't farm points.
-  const recoOn = db.prepare("SELECT recognition_enabled FROM tenants WHERE id = ?").get(req.auth.tenant)?.recognition_enabled;
+  const recoOn = moduleOn(req.auth.tenant, "recognition");
   if (recoOn && didPass) {
     const trainPts = pointsFor(req.auth.tenant).training;
     targets.forEach(uid => awardPoints(req.auth.tenant, uid, trainPts, "training",

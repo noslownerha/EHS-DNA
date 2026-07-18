@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
-import { BRAND, COLORS } from "./constants.js";
+import { BRAND, COLORS, moduleEnabled } from "./constants.js";
 import { api } from "./api.js";
 
 const C = { ...COLORS };
@@ -317,7 +317,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
           </form>
         </Card>
 
-        {ptValues && (
+        {ptValues && moduleEnabled("recognition") && (
           <Card title="Recognition points">
             <div style={{ fontSize: ".8rem", color: C.mist, marginBottom: 12 }}>
               What each action is worth. Points are a leading-indicator nudge — tune them to fit your program.
