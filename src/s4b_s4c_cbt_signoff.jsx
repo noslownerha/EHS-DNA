@@ -1,5 +1,6 @@
 import { COLORS } from "./constants.js";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
@@ -283,23 +284,6 @@ export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onBack }) {
 // Spec §14.2: role-gated — Trainer, Safety Officer, Site Manager, Company Admin
 // Department Lead explicitly excluded.
 // ════════════════════════════════════════════════════════════════════════════
-const STAFF_LIST = [
-  { id: 1,  first: "Sarah",  last: "Mitchell", dept: "Bottling & Packaging",    site: "Moriah"      },
-  { id: 2,  first: "Jake",   last: "Larson",    dept: "Bottling & Packaging",    site: "Moriah"      },
-  { id: 3,  first: "Beth",   last: "Torres",    dept: "Bottling & Packaging",    site: "Moriah"      },
-  { id: 4,  first: "Marcus", last: "Webb",      dept: "Warehouse",               site: "Moriah"      },
-  { id: 5,  first: "Carlos", last: "R.",        dept: "Warehouse",               site: "Moriah"      },
-  { id: 6,  first: "Tom",    last: "Rivera",    dept: "Facility Maintenance",             site: "Shoreham"    },
-  { id: 7,  first: "Dana",   last: "Kowalski",  dept: "Production / Distilling", site: "Middlebury"  },
-];
-
-const TRAINING_LIST = [
-  { id: 1, title: "Bottling Line Safety Orientation",    type: "in_person" },
-  { id: 2, title: "Forklift Operator Certification",     type: "in_person" },
-  { id: 3, title: "First Aid & CPR",                     type: "in_person" },
-  { id: 4, title: "Hazard Communication (HAZCOM)",       type: "in_person" },
-];
-
 export function S4cInPersonSignOff({ onHome,
   trainerRole = "trainer", // "trainer" | "safety" | "site_manager" | "admin"
   trainer = { name: "Trainer", site: "Moriah" },
@@ -311,6 +295,28 @@ export function S4cInPersonSignOff({ onHome,
   const [notes,            setNotes]            = useState("");
   const [submitted,        setSubmitted]        = useState(false);
   const [notesFocused,     setNotesFocused]     = useState(false);
+  const [STAFF_LIST,       setStaffList]        = useState([]);
+  const [TRAINING_LIST,    setTrainingList]     = useState([]);
+
+  // Load real staff and trainings. Staff = active users with the staff role (you
+  // sign off for the people you train, not for other trainers/admins). Trainings =
+  // the in-person ones (CBTs are self-serve; sign-off is for instructor-led ones).
+  useEffect(() => {
+    api.listUsers()
+      .then(us => setStaffList(us
+        .filter(u => u.role === "staff")
+        .map(u => {
+          const parts = (u.name || "").trim().split(/\s+/);
+          return { id: u.id, first: parts[0] ?? u.name, last: parts.slice(1).join(" "),
+                   dept: u.department ?? "—", site: u.site ?? "—" };
+        })))
+      .catch(err => console.error("Staff load failed:", err.message));
+    api.listTrainings()
+      .then(ts => setTrainingList(ts
+        .filter(t => t.active && (t.kind ?? "cbt") === "in_person")
+        .map(t => ({ id: t.id, title: t.title, type: "in_person" }))))
+      .catch(err => console.error("Training load failed:", err.message));
+  }, []);
 
   // Role gate: in-person sign-off attests that SOMEONE ELSE verified a person's
   // completion — so it must be restricted to trainer/safety/site_manager/admin.

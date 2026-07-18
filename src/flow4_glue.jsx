@@ -303,7 +303,14 @@ export function TrainingRouter({ onDone, onHome }) {
           trainerRole={user.role}
           trainer={{ name: user.name, site: user.site }}
           onBack={back}
-          onComplete={() => back()}
+          onComplete={({ training, staff, notes }) => {
+            // Record the in-person completion for the signed-off staff member.
+            if (training?.id && staff?.id) {
+              api.logCompletion({ trainingId: training.id, userIds: [staff.id], method: "inperson", passed: true, notes })
+                .catch(err => console.error("Sign-off log failed:", err.message));
+            }
+            back();
+          }}
         />
       );
 
