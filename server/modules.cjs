@@ -81,15 +81,14 @@ const MODULES = {
     default: true,
   },
 
-  // ── Reserved for planned modules (declared now so they slot in cleanly) ─────
+  // ── Equipment & Assets ─────────────────────────────────────────────────────
   equipment: {
     label: "Equipment & Assets",
     blurb: "Asset registry with QR codes linking to LOTO procedures, SOPs, and equipment inspections.",
-    paths: ["assets", "sops", "loto"],   // not built yet — reserved
-    tabs: [],
-    softDeps: ["inspections"],
-    default: false,                       // off until the module ships
-    reserved: true,                       // flag: not yet implemented
+    paths: ["assets", "procedures"], // /api/assets/* and /api/procedures/*
+    tabs: [],                       // reached via deep link + admin settings, no dedicated tab yet
+    softDeps: ["inspections"],      // asset inspections use the inspections module when present
+    default: false,                 // opt-in per tenant
   },
 };
 

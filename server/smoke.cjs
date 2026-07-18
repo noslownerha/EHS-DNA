@@ -791,9 +791,9 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
 
   // ── Operator module grid: read + seeded-on-create ──
   const grid = await fetch(`${B}/api/op/tenants/1/modules`, { headers: opH() }).then(j);
-  ok("operator module grid lists live modules + reserved",
+  ok("operator module grid lists live modules including equipment",
      Array.isArray(grid.modules) && grid.modules.some(m => m.key === "incidents") &&
-     Array.isArray(grid.reserved) && grid.reserved.some(m => m.key === "equipment"));
+     grid.modules.some(m => m.key === "equipment"));
   // Create a tenant and confirm module rows are seeded explicitly.
   const newT = await fetch(`${B}/api/op/tenants`, { method: "POST", headers: opH(),
     body: JSON.stringify({ name: "Smoke Foods Co", industry: "Food", adminEmail: "smokefoods@example.com", adminName: "SF Admin" }) }).then(j);
@@ -822,6 +822,32 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   await fetch(`${B}/api/incidents`, { method: "POST", headers: H(), body: JSON.stringify({ type: "hazard", severity: "minor", description: "minor hazard below threshold", siteId: 1 }) }).then(j);
   const afterMinor = (await fetch(`${B}/api/notifications`, { headers: smH() }).then(j)).length;
   ok("minor hazard below threshold does not notify", afterMinor === afterSerious);
+
+  // ── Equipment & Assets module ──
+  // Tenant 1 has equipment enabled + sample assets seeded.
+  const assets = await fetch(`${B}/api/assets`, { headers: H() }).then(j);
+  ok("equipment: assets list returns seeded sample assets",
+     Array.isArray(assets) && assets.some(a => a.asset_tag === "PMP-014"));
+  const pump = assets.find(a => a.asset_tag === "PMP-014");
+  if (pump) {
+    const detail = await fetch(`${B}/api/assets/${pump.id}`, { headers: H() }).then(j);
+    ok("equipment: asset detail includes LOTO + SOP + deepLink",
+       Array.isArray(detail.loto) && detail.loto.length >= 1 &&
+       Array.isArray(detail.sops) && detail.sops.length >= 1 &&
+       typeof detail.deepLink === "string" && detail.deepLink.includes(`asset:${pump.id}`));
+    const qr = await fetch(`${B}/api/assets/${pump.id}/qr`, { headers: H() }).then(j);
+    ok("equipment: QR endpoint returns an SVG for the asset",
+       typeof qr.svg === "string" && qr.svg.startsWith("<svg"));
+  }
+  // Create an asset + a procedure, then confirm it reads back.
+  const created = await fetch(`${B}/api/assets`, { method: "POST", headers: H(),
+    body: JSON.stringify({ name: "Smoke Test Compressor", assetTag: "CMP-99", category: "compressor" }) }).then(j);
+  ok("equipment: create asset returns id", created && created.id > 0);
+  const addProc = await fetch(`${B}/api/assets/${created.id}/procedures`, { method: "POST", headers: H(),
+    body: JSON.stringify({ kind: "loto", title: "Compressor LOTO", steps: ["Isolate air supply", "Bleed receiver"] }) }).then(j);
+  ok("equipment: add LOTO procedure returns id", addProc && addProc.id > 0);
+  const cd = await fetch(`${B}/api/assets/${created.id}`, { headers: H() }).then(j);
+  ok("equipment: created asset reads back with its procedure", cd.loto && cd.loto.length === 1);
 
   console.log("SMOKE COMPLETE");
   process.exit(0);

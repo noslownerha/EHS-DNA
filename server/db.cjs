@@ -187,6 +187,37 @@ CREATE TABLE IF NOT EXISTS invoices (
   approved_at TEXT, sent_at TEXT, paid_at TEXT,
   UNIQUE (tenant_id, period)
 );
+-- ── Equipment & Assets module ──────────────────────────────────────────────
+-- Physical equipment/assets, each with a QR that deep-links to this record.
+CREATE TABLE IF NOT EXISTS assets (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  name TEXT NOT NULL,
+  asset_tag TEXT,                   -- user-facing tag/number stencilled on the unit
+  category TEXT,                    -- pump | forklift | tank | extinguisher | aed | ...
+  site_id INTEGER REFERENCES sites(id),
+  location TEXT,                    -- where within the site
+  manufacturer TEXT,
+  model TEXT,
+  serial TEXT,
+  status TEXT DEFAULT 'in_service', -- in_service | out_of_service | retired
+  checklist_id INTEGER REFERENCES checklists(id), -- inspection template for this asset
+  notes TEXT,
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+-- LOTO procedures and SOPs attached to an asset. Both share this table via kind.
+CREATE TABLE IF NOT EXISTS asset_procedures (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  asset_id INTEGER NOT NULL REFERENCES assets(id),
+  kind TEXT NOT NULL,               -- loto | sop
+  title TEXT NOT NULL,
+  steps TEXT DEFAULT '[]',          -- JSON array of step strings (LOTO) or sections (SOP)
+  body TEXT,                        -- freeform SOP text (alternative to steps)
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS notification_rules (
   id INTEGER PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenants(id),
@@ -577,6 +608,36 @@ function ensureDefaults() {
     db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)
                 VALUES (1, 'incident_injury', 'injury', 'any', '["admin","safety"]', 1)`).run();
     console.log("Backfilled: default injury notification rule");
+  }
+
+  // Enable the Equipment & Assets module for WhistlePig (tenant 1) — it defaults
+  // off (opt-in), but the pilot gets it on. Idempotent.
+  const hasModTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tenant_modules'").get();
+  if (hasModTable && !db.prepare("SELECT 1 FROM tenant_modules WHERE tenant_id = 1 AND module = 'equipment'").get()) {
+    db.prepare("INSERT INTO tenant_modules (tenant_id, module, enabled) VALUES (1, 'equipment', 1)").run();
+    console.log("Backfilled: enabled equipment module for tenant 1");
+  }
+
+  // Seed a couple of sample assets (with a LOTO procedure + SOP) so the module is
+  // demoable out of the box. Only if the tenant has no assets yet.
+  const hasAssetTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='assets'").get();
+  if (hasAssetTable && db.prepare("SELECT COUNT(*) n FROM assets WHERE tenant_id = 1").get().n === 0) {
+    const moriah = db.prepare("SELECT id FROM sites WHERE tenant_id = 1 ORDER BY id LIMIT 1").get()?.id ?? null;
+    const insAsset = db.prepare(`INSERT INTO assets (tenant_id, name, asset_tag, category, site_id, location, manufacturer, model, status)
+                                 VALUES (1, ?, ?, ?, ?, ?, ?, ?, 'in_service')`);
+    const a1 = insAsset.run("Bottling Line Transfer Pump", "PMP-014", "pump", moriah, "Bottling Hall — Line 2", "Grundfos", "CR 15-3").lastInsertRowid;
+    insAsset.run("Warehouse Forklift #3", "FLT-03", "forklift", moriah, "Warehouse — Bay D", "Toyota", "8FGCU25");
+    const insProc = db.prepare(`INSERT INTO asset_procedures (tenant_id, asset_id, kind, title, steps, body) VALUES (1, ?, ?, ?, ?, ?)`);
+    insProc.run(a1, "loto", "Transfer Pump LOTO", JSON.stringify([
+      "Notify affected operators that the pump is being locked out.",
+      "Stop the pump at the local control and switch the disconnect to OFF.",
+      "Apply your personal lock and tag to the disconnect.",
+      "Bleed line pressure at the downstream drain valve.",
+      "Verify zero energy: attempt a restart at the control (it must not start).",
+    ]), null);
+    insProc.run(a1, "sop", "Daily Pump Start-Up Check", JSON.stringify([]),
+      "Before starting: confirm suction and discharge valves are open, check seal reservoir level, and verify no visible leaks at the mechanical seal. Log the start time and any abnormal noise or vibration in the shift sheet.");
+    console.log("Backfilled: sample equipment assets for tenant 1");
   }
 }
 ensureDefaults();

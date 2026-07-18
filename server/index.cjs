@@ -1930,6 +1930,9 @@ setInterval(runCAReminders, 12 * 3600 * 1000);     // twice daily
 // ── Billing module ────────────────────────────────────────────────────────────
 require("./billing.cjs")(app, db, auth, () => requireOperator);
 
+// ── Equipment & Assets module ─────────────────────────────────────────────────
+require("./equipment.cjs")(app, db, auth, requireRole, ADMINISH);
+
 // ── Training compliance summary (per-staff rollup against required trainings) ─
 // Shared compliance definition: a staff member is compliant when every required
 // training has a passed, non-expired completion. Used by both the per-user report
