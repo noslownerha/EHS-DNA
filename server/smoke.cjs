@@ -864,6 +864,14 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
      badges.badges.find(b => b.id === "first_report")?.earned === true &&
      badges.badges.find(b => b.id === "idea_person")?.earned === true);
 
+  // ── Recognition: point-value tuning ──
+  const pv = await fetch(`${B}/api/points/values`, { headers: H() }).then(j);
+  ok("recognition: point values readable with defaults",
+     pv && pv.values && pv.values.idea >= 1 && pv.defaults && pv.defaults.idea === 15);
+  const setPv = await fetch(`${B}/api/points/values`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ values: { idea: 42 } }) }).then(j);
+  ok("recognition: point values settable (idea→42)", setPv && setPv.values && setPv.values.idea === 42);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

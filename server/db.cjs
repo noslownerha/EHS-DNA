@@ -338,6 +338,8 @@ try { db.exec("CREATE INDEX IF NOT EXISTS idx_points_source ON points_ledger(ten
 try { db.exec("ALTER TABLE incidents ADD COLUMN recognized_user_id INTEGER REFERENCES users(id)"); } catch {}
 // Per-tenant toggle for the whole recognition feature (off by default until set up).
 try { db.exec("ALTER TABLE tenants ADD COLUMN recognition_enabled INTEGER DEFAULT 1"); } catch {}
+// Per-tenant point values (JSON) — admins can tune what each action is worth.
+try { db.exec("ALTER TABLE tenants ADD COLUMN point_values TEXT"); } catch {}
 
 // Per-tenant module enablement. A row = an explicit on/off for that tenant;
 // absence = "use the module's default". Lets the operator sell modules piecemeal

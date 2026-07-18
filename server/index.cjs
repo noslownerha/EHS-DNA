@@ -697,6 +697,15 @@ const POINTS = {
   kudos_received:  10,   // you were caught doing it right
   training:         5,   // completed an assigned training
 };
+// Per-tenant point values: a tenant can override any of the defaults above via the
+// point_values JSON column. Falls back to POINTS for anything unset.
+function pointsFor(tenantId) {
+  try {
+    const raw = db.prepare("SELECT point_values FROM tenants WHERE id = ?").get(tenantId)?.point_values;
+    if (raw) return { ...POINTS, ...JSON.parse(raw) };
+  } catch { /* fall through to defaults */ }
+  return POINTS;
+}
 const periodOf = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
 // Award points. `status` is 'confirmed' for immediate awards (kudos, training) or
@@ -804,13 +813,14 @@ app.post("/api/incidents", auth, (req, res) => {
   const recoOn = db.prepare("SELECT recognition_enabled FROM tenants WHERE id = ?").get(req.auth.tenant)?.recognition_enabled;
   if (recoOn) {
     const isIdea = type === "idea";
-    awardPoints(req.auth.tenant, req.auth.uid, isIdea ? POINTS.idea : POINTS.report_reviewed,
+    const pv = pointsFor(req.auth.tenant);
+    awardPoints(req.auth.tenant, req.auth.uid, isIdea ? pv.idea : pv.report_reviewed,
       isIdea ? "idea" : "report_reviewed", { sourceType: "incident", sourceId: r.lastInsertRowid, status: "pending" });
     if (type === "positive" && recognizedId) {
       // The reporter gets kudos-given now; the recognised colleague gets kudos-received.
-      awardPoints(req.auth.tenant, req.auth.uid, POINTS.kudos_given, "kudos_given",
+      awardPoints(req.auth.tenant, req.auth.uid, pv.kudos_given, "kudos_given",
         { sourceType: "incident", sourceId: r.lastInsertRowid });
-      awardPoints(req.auth.tenant, recognizedId, POINTS.kudos_received, "kudos_received",
+      awardPoints(req.auth.tenant, recognizedId, pv.kudos_received, "kudos_received",
         { sourceType: "incident", sourceId: r.lastInsertRowid, awardedBy: req.auth.uid });
       // Tell the recognised person they were caught doing it right.
       notifyUsers(req.auth.tenant, [recognizedId], {
@@ -1014,6 +1024,22 @@ app.post("/api/points/award", auth, requireRole(...ADMINISH), (req, res) => {
   if (!target) return res.status(404).json({ error: "User not found" });
   awardPoints(req.auth.tenant, userId, n, "manual", { awardedBy: req.auth.uid, note: note ? String(note).slice(0, 300) : null });
   res.json({ ok: true });
+});
+
+// Point-value tuning: read/set what each action is worth for this tenant.
+app.get("/api/points/values", auth, requireRole(...ADMINISH), (req, res) => {
+  res.json({ values: pointsFor(req.auth.tenant), defaults: POINTS });
+});
+app.put("/api/points/values", auth, requireRole(...ADMINISH), (req, res) => {
+  const incoming = req.body?.values || {};
+  const clean = {};
+  for (const k of Object.keys(POINTS)) {
+    const v = parseInt(incoming[k], 10);
+    if (Number.isFinite(v) && v >= 0 && v <= 1000) clean[k] = v;
+    else clean[k] = POINTS[k];
+  }
+  db.prepare("UPDATE tenants SET point_values = ? WHERE id = ?").run(JSON.stringify(clean), req.auth.tenant);
+  res.json({ ok: true, values: clean });
 });
 
 // ── Corrective actions ───────────────────────────────────────────────────────
@@ -1437,7 +1463,8 @@ app.post("/api/completions", auth, (req, res) => {
   // (user, training) via the source dedup, so retakes don't farm points.
   const recoOn = db.prepare("SELECT recognition_enabled FROM tenants WHERE id = ?").get(req.auth.tenant)?.recognition_enabled;
   if (recoOn && didPass) {
-    targets.forEach(uid => awardPoints(req.auth.tenant, uid, POINTS.training, "training",
+    const trainPts = pointsFor(req.auth.tenant).training;
+    targets.forEach(uid => awardPoints(req.auth.tenant, uid, trainPts, "training",
       { sourceType: "training", sourceId: trainingId }));
   }
   res.json({ ok: true, sessionId: sid, count: targets.length });

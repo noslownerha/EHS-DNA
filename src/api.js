@@ -112,6 +112,8 @@ export const api = {
   leaderboard: (period) => req(`/points/leaderboard${period ? `?period=${period}` : ""}`),
   champion: () => req("/points/champion"),
   myBadges: () => req("/points/badges"),
+  pointValues: () => req("/points/values"),
+  setPointValues: (values) => req("/points/values", { method: "PUT", body: { values } }),
   awardPoints: (body) => req("/points/award", { method: "POST", body }),
 
   listCAs: () => req("/cas"),

@@ -38,12 +38,15 @@ export default function S5fCompanySettings({ companyName, onHome }) {
   const [clText, setClText] = useState("");
   const [clSaved, setClSaved] = useState(false);
   const [newDept, setNewDept] = useState("");
+  const [ptValues, setPtValues] = useState(null);
+  const [ptSaved, setPtSaved] = useState(false);
 
   useEffect(() => {
     api.fetchConfig().then(setCfg).catch(err => setError(err.message));
     api.notificationRules().then(setRules).catch(() => {});
     api.responseChecklists().then(c => { setChecklists(c); setClText((c.injury ?? []).join("\n")); }).catch(() => {});
     api.listUsers().then(setUsers).catch(() => {});
+    api.pointValues().then(d => setPtValues(d.values)).catch(() => {});
   }, []);
 
   // Notification rules are a category × severity matrix: pick what kind of report
@@ -313,6 +316,34 @@ export default function S5fCompanySettings({ companyName, onHome }) {
             <button type="submit" style={{ padding: "8px 18px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>+ Add rule</button>
           </form>
         </Card>
+
+        {ptValues && (
+          <Card title="Recognition points">
+            <div style={{ fontSize: ".8rem", color: C.mist, marginBottom: 12 }}>
+              What each action is worth. Points are a leading-indicator nudge — tune them to fit your program.
+            </div>
+            {[
+              ["report_reviewed", "Report accepted"],
+              ["idea", "Safety idea"],
+              ["kudos_given", "Gave a shout-out"],
+              ["kudos_received", "Received a shout-out"],
+              ["training", "Completed training"],
+            ].map(([key, lbl]) => (
+              <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: ".85rem", color: C.ink }}>{lbl}</span>
+                <input type="number" min="0" max="1000" value={ptValues[key] ?? 0}
+                  onChange={e => { setPtValues(v => ({ ...v, [key]: e.target.value })); setPtSaved(false); }}
+                  style={{ width: 70, padding: "6px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", textAlign: "center" }} />
+              </div>
+            ))}
+            <button onClick={async () => {
+              const r = await api.setPointValues(ptValues).catch(() => null);
+              if (r?.values) { setPtValues(r.values); setPtSaved(true); }
+            }} style={{ marginTop: 8, padding: "8px 18px", background: C.sage, color: C.white, border: "none", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>
+              {ptSaved ? "✓ Saved" : "Save point values"}
+            </button>
+          </Card>
+        )}
 
         <Card title={`Sites (${cfg.sites.length})`}>
           <div style={{ marginBottom: 12 }}>
