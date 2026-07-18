@@ -224,6 +224,7 @@ export function InspectionRouter({ onDone, onHome }) {
           onMode={mode => startMode(mode)}
           onResume={id  => startMode("checklist")}
           onViewFinding={id => viewFinding(id)}
+          onManageChecklists={["admin", "safety", "site_manager"].includes(user.role) ? () => navigate(INSPECTION_SCREENS.BUILDER) : null}
         />
       );
 

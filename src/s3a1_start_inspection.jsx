@@ -71,6 +71,7 @@ export default function S3a1StartInspection({ onHome,
   onMode,         // (mode: "quick"|"checklist"|"gemba"|"scheduled") => void
   onResume,       // (inspectionId) => void
   onViewFinding,  // (findingId) => void
+  onManageChecklists, // () => void — admin authoring entry (null hides it)
 }) {
   const [DUE_TODAY, setDueToday] = useState([]);
   const [RECENT_FINDINGS, setRecentFindings] = useState([]);
@@ -115,9 +116,18 @@ export default function S3a1StartInspection({ onHome,
       <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
 
         {/* Header */}
-        <div className="anim" style={{ marginBottom: 22 }}>
-          <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Start inspection</h1>
-          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>What are you doing right now?</p>
+        <div className="anim" style={{ marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Start inspection</h1>
+            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>What are you doing right now?</p>
+          </div>
+          {onManageChecklists && (
+            <button onClick={onManageChecklists} style={{
+              padding: "8px 13px", background: C.white, color: C.pine,
+              border: `1.5px solid ${C.mint}`, borderRadius: 8, cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap",
+            }}>⚙️ Checklists</button>
+          )}
         </div>
 
         {/* Mode tiles — 2×2 grid */}
