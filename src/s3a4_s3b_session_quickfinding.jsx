@@ -272,7 +272,7 @@ export function S3bQuickFinding({ onHome,
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
 
               {/* Photo-first nudge */}
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
                 onChange={e => e.target.files[0] && setPhoto(e.target.files[0].name)} />
               <button onClick={() => fileRef.current?.click()} style={{
                 width: "100%", padding: "13px",

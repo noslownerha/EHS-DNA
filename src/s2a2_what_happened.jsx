@@ -1,4 +1,4 @@
-import { COLORS } from "./constants.js";
+import { COLORS, SITES, BRAND } from "./constants.js";
 import { useState, useEffect, useRef } from "react";
 import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
@@ -88,12 +88,14 @@ function SelectInput({ value, onChange, options, placeholder }) {
 
 export default function S2a2WhatHappened({
   incidentType = "injury",
+  initialSite,
   onContinue,
   onBack,
   onHome,
 }) {
   const [description, setDescription] = useState("");
   const [location,    setLocation]    = useState("");
+  const [site,        setSite]        = useState(initialSite ?? SITES[0]);
   const [severity,    setSeverity]    = useState(null);
   const [injuryType,  setInjuryType]  = useState("");
   const [descFocused, setDescFocused] = useState(false);
@@ -102,6 +104,7 @@ export default function S2a2WhatHappened({
   const [users, setUsers] = useState([]);
   const [photos, setPhotos] = useState([]);
   const photoInput = useRef(null);
+  const galleryInput = useRef(null);
   const nextPhotoId = useRef(1);
 
   // Compress a captured photo to a reasonable size before we carry it in state.
@@ -192,17 +195,28 @@ export default function S2a2WhatHappened({
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "16px", marginBottom: 14 }}>
           <Label>Add a photo</Label>
           <input ref={photoInput} type="file" accept="image/*" capture="environment" multiple onChange={handlePhotoSelect} style={{ display: "none" }} />
+          <input ref={galleryInput} type="file" accept="image/*" multiple onChange={handlePhotoSelect} style={{ display: "none" }} />
           {photos.length === 0 ? (
-            <button onClick={() => photoInput.current?.click()} style={{
-              width: "100%", padding: "22px 14px", background: C.foam,
-              border: `1.5px dashed ${C.sage}`, borderRadius: 10, cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column",
-              alignItems: "center", gap: 6,
-            }}>
-              <span style={{ fontSize: "1.8rem" }}>📷</span>
-              <span style={{ fontSize: ".88rem", fontWeight: 700, color: C.pine }}>Take or choose a photo</span>
-              <span style={{ fontSize: ".72rem", color: C.mist }}>A quick picture says a lot</span>
-            </button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => photoInput.current?.click()} style={{
+                flex: 1, padding: "18px 12px", background: C.foam,
+                border: `1.5px dashed ${C.sage}`, borderRadius: 10, cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 5,
+              }}>
+                <span style={{ fontSize: "1.6rem" }}>📷</span>
+                <span style={{ fontSize: ".84rem", fontWeight: 700, color: C.pine }}>Take a photo</span>
+              </button>
+              <button onClick={() => galleryInput.current?.click()} style={{
+                flex: 1, padding: "18px 12px", background: C.foam,
+                border: `1.5px dashed ${C.sage}`, borderRadius: 10, cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 5,
+              }}>
+                <span style={{ fontSize: "1.6rem" }}>🖼️</span>
+                <span style={{ fontSize: ".84rem", fontWeight: 700, color: C.pine }}>Choose photo</span>
+              </button>
+            </div>
           ) : (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {photos.map(p => (
@@ -214,10 +228,14 @@ export default function S2a2WhatHappened({
                   }}>×</button>
                 </div>
               ))}
-              <button onClick={() => photoInput.current?.click()} style={{
+              <button onClick={() => photoInput.current?.click()} title="Take a photo" style={{
                 width: 72, height: 72, borderRadius: 8, background: C.foam,
                 border: `1.5px dashed ${C.sage}`, cursor: "pointer", fontSize: "1.4rem", color: C.sage,
-              }}>+</button>
+              }}>📷</button>
+              <button onClick={() => galleryInput.current?.click()} title="Choose from gallery" style={{
+                width: 72, height: 72, borderRadius: 8, background: C.foam,
+                border: `1.5px dashed ${C.sage}`, cursor: "pointer", fontSize: "1.4rem", color: C.sage,
+              }}>🖼️</button>
             </div>
           )}
         </div>
@@ -244,6 +262,28 @@ export default function S2a2WhatHappened({
           <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 4, textAlign: "right" }}>
             {description.length < 20 && description.length > 0 ? "Add more detail to help the investigation" : `${description.length} characters`}
           </div>
+        </div>
+
+        {/* Site — which location this is about. Defaults to the reporter's home
+            site but must be changeable: at a multi-site company a worker may be
+            reporting about a different site, and "location within site" text alone
+            can't disambiguate NY from KY. */}
+        <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "16px", marginBottom: 14 }}>
+          <Label>Which site?</Label>
+          <select
+            value={site}
+            onChange={e => setSite(e.target.value)}
+            style={{
+              width: "100%", padding: "10px 32px 10px 12px", border: `1.5px solid #D0DEDB`,
+              borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", color: C.ink,
+              outline: "none", appearance: "none",
+              background: `${C.white} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238FA3A0'/%3E%3C/svg%3E") no-repeat right 12px center`,
+            }}
+          >
+            {((BRAND.siteRecords?.length ? BRAND.siteRecords.map(s => s.name) : SITES)).map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
 
         {/* Location */}
@@ -370,7 +410,7 @@ export default function S2a2WhatHappened({
       }}>
         <button
           className="continue-btn"
-          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, recognizedUserId: recognizedUserId || null, photos })}
+          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, site, recognizedUserId: recognizedUserId || null, photos })}
           disabled={!canContinue}
           style={{
             width: "100%", padding: "14px",

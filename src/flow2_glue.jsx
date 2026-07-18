@@ -324,6 +324,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome, pickerStep = "top
         <S2a2WhatHappened
           onHome={onHome ?? onDone}
           incidentType={draft.type}
+          initialSite={draft.site}
           onBack={back}
           onContinue={data => {
             saveWhat(data);
