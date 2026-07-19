@@ -166,6 +166,9 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
     const items = JSON.parse(inv.line_items);
     const adjs = JSON.parse(inv.adjustments || "[]");
     const fmt = n => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+    // Escape user-controlled strings (tenant name, billing contact, adjustment
+    // labels) before interpolating into the invoice HTML.
+    const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const periodLabel = new Date(inv.period + "-15").toLocaleDateString("en-US", { month: "long", year: "numeric" });
     res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${inv.ref}</title>
 <style>
@@ -189,7 +192,7 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
 <div class="head">
   <div>
     <div class="logo">🧬 <b>EHS</b> DNA</div>
-    <div class="meta">Billed to: <b>${tenant.name}</b><br>${cfg?.billing_contact ?? ""}</div>
+    <div class="meta">Billed to: <b>${esc(tenant.name)}</b><br>${esc(cfg?.billing_contact ?? "")}</div>
   </div>
   <div>
     <h1>INVOICE</h1>
@@ -203,12 +206,12 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
 </div>
 <table>
   <tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr>
-  ${items.map(li => `<tr><td>${li.label}</td><td class="r">${li.qty}</td><td class="r">${fmt(li.rate)}</td><td class="r">${fmt(li.amount)}</td></tr>`).join("")}
+  ${items.map(li => `<tr><td>${esc(li.label)}</td><td class="r">${li.qty}</td><td class="r">${fmt(li.rate)}</td><td class="r">${fmt(li.amount)}</td></tr>`).join("")}
   <tr><td colspan="3" class="r"><b>Subtotal</b></td><td class="r"><b>${fmt(inv.subtotal)}</b></td></tr>
-  ${adjs.map(a => `<tr class="adj"><td colspan="3" class="r">${a.label}</td><td class="r">${fmt(a.amount)}</td></tr>`).join("")}
+  ${adjs.map(a => `<tr class="adj"><td colspan="3" class="r">${esc(a.label)}</td><td class="r">${fmt(a.amount)}</td></tr>`).join("")}
   <tr class="tot"><td colspan="3" class="r">Total due</td><td class="r">${fmt(inv.total)}</td></tr>
 </table>
-<div class="meta">Payment terms: Net 30. Questions: ${cfg?.billing_contact ?? "your administrator"}.</div>
+<div class="meta">Payment terms: Net 30. Questions: ${esc(cfg?.billing_contact ?? "your administrator")}.</div>
 <div class="noprint"><button onclick="window.print()">Print / Save as PDF</button></div>
 </body></html>`);
   });

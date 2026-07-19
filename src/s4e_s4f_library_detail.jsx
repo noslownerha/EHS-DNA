@@ -214,9 +214,12 @@ export function printCertificate(comp, training, companyName) {
   // Never issue a certificate for a non-passed completion — a certificate asserts
   // successful completion, so a failed/incomplete attempt must not produce one.
   if (comp.passed === false || comp.passed === 0) return;
+  // Escape every user-controlled string interpolated into this print window — a
+  // crafted staff name or course title must not execute script in the new window.
+  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const w = window.open("", "_blank", "width=900,height=650");
   if (!w) return;
-  w.document.write(`<!DOCTYPE html><html><head><title>Certificate — ${comp.staffName}</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>Certificate — ${esc(comp.staffName)}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=DM+Mono&display=swap');
       body { font-family:'DM Sans',sans-serif; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:${C.chalk}; }
@@ -233,16 +236,16 @@ export function printCertificate(comp, training, companyName) {
       @media print { body { background:#fff; } .cert { border-color:${C.forest}; } }
     </style></head><body>
     <div class="cert"><div class="inner">
-      <div class="co">${companyName ?? "EHS DNA"}</div>
+      <div class="co">${esc(companyName ?? "EHS DNA")}</div>
       <h1>Certificate of Completion</h1>
       <div class="sub">This certifies that</div>
-      <div class="name">${comp.staffName}</div>
+      <div class="name">${esc(comp.staffName)}</div>
       <div class="sub">has successfully completed</div>
-      <div class="course">${training.title}</div>
+      <div class="course">${esc(training.title)}</div>
       <div class="meta">
-        <div><b>${comp.completedAt}</b>Completed</div>
+        <div><b>${esc(comp.completedAt)}</b>Completed</div>
         ${comp.score != null ? `<div><b>${comp.score}%</b>Score</div>` : ""}
-        ${comp.expiresAt ? `<div><b>${comp.expiresAt}</b>Valid until</div>` : ""}
+        ${comp.expiresAt ? `<div><b>${esc(comp.expiresAt)}</b>Valid until</div>` : ""}
       </div>
       <div class="foot">Recorded in EHS DNA · verifiable in the training compliance log</div>
     </div></div>

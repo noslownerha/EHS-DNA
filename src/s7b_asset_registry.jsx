@@ -24,9 +24,12 @@ const label = { fontSize: ".7rem", fontWeight: 600, letterSpacing: ".05em", text
 
 // Print an asset's QR label in a new window (name + tag + QR).
 function printAssetLabel(qr) {
+  // Escape user-controlled asset fields. qr.svg is intentionally raw — it's
+  // server-generated QR markup, not user input — so it is NOT escaped.
+  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const w = window.open("", "_blank", "width=500,height=600");
   if (!w) return;
-  w.document.write(`<!DOCTYPE html><html><head><title>QR — ${qr.name}</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>QR — ${esc(qr.name)}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@600;700&family=DM+Mono&display=swap');
       body { font-family:'DM Sans',sans-serif; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; }
@@ -39,8 +42,8 @@ function printAssetLabel(qr) {
       @media print { body { min-height:auto; } }
     </style></head><body>
     <div class="label">
-      <div class="name">${qr.name}</div>
-      ${qr.assetTag ? `<div class="tag">${qr.assetTag}</div>` : ""}
+      <div class="name">${esc(qr.name)}</div>
+      ${qr.assetTag ? `<div class="tag">${esc(qr.assetTag)}</div>` : ""}
       <div class="qr">${qr.svg}</div>
       <div class="foot">Scan to view procedures & inspection</div>
     </div>
