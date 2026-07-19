@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { COLORS, BRAND } from "./constants.js";
 import { api } from "./api.js";
+import AuthImg from "./AuthImg.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
@@ -65,7 +66,13 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
             {/* Identity header */}
             <div style={{ background: C.white, borderRadius: 12, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "20px 20px", marginBottom: 16 }}>
               <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div style={{ fontSize: "2.4rem", lineHeight: 1 }}>{icon}</div>
+                {(() => {
+                  let ph = null;
+                  try { ph = asset.photo ? JSON.parse(asset.photo) : null; } catch { ph = null; }
+                  return ph
+                    ? <AuthImg photo={ph} alt={asset.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", background: "#EEF1F0", flexShrink: 0 }} />
+                    : <div style={{ fontSize: "2.4rem", lineHeight: 1 }}>{icon}</div>;
+                })()}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                     <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink, lineHeight: 1.2 }}>{asset.name}</h1>

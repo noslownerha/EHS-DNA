@@ -20,8 +20,9 @@ function assetQrSvg(assetId, { cellSize = 5, margin = 4 } = {}) {
   return qr.createSvgTag({ cellSize, margin, scalable: true });
 }
 
-module.exports = function mountEquipment(app, db, auth, requireRole, ADMINISH) {
+module.exports = function mountEquipment(app, db, auth, requireRole, ADMINISH, photoUtils = {}) {
   const canManage = requireRole(...ADMINISH, "site_manager");
+  const storePhoto = photoUtils.storePhoto || (() => null);
 
   // ── Assets ─────────────────────────────────────────────────────────────────
   // List assets for the tenant (optionally filtered by site or status).
@@ -71,13 +72,19 @@ module.exports = function mountEquipment(app, db, auth, requireRole, ADMINISH) {
   });
 
   app.post("/api/assets", auth, canManage, (req, res) => {
-    const { name, assetTag, category, siteId, location, manufacturer, model, serial, status, checklistId, notes } = req.body || {};
+    const { name, assetTag, category, siteId, location, manufacturer, model, serial, status, checklistId, notes, photo } = req.body || {};
     if (!name) return res.status(400).json({ error: "name required" });
     const r = db.prepare(`INSERT INTO assets
       (tenant_id, name, asset_tag, category, site_id, location, manufacturer, model, serial, status, checklist_id, notes)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(req.auth.tenant, name, assetTag ?? null, category ?? null, siteId ?? null, location ?? null,
            manufacturer ?? null, model ?? null, serial ?? null, status ?? "in_service", checklistId ?? null, notes ?? null);
+    // Optional photo: store the image on disk, keep only the ref on the row.
+    if (photo?.dataUrl) {
+      const ref = storePhoto(req.auth.tenant, "asset", r.lastInsertRowid, photo);
+      if (ref) db.prepare("UPDATE assets SET photo = ? WHERE id = ? AND tenant_id = ?")
+        .run(JSON.stringify(ref), r.lastInsertRowid, req.auth.tenant);
+    }
     res.json({ id: r.lastInsertRowid });
   });
 
@@ -91,9 +98,17 @@ module.exports = function mountEquipment(app, db, auth, requireRole, ADMINISH) {
     for (const [k, col] of Object.entries(map)) {
       if (k in (req.body || {})) { sets.push(`${col} = ?`); args.push(req.body[k]); }
     }
-    if (!sets.length) return res.json({ ok: true });
-    args.push(req.params.id, req.auth.tenant);
-    db.prepare(`UPDATE assets SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`).run(...args);
+    if (!sets.length && !req.body?.photo?.dataUrl) return res.json({ ok: true });
+    if (sets.length) {
+      args.push(req.params.id, req.auth.tenant);
+      db.prepare(`UPDATE assets SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`).run(...args);
+    }
+    // Replace the photo if a new one was supplied.
+    if (req.body?.photo?.dataUrl) {
+      const ref = storePhoto(req.auth.tenant, "asset", req.params.id, req.body.photo);
+      if (ref) db.prepare("UPDATE assets SET photo = ? WHERE id = ? AND tenant_id = ?")
+        .run(JSON.stringify(ref), req.params.id, req.auth.tenant);
+    }
     res.json({ ok: true });
   });
 

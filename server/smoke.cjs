@@ -985,6 +985,25 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const digestForbidden = await fetch(`${B}/api/op/digest/1/preview`, { headers: H() });
   ok("digest: preview is operator-only (admin gets 403)", digestForbidden.status === 403);
 
+  // ── Equipment polish: procedure edit + asset photo ──
+  const eqAsset = await fetch(`${B}/api/assets`, { method: "POST", headers: H(),
+    body: JSON.stringify({ name: "Polish Test Compressor", category: "compressor",
+      photo: { dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", name: "c.png" } }) }).then(j);
+  const eqFull = await fetch(`${B}/api/assets/${eqAsset.id}`, { headers: H() }).then(j);
+  ok("equipment: asset photo stored as a ref on the asset",
+     eqFull.photo && JSON.parse(eqFull.photo).id);
+  const eqPhotoId = JSON.parse(eqFull.photo).id;
+  const eqPhotoResp = await fetch(`${B}/api/photos/${eqPhotoId}`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  ok("equipment: asset photo is served (200)", eqPhotoResp.status === 200);
+  const eqProc = await fetch(`${B}/api/assets/${eqAsset.id}/procedures`, { method: "POST", headers: H(),
+    body: JSON.stringify({ kind: "loto", title: "Before edit", steps: ["a", "b"] }) }).then(j);
+  await fetch(`${B}/api/procedures/${eqProc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ title: "After edit", steps: ["x", "y", "z"] }) }).then(j);
+  const eqAfter = await fetch(`${B}/api/assets/${eqAsset.id}`, { headers: H() }).then(j);
+  const editedProc = eqAfter.loto.find(pr => pr.id === eqProc.id);
+  ok("equipment: existing procedure can be edited (title + steps update)",
+     editedProc && editedProc.title === "After edit" && JSON.parse(editedProc.steps).length === 3);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

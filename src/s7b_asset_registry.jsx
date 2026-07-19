@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { COLORS, BRAND } from "./constants.js";
 import { api } from "./api.js";
+import AuthImg from "./AuthImg.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
@@ -158,7 +159,18 @@ function AssetEditor({ asset, sites, checklists, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [procs, setProcs] = useState({ loto: [], sops: [] });
   const [savedId, setSavedId] = useState(asset.id ?? null);
+  const [photo, setPhoto] = useState(asset.photo ? (() => { try { return JSON.parse(asset.photo); } catch { return null; } })() : null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Read a chosen image file into a data URL for upload (client-side, no lib).
+  function onPickPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhoto({ dataUrl: reader.result, name: file.name });
+    reader.readAsDataURL(file);
+  }
 
   // Load existing procedures when editing.
   useEffect(() => {
@@ -175,6 +187,9 @@ function AssetEditor({ asset, sites, checklists, onClose, onSaved }) {
         model: form.model || null, serial: form.serial || null, status: form.status,
         checklistId: form.checklist_id || null, notes: form.notes || null,
       };
+      // Only send the photo when a NEW image was picked (has a dataUrl); an
+      // unchanged stored ref shouldn't be re-sent.
+      if (photo?.dataUrl) payload.photo = { dataUrl: photo.dataUrl, name: photo.name };
       if (isNew) { const r = await api.createAsset(payload); setSavedId(r.id); }
       else await api.updateAsset(asset.id, payload);
       onSaved();
@@ -191,6 +206,22 @@ function AssetEditor({ asset, sites, checklists, onClose, onSaved }) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div><label style={label}>Name</label><input style={input} value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Bottling Line Transfer Pump" /></div>
+
+          <div>
+            <label style={label}>Photo</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {photo ? (
+                <AuthImg photo={photo} alt="Asset" style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", background: "#EEF1F0" }} />
+              ) : (
+                <div style={{ width: 64, height: 64, borderRadius: 8, background: "#EEF1F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem" }}>📷</div>
+              )}
+              <label style={{ padding: "8px 14px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 8, fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>
+                {photo ? "Change photo" : "Add photo"}
+                <input type="file" accept="image/*" onChange={onPickPhoto} style={{ display: "none" }} />
+              </label>
+              {photo && <button onClick={() => setPhoto(null)} style={{ background: "none", border: "none", color: C.red, fontSize: ".82rem", cursor: "pointer" }}>Remove</button>}
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 10 }}>
             <div style={{ flex: 1 }}><label style={label}>Asset tag</label><input style={input} value={form.asset_tag} onChange={e => set("asset_tag", e.target.value)} placeholder="PMP-014" /></div>
             <div style={{ flex: 1 }}><label style={label}>Category</label>
@@ -248,7 +279,8 @@ function AssetEditor({ asset, sites, checklists, onClose, onSaved }) {
 
 // Add/remove LOTO and SOP procedures on an asset.
 function ProcedureManager({ assetId, procs, onChange }) {
-  const [adding, setAdding] = useState(null); // "loto" | "sop" | null
+  const [adding, setAdding] = useState(null); // "loto" | "sop" | null  (add mode)
+  const [editingId, setEditingId] = useState(null); // procedure id being edited
   const [title, setTitle] = useState("");
   const [text, setText]   = useState("");
 
@@ -256,12 +288,23 @@ function ProcedureManager({ assetId, procs, onChange }) {
     const a = await api.getAsset(assetId);
     onChange({ loto: a.loto ?? [], sops: a.sops ?? [] });
   }
-  async function add() {
+  function stepsToText(p) {
+    try { const s = JSON.parse(p.steps || "[]"); return Array.isArray(s) && s.length ? s.join("\n") : (p.body || ""); }
+    catch { return p.body || ""; }
+  }
+  function startEdit(kind, p) {
+    setAdding(kind); setEditingId(p.id); setTitle(p.title || ""); setText(stepsToText(p));
+  }
+  function startAdd(kind) { setAdding(kind); setEditingId(null); setTitle(""); setText(""); }
+  function cancel() { setAdding(null); setEditingId(null); setTitle(""); setText(""); }
+
+  async function save() {
     if (!title.trim()) return;
     const steps = adding === "loto" ? text.split("\n").map(s => s.trim()).filter(Boolean) : [];
     const body = adding === "sop" ? text : null;
-    await api.addProcedure(assetId, { kind: adding, title, steps, body });
-    setTitle(""); setText(""); setAdding(null); refresh();
+    if (editingId) await api.updateProcedure(editingId, { title, steps, body });
+    else await api.addProcedure(assetId, { kind: adding, title, steps, body });
+    cancel(); refresh();
   }
   async function remove(id) { await api.deleteProcedure(id); refresh(); }
 
@@ -274,29 +317,45 @@ function ProcedureManager({ assetId, procs, onChange }) {
           <div key={kind} style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <span style={{ fontSize: ".78rem", fontWeight: 700, color: kind === "loto" ? C.red : C.pine }}>{heading}</span>
-              <button onClick={() => { setAdding(kind); setTitle(""); setText(""); }} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>+ Add</button>
+              <button onClick={() => startAdd(kind)} style={{ background: "none", border: "none", color: C.sage, fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>+ Add</button>
             </div>
             {list.map(p => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.white, borderRadius: 7, padding: "8px 11px", marginBottom: 5, fontSize: ".82rem", color: C.ink }}>
-                <span>{p.title}</span>
-                <button onClick={() => remove(p.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: ".9rem" }}>×</button>
-              </div>
-            ))}
-            {adding === kind && (
-              <div style={{ background: C.white, borderRadius: 8, padding: 12, marginTop: 4 }}>
-                <input style={{ ...input, marginBottom: 8 }} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
-                <textarea style={{ ...input, minHeight: 80, resize: "vertical" }}
-                  placeholder={kind === "loto" ? "One step per line…" : "Procedure text…"}
-                  value={text} onChange={e => setText(e.target.value)} />
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button onClick={add} style={{ flex: 1, padding: "9px", background: C.sage, color: C.white, border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".82rem", cursor: "pointer" }}>Add</button>
-                  <button onClick={() => setAdding(null)} style={{ padding: "9px 14px", background: "none", color: C.mist, border: "1px solid #D0DEDB", borderRadius: 7, fontSize: ".82rem", cursor: "pointer" }}>Cancel</button>
+              editingId === p.id && adding === kind ? (
+                <ProcForm key={p.id} kind={kind} title={title} setTitle={setTitle} text={text} setText={setText}
+                  onSave={save} onCancel={cancel} isEdit />
+              ) : (
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.white, borderRadius: 7, padding: "8px 11px", marginBottom: 5, fontSize: ".82rem", color: C.ink }}>
+                  <span style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(kind, p)}>{p.title}</span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <button onClick={() => startEdit(kind, p)} title="Edit" style={{ background: "none", border: "none", color: C.sage, cursor: "pointer", fontSize: ".8rem" }}>✏️</button>
+                    <button onClick={() => remove(p.id)} title="Remove" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: ".9rem" }}>×</button>
+                  </div>
                 </div>
-              </div>
+              )
+            ))}
+            {adding === kind && !editingId && (
+              <ProcForm kind={kind} title={title} setTitle={setTitle} text={text} setText={setText}
+                onSave={save} onCancel={cancel} />
             )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Shared add/edit form for a LOTO/SOP procedure.
+function ProcForm({ kind, title, setTitle, text, setText, onSave, onCancel, isEdit }) {
+  return (
+    <div style={{ background: C.white, borderRadius: 8, padding: 12, marginTop: 4, marginBottom: 5, border: `1px solid ${kind === "loto" ? "#F3D6D2" : "#D6E6DC"}` }}>
+      <input style={{ ...input, marginBottom: 8 }} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+      <textarea style={{ ...input, minHeight: 80, resize: "vertical" }}
+        placeholder={kind === "loto" ? "One step per line…" : "Procedure text…"}
+        value={text} onChange={e => setText(e.target.value)} />
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button onClick={onSave} style={{ flex: 1, padding: "9px", background: C.sage, color: C.white, border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".82rem", cursor: "pointer" }}>{isEdit ? "Save changes" : "Add"}</button>
+        <button onClick={onCancel} style={{ padding: "9px 14px", background: "none", color: C.mist, border: "1px solid #D0DEDB", borderRadius: 7, fontSize: ".82rem", cursor: "pointer" }}>Cancel</button>
+      </div>
     </div>
   );
 }

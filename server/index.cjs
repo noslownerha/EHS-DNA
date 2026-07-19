@@ -2262,7 +2262,7 @@ app.post("/api/op/digest/run", auth, requireOperator, async (req, res) => {
 require("./billing.cjs")(app, db, auth, () => requireOperator);
 
 // ── Equipment & Assets module ─────────────────────────────────────────────────
-require("./equipment.cjs")(app, db, auth, requireRole, ADMINISH);
+require("./equipment.cjs")(app, db, auth, requireRole, ADMINISH, { storePhoto });
 
 // ── Training compliance summary (per-staff rollup against required trainings) ─
 // Shared compliance definition: a staff member is compliant when every required

@@ -206,6 +206,7 @@ CREATE TABLE IF NOT EXISTS assets (
   status TEXT DEFAULT 'in_service', -- in_service | out_of_service | retired
   checklist_id INTEGER REFERENCES checklists(id), -- inspection template for this asset
   notes TEXT,
+  photo TEXT,                       -- optional photo ref (JSON {id,name}) stored on disk
   active INTEGER DEFAULT 1,
   created_at TEXT DEFAULT (datetime('now'))
 );
@@ -350,6 +351,8 @@ try { db.exec("ALTER TABLE billing_config ADD COLUMN module_prices TEXT"); } cat
 try { db.exec("ALTER TABLE tenants ADD COLUMN point_values TEXT"); } catch {}
 // Custom triage decision-tree questions (JSON array of {id,text}); null → use defaults.
 try { db.exec("ALTER TABLE tenants ADD COLUMN triage_questions TEXT"); } catch {}
+// Optional asset photo (JSON ref {id,name}); image bytes live on disk in photo_files.
+try { db.exec("ALTER TABLE assets ADD COLUMN photo TEXT"); } catch {}
 
 // Per-tenant module enablement. A row = an explicit on/off for that tenant;
 // absence = "use the module's default". Lets the operator sell modules piecemeal
