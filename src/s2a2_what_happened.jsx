@@ -94,6 +94,32 @@ export default function S2a2WhatHappened({
   onHome,
 }) {
   const [description, setDescription] = useState("");
+  // Voice-to-text: line workers often have gloves or full hands. The Web Speech API
+  // (SpeechRecognition) is built into mobile Chrome/Safari — no dependency. We append
+  // transcribed speech to whatever's already typed. Gracefully absent where unsupported.
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef(null);
+  const speechSupported = typeof window !== "undefined" &&
+    (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  function toggleDictation() {
+    if (!speechSupported) return;
+    if (listening) { recognitionRef.current?.stop(); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.continuous = false;
+    rec.onresult = (e) => {
+      const said = Array.from(e.results).map(r => r[0].transcript).join(" ").trim();
+      if (said) setDescription(d => (d.trim() ? d.trim() + " " : "") + said);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
   const [location,    setLocation]    = useState("");
   const [site,        setSite]        = useState(initialSite ?? SITES[0]);
   const [severity,    setSeverity]    = useState(null);
@@ -242,7 +268,20 @@ export default function S2a2WhatHappened({
 
         {/* Description */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "16px", marginBottom: 14 }}>
-          <Label>Describe what happened</Label>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <Label style={{ marginBottom: 0 }}>Describe what happened</Label>
+            {speechSupported && (
+              <button type="button" onClick={toggleDictation} style={{
+                display: "flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 20,
+                border: `1.5px solid ${listening ? C.red : C.mint}`,
+                background: listening ? "rgba(192,57,43,.08)" : C.foam,
+                color: listening ? C.red : C.pine, fontFamily: "'DM Sans', sans-serif",
+                fontSize: ".76rem", fontWeight: 700, cursor: "pointer",
+              }}>
+                {listening ? "● Listening…" : "🎤 Speak"}
+              </button>
+            )}
+          </div>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
