@@ -17,17 +17,6 @@ const STATUS = {
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple },
 };
 
-const SEED_COMPLETIONS = [
-  { id: 1, staffName: "Staff member",  site: "Moriah",     completedAt: "2024-03-15", score: 92, passed: true,  expiresAt: "2025-03-15", trainerName: null,      sessionId: null           },
-  { id: 2, staffName: "Jake Larson",     site: "Moriah",     completedAt: "2024-03-15", score: 88, passed: true,  expiresAt: "2025-03-15", trainerName: null,      sessionId: null           },
-  { id: 3, staffName: "Beth Torres",     site: "Moriah",     completedAt: "2024-03-16", score: 76, passed: false, expiresAt: null,         trainerName: null,      sessionId: null           },
-  { id: 4, staffName: "Staff member",     site: "Moriah",     completedAt: "2024-01-10", score: 95, passed: true,  expiresAt: "2025-01-10", trainerName: null,      sessionId: null           },
-  { id: 5, staffName: "Staff member",   site: "Middlebury", completedAt: "2024-03-20", score: 91, passed: true,  expiresAt: "2025-03-20", trainerName: null,      sessionId: null           },
-  { id: 6, staffName: "Staff member",      site: "Brandenburg",completedAt: "2024-04-05", score: 85, passed: true,  expiresAt: "2025-04-05", trainerName: null,      sessionId: null           },
-  { id: 7, staffName: "Staff member",      site: "Shoreham",   completedAt: "2024-04-12", score: null, passed: true,expiresAt: "2025-04-12", trainerName: "Trainer",sessionId: "SES-2024-041" },
-  { id: 8, staffName: "Lena Park",       site: "Middlebury", completedAt: "2024-04-12", score: null, passed: true,expiresAt: "2025-04-12", trainerName: "Trainer",sessionId: "SES-2024-041" },
-];
-
 function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
   return (
     <EHSHeader onHome={onHome} title={companyName} rightContent={

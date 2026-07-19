@@ -7,10 +7,9 @@ const C = { ...COLORS };
 
 const STEPS = ["Company", "Sites", "Departments", "Staff", "Training"];
 
-const SEED_MANUAL_GROUPS = [
-  { id: 1, name: "Forklift Certified",    emoji: "🚜", recurrence: "Annually",   members: 0 },
-  { id: 2, name: "Electric Pallet Jack",  emoji: "⚡", recurrence: "Annually",   members: 0 },
-];
+// Manual training groups are built by the user during onboarding — start empty
+// rather than pre-filling fake example groups that look like real data.
+const DEFAULT_MANUAL_GROUPS = [];
 
 const RECURRENCE_OPTIONS = ["One-time", "Annually", "Every 6 months", "Quarterly", "Monthly"];
 
@@ -234,9 +233,9 @@ function AddGroupForm({ onAdd, onClose }) {
 // S1b5 — Training Groups
 // ════════════════════════════════════════════════════════════════════════════
 export function S1b5TrainingGroups({ departments = [], onContinue, onBack, onHome }) {
-  const [manualGroups, setManualGroups] = useState(SEED_MANUAL_GROUPS.map(g => ({ ...g })));
+  const [manualGroups, setManualGroups] = useState(DEFAULT_MANUAL_GROUPS.map(g => ({ ...g })));
   const [adding,       setAdding]       = useState(false);
-  const nextId = useRef(SEED_MANUAL_GROUPS.length + 1);
+  const nextId = useRef(DEFAULT_MANUAL_GROUPS.length + 1);
 
   // Default dept list if none passed from flow
   const deptList = departments.length > 0 ? departments : [

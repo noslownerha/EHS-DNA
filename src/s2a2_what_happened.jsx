@@ -63,9 +63,9 @@ function MobileProgress({ step, total }) {
   );
 }
 
-function Label({ children }) {
+function Label({ children, style }) {
   return (
-    <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5 }}>
+    <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.sage, marginBottom: 5, ...style }}>
       {children}
     </div>
   );
