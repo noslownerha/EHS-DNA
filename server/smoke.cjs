@@ -918,6 +918,20 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("gps: invalid coordinates are dropped (not stored)",
      badRow && badRow.latitude == null && badRow.longitude == null);
 
+  // ── OSHA-recordable auto-flag ──
+  const oshaFlagged = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", description: "OSHA smoke: hand injury needing ER treatment", oshaSignals: ["medical", "days_away"], oshaRecordableSuggested: true }) }).then(j);
+  const oshaPlain = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "minor", description: "OSHA smoke: minor cut band-aid only no signals", oshaSignals: [] }) }).then(j);
+  const oshaList = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  const oshaRows = Array.isArray(oshaList) ? oshaList : oshaList.incidents || [];
+  const flaggedRow = oshaRows.find(x => x.ref === oshaFlagged.ref);
+  const plainRow = oshaRows.find(x => x.ref === oshaPlain.ref);
+  ok("osha: injury with recordable signals is auto-flagged for review",
+     flaggedRow && flaggedRow.osha_classification === "Review: likely recordable");
+  ok("osha: injury without signals stays unclassified (Pending)",
+     plainRow && (plainRow.osha_classification == null));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

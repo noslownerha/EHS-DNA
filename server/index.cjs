@@ -735,7 +735,7 @@ function awardPoints(tenantId, userId, points, reason, { sourceType = null, sour
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
 
 app.post("/api/incidents", auth, (req, res) => {
-  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid, recognizedUserId, latitude, longitude } = req.body || {};
+  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid, recognizedUserId, latitude, longitude, oshaRecordableSuggested, oshaSignals } = req.body || {};
 
   // Idempotency: the offline queue retries on reconnect. If this exact report was
   // already filed, return the original instead of creating a duplicate incident.
@@ -773,8 +773,17 @@ app.post("/api/incidents", auth, (req, res) => {
   // or drop it (never let a bad value block the report).
   const lat = Number.isFinite(Number(latitude)) && Math.abs(Number(latitude)) <= 90 ? Number(latitude) : null;
   const lng = Number.isFinite(Number(longitude)) && Math.abs(Number(longitude)) <= 180 ? Number(longitude) : null;
-  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid, recognized_user_id, latitude, longitude)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  // OSHA recordability suggestion: for injuries where the reporter flagged a
+  // general-criteria outcome (medical beyond first aid, days away, restricted duty,
+  // loss of consciousness, significant diagnosis), pre-set the classification to a
+  // clearly-provisional "Review: likely recordable" so it surfaces for the Safety
+  // Officer's formal determination rather than sitting unclassified. Non-injuries
+  // and un-flagged injuries stay null (Pending) as before.
+  const oshaSuggested = type === "injury" &&
+    (oshaRecordableSuggested || (Array.isArray(oshaSignals) && oshaSignals.length > 0));
+  const oshaClass = oshaSuggested ? "Review: likely recordable" : null;
+  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid, recognized_user_id, latitude, longitude, osha_classification)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   // Insert with an empty photo list, then write the image bytes to disk and store
   // only the refs — the row must exist before a photo can be attached to it.
   // Engagement reports (positive/idea/observation) get a REP- ref, not INC- —
@@ -785,7 +794,7 @@ app.post("/api/incidents", auth, (req, res) => {
     stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
              locationDetail ?? null, JSON.stringify(involved ?? []), "[]",
              req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null,
-             clientUuid ? String(clientUuid) : null, recognizedId, lat, lng));
+             clientUuid ? String(clientUuid) : null, recognizedId, lat, lng, oshaClass));
   const photoRefs = storePhotos(req.auth.tenant, "incident", r.lastInsertRowid, photos);
   if (photoRefs.length) {
     db.prepare("UPDATE incidents SET photos = ? WHERE id = ? AND tenant_id = ?")
@@ -811,7 +820,7 @@ app.post("/api/incidents", auth, (req, res) => {
     hazard: "Hazard flagged", observation: "Safety observation", positive: "Positive callout 👍", idea: "Safety idea 💡",
   };
   const notified = notify(req.auth.tenant, events, {
-    title: `${TYPE_TITLE[type] ?? "Report"}: ${ref}`,
+    title: `${oshaSuggested ? "⚠ Likely recordable — " : ""}${TYPE_TITLE[type] ?? "Report"}: ${ref}`,
     body: isEngagement
       ? `${site ?? "Unassigned site"} · by ${req.auth.name}`
       : `${site ?? "Unassigned site"} · ${severity ?? "unspecified"} · by ${req.auth.name}`,

@@ -38,6 +38,15 @@ const SEVERITIES = [
 
 // Spec: contextual OSHA guidance shown when injury type selected — informational only
 const INJURY_TYPES = ["Laceration / Cut", "Sprain / Strain", "Fracture", "Burns", "Chemical exposure", "Head injury", "Eye injury", "Other injury"];
+// OSHA 1904.7 general recording criteria — checking any of these strongly suggests
+// the case is recordable. Kept in plain language so a line worker can answer.
+const OSHA_SIGNALS = [
+  { id: "medical",       label: "Needed medical treatment beyond basic first aid" },
+  { id: "days_away",     label: "Missed work / will miss work because of it" },
+  { id: "restricted",    label: "Put on restricted duty or a different job" },
+  { id: "unconscious",   label: "Lost consciousness" },
+  { id: "diagnosis",     label: "Got a significant diagnosis (fracture, etc.) from a doctor" },
+];
 const NON_INJURY_GUIDANCE = null; // only shown for injury types
 
 function MobileProgress({ step, total }) {
@@ -124,6 +133,11 @@ export default function S2a2WhatHappened({
   const [site,        setSite]        = useState(initialSite ?? SITES[0]);
   const [severity,    setSeverity]    = useState(null);
   const [injuryType,  setInjuryType]  = useState("");
+  // OSHA general recording criteria (1904.7): if the injury led to any of these
+  // outcomes it's very likely recordable. We ask a few quick yes/no signals and
+  // SUGGEST a flag — safety still makes the formal call. Empty = no signal yet.
+  const [oshaSignals, setOshaSignals] = useState([]);
+  const toggleSignal = (id) => setOshaSignals(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   const [descFocused, setDescFocused] = useState(false);
   const [locFocused,  setLocFocused]  = useState(false);
   const [recognizedUserId, setRecognizedUserId] = useState("");
@@ -356,15 +370,46 @@ export default function S2a2WhatHappened({
               placeholder="Select injury type…"
             />
 
-            {/* Spec: contextual OSHA guidance when injury type selected — informational only, not accusatory */}
+            {/* Recordability signals — quick yes/no outcome checks. Any checked →
+                we surface a "looks recordable" flag so it's prioritised for the
+                300 log. Informational + non-accusatory; safety makes the formal call. */}
             {showOsha && (
-              <div style={{
-                marginTop: 12, padding: "11px 13px",
-                background: C.foam, borderLeft: `3px solid ${C.sage}`,
-                borderRadius: 7, fontSize: ".8rem", color: C.pine, lineHeight: 1.6,
-                animation: "fadeUp .2s ease both",
-              }}>
-                <strong>What makes an injury recordable?</strong> OSHA requires recording injuries that result in medical treatment beyond first aid, days away from work, restricted duty, or loss of consciousness. Your Safety Officer will make the formal determination after you submit — you don't need to classify it now.
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: ".76rem", fontWeight: 700, color: C.pine, marginBottom: 8 }}>
+                  Did any of these happen? <span style={{ fontWeight: 400, color: C.mist }}>(helps us log it correctly)</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                  {OSHA_SIGNALS.map(sig => {
+                    const on = oshaSignals.includes(sig.id);
+                    return (
+                      <label key={sig.id} style={{
+                        display: "flex", alignItems: "flex-start", gap: 9, padding: "9px 11px", borderRadius: 8,
+                        border: `1.5px solid ${on ? C.sage : "#E2EBE6"}`, background: on ? C.foam : C.white,
+                        cursor: "pointer", transition: "all .12s",
+                      }}>
+                        <input type="checkbox" checked={on} onChange={() => toggleSignal(sig.id)}
+                          style={{ width: 16, height: 16, marginTop: 1, accentColor: C.sage, flexShrink: 0 }} />
+                        <span style={{ fontSize: ".82rem", color: C.ink, lineHeight: 1.4 }}>{sig.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {oshaSignals.length > 0 ? (
+                  <div style={{
+                    marginTop: 11, padding: "11px 13px", background: "rgba(180,83,9,.08)",
+                    borderLeft: `3px solid #B45309`, borderRadius: 7, fontSize: ".8rem", color: "#8A4B0A", lineHeight: 1.55,
+                  }}>
+                    <strong>⚠ This looks OSHA-recordable.</strong> We'll flag it for your Safety Officer to review and log on the 300 if needed. You don't need to do anything else — just submit.
+                  </div>
+                ) : (
+                  <div style={{
+                    marginTop: 11, padding: "11px 13px", background: C.foam, borderLeft: `3px solid ${C.sage}`,
+                    borderRadius: 7, fontSize: ".8rem", color: C.pine, lineHeight: 1.55,
+                  }}>
+                    Your Safety Officer makes the formal recordability determination — you don't need to classify it now.
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -449,7 +494,7 @@ export default function S2a2WhatHappened({
       }}>
         <button
           className="continue-btn"
-          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, site, recognizedUserId: recognizedUserId || null, photos })}
+          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, site, recognizedUserId: recognizedUserId || null, photos, oshaSignals, oshaRecordableSuggested: isInjury && oshaSignals.length > 0 })}
           disabled={!canContinue}
           style={{
             width: "100%", padding: "14px",

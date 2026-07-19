@@ -23,9 +23,10 @@ const CA_STATUS = {
   closed:   { label: "Closed",   bg: "#EEF1F0", color: C.slate},
 };
 const OSHA_COLORS = {
-  "Pending":        { bg: C.goldLt, color: C.gold },
-  "Recordable":     { bg: C.redLt,  color: C.red  },
-  "Non-recordable": { bg: C.foam,   color: C.pine },
+  "Pending":                    { bg: C.goldLt, color: C.gold },
+  "Review: likely recordable":  { bg: "rgba(180,83,9,.12)", color: "#B45309" },
+  "Recordable":                 { bg: C.redLt,  color: C.red  },
+  "Non-recordable":             { bg: C.foam,   color: C.pine },
 };
 
 function pill(label, bg, color) {
@@ -367,7 +368,7 @@ const SEED_DETAIL = {
 const USER_ROLE = JSON.parse(sessionStorage.getItem("ehs_user") || "{}").role ?? "staff";
 
 const OSHA_OPTIONS = [
-  "Pending", "Non-recordable", "Recordable – First aid only",
+  "Pending", "Review: likely recordable", "Non-recordable", "Recordable – First aid only",
   "Recordable – Medical treatment", "Recordable – Restricted work",
   "Recordable – Days away from work", "Recordable – Fatality",
 ];

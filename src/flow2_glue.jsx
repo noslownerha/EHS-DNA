@@ -251,6 +251,8 @@ export function IncidentProvider({
       recognizedUserId: d.recognizedUserId ?? null,
       latitude: gpsRef.current?.latitude ?? null,
       longitude: gpsRef.current?.longitude ?? null,
+      oshaSignals: d.oshaSignals ?? [],
+      oshaRecordableSuggested: !!d.oshaRecordableSuggested,
       photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
     };
 
