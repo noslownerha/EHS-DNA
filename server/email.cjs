@@ -165,4 +165,87 @@ async function sendAlert(to, { title, meta, linkKind, linkRef, company }) {
   return sendEmail(to, title, text, html);
 }
 
-module.exports = { sendEmail, sendAlert, emailConfigured };
+/**
+ * Weekly executive digest. The buyer (VP Ops / owner) rarely opens the app — this
+ * email IS the product to them. A clean scorecard of the week's safety posture with
+ * a single deep link back in. `metrics` is assembled by the caller from real data.
+ */
+function renderDigestHtml({ company, periodLabel, metrics, link }) {
+  const stat = (value, label, accent) => `
+    <td style="padding:14px 10px;text-align:center;vertical-align:top;">
+      <div style="font-size:30px;font-weight:800;line-height:1;color:${accent || BRAND.ink};font-family:'Helvetica Neue',Arial,sans-serif;">${value}</div>
+      <div style="font-size:12px;color:${BRAND.mist};margin-top:6px;font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(label)}</div>
+    </td>`;
+  const row = (label, value, accent) => `
+    <tr>
+      <td style="padding:9px 0;border-bottom:1px solid #EEF1F0;font-size:14px;color:${BRAND.ink};font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(label)}</td>
+      <td style="padding:9px 0;border-bottom:1px solid #EEF1F0;font-size:14px;font-weight:700;text-align:right;color:${accent || BRAND.ink};font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(String(value))}</td>
+    </tr>`;
+  const m = metrics;
+  const recordableAccent = m.recordablesYTD > 0 ? "#B45309" : BRAND.sage;
+  const overdueAccent = m.trainingsOverdue > 0 ? "#B45309" : BRAND.sage;
+  return `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#F4F7F5;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F5;padding:24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(15,31,23,.06);">
+        <tr><td style="background:${BRAND.forest || "#1C3A2A"};padding:18px 28px;">
+          <span style="color:#ffffff;font-weight:700;font-size:16px;font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:.3px;">EHS&nbsp;<span style="color:${BRAND.sage};">DNA</span></span>${company ? `<span style="color:${BRAND.mist};font-size:13px;font-family:'Helvetica Neue',Arial,sans-serif;"> &nbsp;·&nbsp; ${escapeHtml(company)}</span>` : ""}
+        </td></tr>
+        <tr><td style="padding:26px 28px 6px;">
+          <h1 style="margin:0;font-size:19px;line-height:1.35;color:${BRAND.ink};font-family:'Helvetica Neue',Arial,sans-serif;font-weight:700;">Weekly safety digest</h1>
+          <p style="margin:6px 0 0;font-size:14px;color:${BRAND.mist};font-family:'Helvetica Neue',Arial,sans-serif;">${escapeHtml(periodLabel)}</p>
+        </td></tr>
+        <tr><td style="padding:16px 20px 4px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAF9;border-radius:10px;">
+            <tr>
+              ${stat(m.reportsThisWeek, "reports this week", BRAND.sage)}
+              ${stat(m.recordablesYTD, "recordables YTD", recordableAccent)}
+              ${stat(m.openCorrectiveActions, "open actions", BRAND.ink)}
+              ${stat(m.trainingsOverdue, "trainings overdue", overdueAccent)}
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:18px 28px 4px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${row("New reports filed this week", m.reportsThisWeek, BRAND.sage)}
+            ${row("Injuries this week", m.injuriesThisWeek, m.injuriesThisWeek > 0 ? "#B45309" : BRAND.ink)}
+            ${row("Recordable cases (year to date)", m.recordablesYTD, recordableAccent)}
+            ${row("Open corrective actions", m.openCorrectiveActions)}
+            ${row("Corrective actions overdue", m.overdueCorrectiveActions, m.overdueCorrectiveActions > 0 ? "#B45309" : BRAND.ink)}
+            ${row("Trainings overdue across staff", m.trainingsOverdue, overdueAccent)}
+            ${row("Inspections completed this week", m.inspectionsThisWeek, BRAND.sage)}
+            ${m.topRecognition ? row("Recognition leader this month", m.topRecognition) : ""}
+          </table>
+        </td></tr>
+        <tr><td style="padding:22px 28px 28px;" align="center">
+          <a href="${escapeHtml(link)}" style="display:inline-block;background:${BRAND.sage};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 28px;border-radius:8px;font-family:'Helvetica Neue',Arial,sans-serif;">Open the dashboard</a>
+        </td></tr>
+        <tr><td style="padding:0 28px 24px;">
+          <p style="margin:0;font-size:12px;color:${BRAND.mist};font-family:'Helvetica Neue',Arial,sans-serif;line-height:1.5;">You're receiving this because you're an admin or safety lead on ${escapeHtml(company || "your EHS DNA account")}. Digest frequency can be changed in Company Settings.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+async function sendDigest(to, { company, periodLabel, metrics }) {
+  const link = APP_URL;
+  const html = renderDigestHtml({ company, periodLabel, metrics, link });
+  const m = metrics;
+  const text = [
+    `Weekly safety digest — ${periodLabel}`, "",
+    `Reports this week: ${m.reportsThisWeek}`,
+    `Injuries this week: ${m.injuriesThisWeek}`,
+    `Recordable cases YTD: ${m.recordablesYTD}`,
+    `Open corrective actions: ${m.openCorrectiveActions} (${m.overdueCorrectiveActions} overdue)`,
+    `Trainings overdue: ${m.trainingsOverdue}`,
+    `Inspections completed this week: ${m.inspectionsThisWeek}`,
+    m.topRecognition ? `Recognition leader: ${m.topRecognition}` : "",
+    "", `Open the dashboard: ${link}`,
+  ].filter(Boolean).join("\n");
+  return sendEmail(to, `Weekly safety digest — ${company || "EHS DNA"}`, text, html);
+}
+
+module.exports = { sendEmail, sendAlert, sendDigest, emailConfigured };

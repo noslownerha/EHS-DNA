@@ -973,6 +973,18 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("osha300: CSV export has the 300 column header",
      csv.headers.get("content-type").includes("csv") && /Days Away/.test(csvText) && /Case No\./.test(csvText));
 
+  // ── Weekly exec digest ──
+  // File a couple of reports, then the operator previews the tenant's digest metrics.
+  await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", description: "Digest smoke injury report here now" }) }).then(j);
+  const digest = await fetch(`${B}/api/op/digest/1/preview`, { headers: opH() }).then(j);
+  ok("digest: operator preview returns real metric shape",
+     digest && digest.metrics && typeof digest.metrics.reportsThisWeek === "number" &&
+     typeof digest.metrics.recordablesYTD === "number" && "trainingsOverdue" in digest.metrics);
+  ok("digest: this week's injury is reflected in metrics", digest.metrics.injuriesThisWeek >= 1);
+  const digestForbidden = await fetch(`${B}/api/op/digest/1/preview`, { headers: H() });
+  ok("digest: preview is operator-only (admin gets 403)", digestForbidden.status === 403);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

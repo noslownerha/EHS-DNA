@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const { sendAlert, emailConfigured } = require("./email.cjs");
+const { sendAlert, sendDigest, emailConfigured } = require("./email.cjs");
 const db = require("./db.cjs");
 const { MODULES, LIVE_MODULES, moduleForPath } = require("./modules.cjs");
 
@@ -2180,6 +2180,83 @@ function runCAReminders() {
 }
 setTimeout(runCAReminders, 45000);                 // shortly after boot, staggered from training
 setInterval(runCAReminders, 12 * 3600 * 1000);     // twice daily
+
+// ── Weekly executive digest ──────────────────────────────────────────────────
+// The buyer rarely opens the app; a weekly scorecard email keeps safety posture
+// visible to them. Metrics are computed from real data for one tenant.
+function computeDigestMetrics(tenantId) {
+  const q = (sql, ...a) => db.prepare(sql).get(tenantId, ...a)?.n ?? 0;
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const reportsThisWeek = q(`SELECT COUNT(*) n FROM incidents WHERE tenant_id=? AND created_at > datetime('now','-7 days')`);
+  const injuriesThisWeek = q(`SELECT COUNT(*) n FROM incidents WHERE tenant_id=? AND type='injury' AND created_at > datetime('now','-7 days')`);
+  // Recordables YTD: only SAFETY-CONFIRMED "Recordable…" classifications count —
+  // never the provisional "Review: likely recordable" suggestion.
+  const recordablesYTD = q(`SELECT COUNT(*) n FROM incidents WHERE tenant_id=? AND created_at >= ?
+                            AND osha_classification LIKE 'Recordable%'`, yearStart);
+  const openCorrectiveActions = q(`SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id=? AND status NOT IN ('done','verified')`);
+  const overdueCorrectiveActions = q(`SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id=? AND status NOT IN ('done','verified')
+                                      AND due_date IS NOT NULL AND due_date < date('now')`);
+  // Trainings overdue: latest completion per user×training that has expired.
+  const trainingsOverdue = q(`SELECT COUNT(*) n FROM training_completions tc
+      JOIN trainings t ON t.id = tc.training_id AND t.active = 1
+      JOIN users u ON u.id = tc.user_id AND u.active = 1 AND u.is_operator = 0
+      WHERE tc.tenant_id=? AND tc.expires_at IS NOT NULL AND tc.expires_at < datetime('now')
+        AND tc.id IN (SELECT MAX(id) FROM training_completions GROUP BY user_id, training_id)`);
+  const inspectionsThisWeek = q(`SELECT COUNT(*) n FROM inspections WHERE tenant_id=? AND status='complete' AND completed_at > datetime('now','-7 days')`);
+  // Recognition leader this month (only if the module is on and someone has points).
+  let topRecognition = null;
+  if (moduleOn(tenantId, "recognition")) {
+    const period = periodOf();
+    const top = db.prepare(`SELECT u.name, SUM(l.points) AS pts FROM points_ledger l
+        JOIN users u ON u.id = l.user_id
+        WHERE l.tenant_id=? AND l.status='confirmed' AND l.period=? AND u.active=1
+        GROUP BY u.id ORDER BY pts DESC LIMIT 1`).get(tenantId, period);
+    if (top && top.pts > 0) topRecognition = `${top.name} (${top.pts} pts)`;
+  }
+  return { reportsThisWeek, injuriesThisWeek, recordablesYTD, openCorrectiveActions,
+           overdueCorrectiveActions, trainingsOverdue, inspectionsThisWeek, topRecognition };
+}
+
+async function runWeeklyDigest() {
+  if (!emailConfigured()) return;
+  try {
+    const tenants = db.prepare("SELECT id, name FROM tenants WHERE active = 1").all();
+    const dedup = db.prepare(`SELECT 1 FROM notifications WHERE tenant_id=? AND link_kind='digest'
+                              AND created_at > datetime('now','-6 days') LIMIT 1`);
+    const markSent = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
+                                 VALUES (?, ?, 'Weekly digest sent', ?, 'digest', ?)`);
+    const periodLabel = `Week of ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+    let sentTenants = 0;
+    for (const t of tenants) {
+      if (dedup.get(t.id)) continue;                       // already sent this week
+      const recips = db.prepare(`SELECT id, email, name FROM users
+        WHERE tenant_id=? AND active=1 AND is_operator=0 AND role IN ('admin','safety') AND email IS NOT NULL`).all(t.id);
+      if (!recips.length) continue;
+      const metrics = computeDigestMetrics(t.id);
+      for (const r of recips) {
+        try { await sendDigest(r.email, { company: t.name, periodLabel, metrics }); } catch (e) { /* keep going */ }
+      }
+      markSent.run(t.id, recips[0].id, periodLabel, `digest-${Date.now()}`);
+      sentTenants++;
+    }
+    if (sentTenants) console.log(`Weekly digest sent to ${sentTenants} tenant(s)`);
+  } catch (e) { console.error("Weekly digest run failed:", e.message); }
+}
+// Check hourly; the 6-day dedup means each tenant gets exactly one per week
+// regardless of restarts. First run staggered after boot.
+setTimeout(runWeeklyDigest, 60000);
+setInterval(runWeeklyDigest, 3600 * 1000);
+
+// Operator: preview a tenant's digest metrics (no send) or trigger a send now.
+app.get("/api/op/digest/:tenantId/preview", auth, requireOperator, (req, res) => {
+  const t = db.prepare("SELECT id, name FROM tenants WHERE id = ?").get(req.params.tenantId);
+  if (!t) return res.status(404).json({ error: "Tenant not found" });
+  res.json({ tenant: t.name, metrics: computeDigestMetrics(t.id) });
+});
+app.post("/api/op/digest/run", auth, requireOperator, async (req, res) => {
+  await runWeeklyDigest();
+  res.json({ ok: true });
+});
 
 // ── Billing module ────────────────────────────────────────────────────────────
 require("./billing.cjs")(app, db, auth, () => requireOperator);
