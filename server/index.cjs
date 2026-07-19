@@ -84,6 +84,33 @@ function recordLoginResult(email, success) {
 
 app.use(express.json({ limit: "15mb" }));
 
+// ── Security headers ─────────────────────────────────────────────────────────
+// Set without a dependency (avoids native-build install issues). CSP is tuned to
+// what the app actually loads: same-origin scripts (bundled SPA), Google Fonts,
+// inline styles (React style props + <style> tags), and training-video embeds
+// (YouTube/Vimeo). img/connect stay same-origin + data: for inline photos.
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "geolocation=(self), microphone=(self), camera=(self)");
+  // HSTS only meaningful over HTTPS; harmless to always send (browsers ignore on http).
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.setHeader("Content-Security-Policy", [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "frame-src https://www.youtube.com https://player.vimeo.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; "));
+  next();
+});
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 // Healthcheck for uptime monitors — no auth, verifies the DB responds.
 app.get("/api/health", (req, res) => {
