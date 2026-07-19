@@ -1985,6 +1985,90 @@ app.get("/api/reports/incident-summary", auth, requireRole(...CAN_SEE_ALL_INCIDE
   res.json({ months: out, hoursNote });
 });
 
+// ── OSHA 300 log + 300A annual summary ───────────────────────────────────────
+// Maps our recordable classifications onto the 300's case-classification columns.
+// The 300 log is per-case; the 300A is the annual totals establishments must post
+// Feb 1–Apr 30. Recordability is driven by the (safety-confirmed) osha_classification
+// — provisional "Review: likely recordable" is NOT counted, so the log matches the
+// formal determinations, never the suggestions.
+const OSHA_300_MAP = {
+  "Recordable – Fatality":            { col: "death",      injuryColumn: "injury" },
+  "Recordable – Days away from work": { col: "days_away",  injuryColumn: "injury" },
+  "Recordable – Restricted work":     { col: "restricted", injuryColumn: "injury" },
+  "Recordable – Medical treatment":   { col: "other",      injuryColumn: "injury" },
+  "Recordable – First aid only":      { col: "other",      injuryColumn: "injury" },
+};
+const isOsha300Recordable = (c) => Object.prototype.hasOwnProperty.call(OSHA_300_MAP, c || "");
+
+function osha300Rows(tenantId, year, scope) {
+  // Cases whose occurred/created date falls in the calendar year AND are recordable.
+  const rows = db.prepare(`SELECT i.ref, i.type, i.description, i.location_detail, i.involved,
+                                  i.department, i.osha_classification, i.occurred_at, i.created_at,
+                                  s.name AS site_name, s.id AS site_id
+                           FROM incidents i LEFT JOIN sites s ON s.id = i.site_id
+                           WHERE i.tenant_id = ?`).all(tenantId);
+  return rows
+    .filter(r => isOsha300Recordable(r.osha_classification))
+    .filter(r => (String(r.occurred_at || r.created_at || "")).slice(0, 4) === String(year))
+    .filter(r => scope === null || r.site_id === scope)
+    .map(r => {
+      let names = "";
+      try { const inv = JSON.parse(r.involved || "[]"); names = inv.map(p => p.name || p).filter(Boolean).join(", "); } catch {}
+      const m = OSHA_300_MAP[r.osha_classification];
+      return {
+        caseNo: r.ref,
+        employee: names || "—",
+        jobTitle: r.department || "—",
+        date: (r.occurred_at || r.created_at || "").slice(0, 10),
+        site: r.site_name || "—",
+        location: r.location_detail || "—",
+        description: r.description || "—",
+        classification: m.col,        // death | days_away | restricted | other
+        injuryType: m.injuryColumn,   // injury | illness (we only capture injury today)
+      };
+    });
+}
+
+app.get("/api/reports/osha300", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
+  const t = req.auth.tenant;
+  const year = String(req.query.year || new Date().getFullYear());
+  const scope = siteScope(req);
+  const cases = osha300Rows(t, year, scope);
+
+  if (req.query.format === "csv") {
+    const esc = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Case No.", "Employee", "Job Title", "Date", "Establishment", "Location",
+      "Description", "Death", "Days Away", "Restricted/Transfer", "Other Recordable", "Type"];
+    const lines = [header.map(esc).join(",")];
+    for (const c of cases) {
+      lines.push([
+        c.caseNo, c.employee, c.jobTitle, c.date, c.site, c.location, c.description,
+        c.classification === "death" ? "X" : "",
+        c.classification === "days_away" ? "X" : "",
+        c.classification === "restricted" ? "X" : "",
+        c.classification === "other" ? "X" : "",
+        c.injuryType,
+      ].map(esc).join(","));
+    }
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="OSHA-300-${year}.csv"`);
+    return res.send(lines.join("\r\n"));
+  }
+
+  // 300A annual summary totals.
+  const totals = { death: 0, days_away: 0, restricted: 0, other: 0, injuries: 0, illnesses: 0 };
+  for (const c of cases) {
+    totals[c.classification]++;
+    if (c.injuryType === "illness") totals.illnesses++; else totals.injuries++;
+  }
+  res.json({ year, cases, summary: {
+    totalCases: cases.length,
+    deaths: totals.death, daysAwayCases: totals.days_away,
+    restrictedCases: totals.restricted, otherRecordableCases: totals.other,
+    totalInjuries: totals.injuries, totalIllnesses: totals.illnesses,
+  }, note: "Recordable cases only, per safety-confirmed OSHA classification. Days-away/restricted day counts and injury-vs-illness detail are not yet captured per case — add them for a fully audit-grade log." });
+});
+
 // ── Training due-date reminders (runs at boot + every 12h) ───────────────────
 function runTrainingReminders() {
   try {

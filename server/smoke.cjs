@@ -947,6 +947,32 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const trCfg2 = await fetch(`${B}/api/config`, { headers: H() }).then(j);
   ok("triage: question list sanitized (cap 20, blanks dropped)", trCfg2.triage.questions.length === 20);
 
+  // ── OSHA 300 log / 300A summary ──
+  const yr = new Date().getFullYear();
+  // File an injury and classify it recordable (days away) for the current year.
+  const oRep = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", description: "OSHA300 smoke: fractured wrist days away", occurredAt: yr + "-03-15", involved: [{ name: "Test Worker" }] }) }).then(j);
+  const oList = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  const oRows = Array.isArray(oList) ? oList : oList.incidents || [];
+  const oId = oRows.find(x => x.ref === oRep.ref).id;
+  await fetch(`${B}/api/incidents/${oId}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ oshaClassification: "Recordable – Days away from work" }) }).then(j);
+  // Also a non-recordable that must NOT appear.
+  const nRep = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", description: "OSHA300 smoke: minor cut non-recordable", occurredAt: yr + "-04-01" }) }).then(j);
+  const oRows2 = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  const nId = (Array.isArray(oRows2) ? oRows2 : oRows2.incidents || []).find(x => x.ref === nRep.ref).id;
+  await fetch(`${B}/api/incidents/${nId}`, { method: "PUT", headers: H(), body: JSON.stringify({ oshaClassification: "Non-recordable" }) }).then(j);
+  const osha = await fetch(`${B}/api/reports/osha300?year=${yr}`, { headers: H() }).then(j);
+  ok("osha300: recordable case appears in the 300 log with days-away classification",
+     osha.cases.some(c => c.caseNo === oRep.ref && c.classification === "days_away"));
+  ok("osha300: non-recordable case is excluded from the log",
+     !osha.cases.some(c => c.caseNo === nRep.ref) && osha.summary.daysAwayCases >= 1);
+  const csv = await fetch(`${B}/api/reports/osha300?year=${yr}&format=csv`, { headers: H() });
+  const csvText = await csv.text();
+  ok("osha300: CSV export has the 300 column header",
+     csv.headers.get("content-type").includes("csv") && /Days Away/.test(csvText) && /Case No\./.test(csvText));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

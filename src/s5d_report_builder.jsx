@@ -182,6 +182,34 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   const [hoursErr, setHoursErr] = useState("");
   const [gridEdits, setGridEdits] = useState({});   // `${siteId}|${ym}` -> string (unsaved edits)
   const [gridSaving, setGridSaving] = useState(false);
+  const [oshaYear, setOshaYear]   = useState(new Date().getFullYear());
+  const [osha300, setOsha300]     = useState(null);
+  const [osha300Loading, setOsha300Loading] = useState(false);
+
+  // Load the OSHA 300 log/300A summary for the selected year (on demand).
+  useEffect(() => {
+    if (tab !== "osha300") return;
+    setOsha300Loading(true);
+    api.osha300(oshaYear).then(setOsha300).catch(() => setOsha300(null)).finally(() => setOsha300Loading(false));
+  }, [tab, oshaYear]);
+
+  function exportOsha300CSV() {
+    if (!osha300?.cases) return;
+    const header = ["Case No.", "Employee", "Job Title", "Date", "Establishment", "Location",
+      "Description", "Death", "Days Away", "Restricted/Transfer", "Other Recordable", "Type"];
+    const rows = [header, ...osha300.cases.map(c => [
+      c.caseNo, c.employee, c.jobTitle, c.date, c.site, c.location, c.description,
+      c.classification === "death" ? "X" : "", c.classification === "days_away" ? "X" : "",
+      c.classification === "restricted" ? "X" : "", c.classification === "other" ? "X" : "", c.injuryType,
+    ])];
+    const esc = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const csv = rows.map(r => r.map(esc).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `OSHA-300-${oshaYear}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
 
   function loadReport() {
     api.reportIncidentSummary().then(r => { setRawMonths(r.months ?? []); setHoursNote(r.hoursNote ?? ""); })
@@ -557,6 +585,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                   { id: "trir",      label: "TRIR & Incidents" },
                   { id: "findings",  label: "Findings"         },
                   { id: "training",  label: "Training"         },
+                  { id: "osha300",   label: "OSHA 300"         },
                 ].map(t => (
                   <button key={t.id} className="tab-btn" onClick={() => setTab(t.id)} style={{
                     flex: 1, padding: "12px",
@@ -716,6 +745,73 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                       <span style={{ fontWeight: 700, color: row.color, fontSize: ".95rem" }}>{row.value}</span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {tab === "osha300" && (
+                <div className="anim">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: C.ink }}>OSHA Form 300 / 300A</div>
+                      <div style={{ fontSize: ".78rem", color: C.mist, marginTop: 2 }}>Log of recordable work-related injuries & illnesses</div>
+                    </div>
+                    <select value={oshaYear} onChange={e => setOshaYear(Number(e.target.value))}
+                      style={{ padding: "8px 12px", border: `1.5px solid ${C.mint}`, borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600, color: C.pine, background: C.white }}>
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+
+                  {osha300Loading && <div style={{ padding: 30, textAlign: "center", color: C.mist }}>Loading…</div>}
+
+                  {!osha300Loading && osha300 && (
+                    <>
+                      {/* 300A summary cards */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(88px, 1fr))", gap: 8, marginBottom: 16 }}>
+                        {[
+                          { n: osha300.summary.totalCases, l: "Total cases" },
+                          { n: osha300.summary.deaths, l: "Deaths" },
+                          { n: osha300.summary.daysAwayCases, l: "Days away" },
+                          { n: osha300.summary.restrictedCases, l: "Restricted" },
+                          { n: osha300.summary.otherRecordableCases, l: "Other" },
+                        ].map(c => (
+                          <div key={c.l} style={{ background: C.white, borderRadius: 9, boxShadow: "0 1px 6px rgba(15,31,23,.06)", padding: "12px 8px", textAlign: "center" }}>
+                            <div style={{ fontSize: "1.4rem", fontWeight: 800, color: c.n > 0 ? C.pine : C.mist }}>{c.n}</div>
+                            <div style={{ fontSize: ".66rem", color: C.mist, marginTop: 2, textTransform: "uppercase", letterSpacing: ".03em" }}>{c.l}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Case list */}
+                      {osha300.cases.length === 0 ? (
+                        <div style={{ padding: "28px 20px", textAlign: "center", color: C.mist, fontSize: ".85rem", background: C.white, borderRadius: 10 }}>
+                          No recordable cases logged for {oshaYear}. (Only cases your Safety Officer has classified as recordable appear here.)
+                        </div>
+                      ) : (
+                        <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden" }}>
+                          {osha300.cases.map((c, i) => (
+                            <div key={c.caseNo} style={{ padding: "11px 14px", borderTop: i ? "1px solid #F0F4F2" : "none", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                              <div style={{ fontSize: ".72rem", fontWeight: 700, color: C.sage, fontFamily: "monospace", flexShrink: 0, width: 96 }}>{c.caseNo}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: ".84rem", color: C.ink, lineHeight: 1.4 }}>{c.description}</div>
+                                <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>{c.date} · {c.site} · {c.employee}</div>
+                              </div>
+                              <span style={{ fontSize: ".66rem", fontWeight: 700, padding: "2px 7px", borderRadius: 5, background: C.goldLt, color: C.gold, flexShrink: 0, textTransform: "uppercase" }}>
+                                {c.classification === "days_away" ? "Days away" : c.classification === "restricted" ? "Restricted" : c.classification === "death" ? "Death" : "Other"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 12, lineHeight: 1.5 }}>{osha300.note}</div>
+
+                      <button onClick={exportOsha300CSV} disabled={!osha300.cases.length} style={{
+                        marginTop: 14, width: "100%", padding: "11px", background: osha300.cases.length ? C.sage : "#B0C8BA",
+                        color: C.white, border: "none", borderRadius: 9, fontFamily: "'DM Sans', sans-serif",
+                        fontSize: ".88rem", fontWeight: 700, cursor: osha300.cases.length ? "pointer" : "default",
+                      }}>↓ Download OSHA 300 Log (CSV)</button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

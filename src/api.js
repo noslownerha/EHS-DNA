@@ -97,6 +97,7 @@ export const api = {
   dashboardSummary: () => req("/dashboard/summary"),
   dashboardCompliance: () => req("/dashboard/compliance"),
   reportIncidentSummary: () => req("/reports/incident-summary"),
+  osha300: (year) => req(`/reports/osha300?year=${year}`),
   getLaborHours: () => req("/labor-hours"),
   setLaborHours: (siteId, month, hours) => req("/labor-hours", { method: "PUT", body: { siteId, month, hours } }),
   setLaborHoursBulk: (entries) => req("/labor-hours/bulk", { method: "PUT", body: { entries } }),
