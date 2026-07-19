@@ -477,6 +477,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
         date: row.occurred_at ?? row.created_at ?? i.date,
         description: row.description ?? i.description,
         location: row.location_detail ?? i.location,
+        latitude: row.latitude ?? null, longitude: row.longitude ?? null,
         osha: row.osha_classification ?? "Pending",
         involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
         dept: row.department ?? "—",
@@ -716,6 +717,16 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               )}
               <EditableField label="Location within site" value={incident.location} canEdit={canEdit}
                 onSave={v => updateField("location", v)} />
+
+              {incident.latitude != null && incident.longitude != null && (
+                <div style={{ marginTop: -6, marginBottom: 14 }}>
+                  <a href={`https://www.google.com/maps?q=${incident.latitude},${incident.longitude}`}
+                     target="_blank" rel="noopener noreferrer"
+                     style={{ fontSize: ".8rem", color: C.sage, fontWeight: 600, textDecoration: "none" }}>
+                    📍 GPS captured — view on map
+                  </a>
+                </div>
+              )}
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div>

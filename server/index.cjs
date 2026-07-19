@@ -593,7 +593,7 @@ function refInsert(prefix, table, tenantId, insertFn) {
 const INCIDENT_LIST_COLS = `i.id, i.tenant_id, i.ref, i.type, i.severity, i.status,
   i.site_id, i.description, i.location_detail, i.involved, i.reported_by,
   i.occurred_at, i.created_at, i.updated_at, i.department, i.osha_classification,
-  i.response_progress, i.floor_pos,
+  i.response_progress, i.floor_pos, i.latitude, i.longitude,
   json_array_length(COALESCE(i.photos, '[]')) AS photo_count`;
 
 app.get("/api/incidents", auth, (req, res) => {
@@ -735,7 +735,7 @@ function awardPoints(tenantId, userId, points, reason, { sourceType = null, sour
 const SEVERITIES = ["minor", "significant", "serious", "critical"];
 
 app.post("/api/incidents", auth, (req, res) => {
-  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid, recognizedUserId } = req.body || {};
+  const { type, severity, siteId, description, locationDetail, involved, photos, occurredAt, floorPos, department, clientUuid, recognizedUserId, latitude, longitude } = req.body || {};
 
   // Idempotency: the offline queue retries on reconnect. If this exact report was
   // already filed, return the original instead of creating a duplicate incident.
@@ -769,8 +769,12 @@ app.post("/api/incidents", auth, (req, res) => {
     const rec = db.prepare("SELECT id FROM users WHERE id = ? AND tenant_id = ? AND active = 1").get(recognizedUserId, req.auth.tenant);
     if (rec) recognizedId = rec.id;
   }
-  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid, recognized_user_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  // GPS is optional and auto-captured — validate it's a plausible coordinate pair
+  // or drop it (never let a bad value block the report).
+  const lat = Number.isFinite(Number(latitude)) && Math.abs(Number(latitude)) <= 90 ? Number(latitude) : null;
+  const lng = Number.isFinite(Number(longitude)) && Math.abs(Number(longitude)) <= 180 ? Number(longitude) : null;
+  const stmt = db.prepare(`INSERT INTO incidents (tenant_id, ref, type, severity, site_id, description, location_detail, involved, photos, reported_by, occurred_at, floor_pos, department, client_uuid, recognized_user_id, latitude, longitude)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   // Insert with an empty photo list, then write the image bytes to disk and store
   // only the refs — the row must exist before a photo can be attached to it.
   // Engagement reports (positive/idea/observation) get a REP- ref, not INC- —
@@ -781,7 +785,7 @@ app.post("/api/incidents", auth, (req, res) => {
     stmt.run(req.auth.tenant, newRef, type, severity ?? null, siteId ?? null, description ?? null,
              locationDetail ?? null, JSON.stringify(involved ?? []), "[]",
              req.auth.uid, occurredAt ?? null, floorPos ? JSON.stringify(floorPos) : null, department ?? null,
-             clientUuid ? String(clientUuid) : null, recognizedId));
+             clientUuid ? String(clientUuid) : null, recognizedId, lat, lng));
   const photoRefs = storePhotos(req.auth.tenant, "incident", r.lastInsertRowid, photos);
   if (photoRefs.length) {
     db.prepare("UPDATE incidents SET photos = ? WHERE id = ? AND tenant_id = ?")

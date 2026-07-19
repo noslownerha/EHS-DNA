@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS incidents (
   site_id INTEGER REFERENCES sites(id),
   description TEXT,
   location_detail TEXT,
+  latitude REAL,                    -- GPS auto-captured at report time (optional)
+  longitude REAL,
   involved TEXT,                    -- JSON array
   photos TEXT,                      -- JSON array of file refs
   reported_by INTEGER REFERENCES users(id),
@@ -268,6 +270,9 @@ try { db.exec("ALTER TABLE tenants ADD COLUMN suspension_reason TEXT"); } catch 
 try { db.exec("ALTER TABLE training_completions ADD COLUMN passed INTEGER DEFAULT 1"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN department TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN osha_classification TEXT"); } catch {}
+// GPS coordinates auto-captured at report time (complements site + location text).
+try { db.exec("ALTER TABLE incidents ADD COLUMN latitude REAL"); } catch {}
+try { db.exec("ALTER TABLE incidents ADD COLUMN longitude REAL"); } catch {}
 // Notification rules: move from discrete event strings to a category × severity
 // matrix. category = injury|hazard|near_miss|property|security|engagement|any;
 // min_severity = the lowest severity that triggers (any|significant|serious|critical).

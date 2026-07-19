@@ -902,6 +902,22 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("billing: enabled module bills as its own line item",
      invItems.some(li => /Equipment/.test(li.label) && li.amount === 50));
 
+  // ── GPS auto-tag on reports ──
+  const gpsRep = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "near_miss", severity: "minor", description: "GPS smoke test near-miss report", latitude: 43.9012, longitude: -73.4501 }) }).then(j);
+  const gpsList = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  const gpsRows = Array.isArray(gpsList) ? gpsList : gpsList.incidents || [];
+  const gpsRow = gpsRows.find(x => x.ref === gpsRep.ref);
+  ok("gps: report stores captured coordinates",
+     gpsRow && Math.abs(gpsRow.latitude - 43.9012) < 0.001 && Math.abs(gpsRow.longitude - (-73.4501)) < 0.001);
+  const badGps = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "near_miss", description: "GPS bad-coords smoke test report", latitude: 999, longitude: "nope" }) }).then(j);
+  const afterList = await fetch(`${B}/api/incidents`, { headers: H() }).then(j);
+  const afterRows = Array.isArray(afterList) ? afterList : afterList.incidents || [];
+  const badRow = afterRows.find(x => x.ref === badGps.ref);
+  ok("gps: invalid coordinates are dropped (not stored)",
+     badRow && badRow.latitude == null && badRow.longitude == null);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

@@ -215,6 +215,20 @@ export function IncidentProvider({
   const stateRef = useRef(state);       // always-fresh snapshot for async callbacks
   stateRef.current = state;
 
+  // Auto-capture GPS in the background as soon as the report flow opens, so the
+  // coordinates are ready by the time the user submits (geolocation can take a few
+  // seconds). Silent and best-effort: if permission is denied or it times out, the
+  // report just files without coordinates — GPS never blocks or delays submission.
+  const gpsRef = useRef(null);
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      pos => { gpsRef.current = { latitude: pos.coords.latitude, longitude: pos.coords.longitude }; },
+      () => { /* denied/unavailable — file without GPS */ },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, []);
+
   // Persist the in-progress draft so a reload/crash doesn't discard the report.
   useEffect(() => { saveDraft(state.draft); }, [state.draft]);
 
@@ -235,6 +249,8 @@ export function IncidentProvider({
       description: d.description, locationDetail: d.location, floorPos: d.floorPos ?? null,
       involved: d.involved ?? [], occurredAt: d.datetime ?? null, department: d.dept ?? null,
       recognizedUserId: d.recognizedUserId ?? null,
+      latitude: gpsRef.current?.latitude ?? null,
+      longitude: gpsRef.current?.longitude ?? null,
       photos: (d.photos ?? []).filter(ph => ph.dataUrl).map(ph => ({ dataUrl: ph.dataUrl, gps: ph.gps ?? false, name: ph.name ?? null })),
     };
 
