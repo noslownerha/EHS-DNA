@@ -1,4 +1,4 @@
-import { COLORS } from "./constants.js";
+import { COLORS, BILLABLE_MODULES } from "./constants.js";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
@@ -50,6 +50,16 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
   const [period, setPeriod]   = useState(new Date().toISOString().slice(0, 7));
   const [newAdj, setNewAdj]   = useState({ kind: "credit", amount: "", description: "", recurring: false });
 
+  // module_prices is stored as a JSON string on the config; parse to an object for
+  // editing and back to an object of numbers on save.
+  function moduleprices() { try { return JSON.parse(cfg?.module_prices || "{}"); } catch { return {}; } }
+  function parseModulePrices(raw) { try { return typeof raw === "string" ? JSON.parse(raw || "{}") : (raw || {}); } catch { return {}; } }
+  function setModulePrice(key, val) {
+    const mp = moduleprices();
+    if (val === "" || Number(val) === 0) delete mp[key]; else mp[key] = Number(val);
+    setCfg(c => ({ ...c, module_prices: JSON.stringify(mp) })); setSaved(false);
+  }
+
   function loadAll() {
     Promise.all([api.billingConfig(tenantId), api.billingAdjustments(tenantId), api.billingInvoices(tenantId)])
       .then(([c, a, i]) => { setCfg(c); setAdjs(a); setInvoices(i); })
@@ -64,6 +74,7 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
         basePrice: Number(cfg.base_price), perSite: Number(cfg.per_site),
         perUser: Number(cfg.per_user), autoApprove: !!cfg.auto_approve,
         billingContact: cfg.billing_contact,
+        modulePrices: parseModulePrices(cfg.module_prices),
       }, tenantId);
       setSaved(true);
     } catch (err) { setError(err.message); }
@@ -159,6 +170,29 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
               onChange={e => { setCfg(c => ({ ...c, auto_approve: e.target.checked ? 1 : 0 })); setSaved(false); }} />
             Auto-approve generated invoices (skips the review gate)
           </label>
+
+          {/* Per-module pricing — each enabled module with a price becomes its own
+              invoice line item. Leave blank/0 to not charge for a module. */}
+          <div style={{ marginTop: 18, borderTop: "1px solid #F0F4F2", paddingTop: 14 }}>
+            <div style={{ fontSize: ".78rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Per-module pricing</div>
+            <div style={{ fontSize: ".76rem", color: C.mist, marginBottom: 12 }}>
+              Monthly charge per module. Only modules the tenant has enabled are billed.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+              {BILLABLE_MODULES.map(m => (
+                <div key={m.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: ".82rem", color: C.ink }}>{m.label}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: ".82rem", color: C.mist }}>$</span>
+                    <input type="number" step="0.01" min="0" value={moduleprices()[m.key] ?? ""}
+                      placeholder="0"
+                      onChange={e => setModulePrice(m.key, e.target.value)}
+                      style={{ ...input, width: 80, textAlign: "right" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </Card>
 
         <Card title="Credits & discounts">

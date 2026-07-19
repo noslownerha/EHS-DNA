@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS billing_config (
   base_price REAL DEFAULT 0,
   per_site REAL DEFAULT 0,
   per_user REAL DEFAULT 0,
+  module_prices TEXT,               -- JSON { moduleKey: monthlyPrice } — per-enabled-module charges
   auto_approve INTEGER DEFAULT 0,
   billing_contact TEXT,
   notes TEXT
@@ -338,6 +339,8 @@ try { db.exec("CREATE INDEX IF NOT EXISTS idx_points_source ON points_ledger(ten
 try { db.exec("ALTER TABLE incidents ADD COLUMN recognized_user_id INTEGER REFERENCES users(id)"); } catch {}
 // Per-tenant toggle for the whole recognition feature (off by default until set up).
 try { db.exec("ALTER TABLE tenants ADD COLUMN recognition_enabled INTEGER DEFAULT 1"); } catch {}
+// Per-enabled-module billing: JSON map { moduleKey: monthlyPrice }.
+try { db.exec("ALTER TABLE billing_config ADD COLUMN module_prices TEXT"); } catch {}
 // Per-tenant point values (JSON) — admins can tune what each action is worth.
 try { db.exec("ALTER TABLE tenants ADD COLUMN point_values TEXT"); } catch {}
 

@@ -150,6 +150,18 @@ export const TAB_MODULE = {
   recognition: "recognition",
 };
 
+// Billable feature modules (key → label), mirroring the server's live modules.
+// Used by the operator billing screen to set a per-module price.
+export const BILLABLE_MODULES = [
+  { key: "incidents",          label: "Incident Reporting" },
+  { key: "corrective_actions", label: "Corrective Actions" },
+  { key: "inspections",        label: "Inspections" },
+  { key: "lms",                label: "Training / LMS" },
+  { key: "reporting",          label: "Reporting & Analytics" },
+  { key: "recognition",        label: "Recognition & Engagement" },
+  { key: "equipment",          label: "Equipment & Assets" },
+];
+
 // Intersect a role's tabs with the tenant's enabled modules. When modules is
 // null/undefined (config not loaded yet, or older server), everything shows —
 // so this is a safe no-op until the server actually reports modules.

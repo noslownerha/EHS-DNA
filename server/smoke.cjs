@@ -887,6 +887,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   await fetch(`${B}/api/op/tenants/1/modules/recognition`, { method: "PUT", headers: opH(),
     body: JSON.stringify({ enabled: true }) }).then(j);
 
+  // ── Per-module billing ──
+  // Operator sets a per-module price and generates an invoice; the enabled module
+  // should appear as its own line item.
+  await fetch(`${B}/api/billing/config?tenantId=1`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ basePrice: 500, modulePrices: { equipment: 50 } }) }).then(j);
+  const bcfg = await fetch(`${B}/api/billing/config?tenantId=1`, { headers: opH() }).then(j);
+  ok("billing: module_prices persists", bcfg.module_prices && JSON.parse(bcfg.module_prices).equipment === 50);
+  const inv = await fetch(`${B}/api/billing/invoices/generate?tenantId=1`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ period: "2099-01" }) }).then(j);
+  const invList = await fetch(`${B}/api/billing/invoices?tenantId=1`, { headers: opH() }).then(j);
+  const theInv = (Array.isArray(invList) ? invList : invList.invoices || []).find(x => x.period === "2099-01");
+  const invItems = theInv ? JSON.parse(theInv.line_items) : [];
+  ok("billing: enabled module bills as its own line item",
+     invItems.some(li => /Equipment/.test(li.label) && li.amount === 50));
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

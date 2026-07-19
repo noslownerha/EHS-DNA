@@ -6,6 +6,7 @@
  * (browser print → PDF).
  */
 module.exports = function mountBilling(app, db, auth, requireRole) {
+  const { MODULES, LIVE_MODULES } = require("./modules.cjs");
   const ADMIN = requireRole("admin");
   // Operators can act on any tenant; everyone else is pinned to their own.
   const tenantOf = (req) => {
@@ -19,13 +20,26 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
     res.json(db.prepare("SELECT * FROM billing_config WHERE tenant_id = ?").get(tenantOf(req)) ?? {}));
 
   app.put("/api/billing/config", auth, ADMIN, (req, res) => {
-    const { basePrice, perSite, perUser, autoApprove, billingContact, notes } = req.body || {};
+    const { basePrice, perSite, perUser, modulePrices, autoApprove, billingContact, notes } = req.body || {};
+    // Validate module_prices: only known live modules, non-negative numbers.
+    let modulePricesJson;
+    if (modulePrices !== undefined) {
+      const clean = {};
+      for (const [k, v] of Object.entries(modulePrices || {})) {
+        if (LIVE_MODULES.includes(k)) {
+          const n = Number(v);
+          if (Number.isFinite(n) && n >= 0) clean[k] = Math.round(n * 100) / 100;
+        }
+      }
+      modulePricesJson = JSON.stringify(clean);
+    }
     db.prepare(`UPDATE billing_config SET
                 base_price = COALESCE(?, base_price), per_site = COALESCE(?, per_site),
-                per_user = COALESCE(?, per_user), auto_approve = COALESCE(?, auto_approve),
+                per_user = COALESCE(?, per_user), module_prices = COALESCE(?, module_prices),
+                auto_approve = COALESCE(?, auto_approve),
                 billing_contact = COALESCE(?, billing_contact), notes = COALESCE(?, notes)
                 WHERE tenant_id = ?`)
-      .run(basePrice, perSite, perUser,
+      .run(basePrice, perSite, perUser, modulePricesJson ?? null,
            autoApprove === undefined ? null : (autoApprove ? 1 : 0),
            billingContact, notes, tenantOf(req));
     res.json({ ok: true });
@@ -68,8 +82,27 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
       { label: "Platform base license", qty: 1, rate: cfg.base_price, amount: money(cfg.base_price) },
       { label: "Active sites", qty: sites, rate: cfg.per_site, amount: money(sites * cfg.per_site) },
       { label: "Active users", qty: users, rate: cfg.per_user, amount: money(users * cfg.per_user) },
-    ].filter(li => li.amount > 0 || li.qty > 0);
-    const subtotal = money(lineItems.reduce((n, li) => n + li.amount, 0));
+    ];
+
+    // Per-module charges: a line item for each ENABLED, priced module. Enablement =
+    // explicit tenant_modules row, else the registry default. This bills the tenant
+    // for exactly the modules they have turned on.
+    let modulePrices = {};
+    try { modulePrices = JSON.parse(cfg.module_prices || "{}"); } catch { modulePrices = {}; }
+    if (Object.keys(modulePrices).length) {
+      const rows = db.prepare("SELECT module, enabled FROM tenant_modules WHERE tenant_id = ?").all(t);
+      const explicit = new Map(rows.map(r => [r.module, r.enabled === 1]));
+      for (const key of LIVE_MODULES) {
+        const price = Number(modulePrices[key]) || 0;
+        if (price <= 0) continue;
+        const on = explicit.has(key) ? explicit.get(key) : (MODULES[key].default !== false);
+        if (!on) continue;
+        lineItems.push({ label: `${MODULES[key].label} module`, qty: 1, rate: price, amount: money(price) });
+      }
+    }
+
+    const filteredItems = lineItems.filter(li => li.amount > 0 || li.qty > 0);
+    const subtotal = money(filteredItems.reduce((n, li) => n + li.amount, 0));
 
     // Apply adjustments: recurring always; one-time only if unconsumed
     const adjRows = db.prepare(`SELECT * FROM billing_adjustments WHERE tenant_id = ? AND active = 1
@@ -91,7 +124,7 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
     const tx = db.transaction(() => {
       const r = db.prepare(`INSERT INTO invoices (tenant_id, ref, period, status, line_items, subtotal, adjustments, total, approved_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? THEN datetime('now') ELSE NULL END)`)
-        .run(t, ref, period, autoStatus, JSON.stringify(lineItems), subtotal, JSON.stringify(adjustments), total, cfg.auto_approve ? 1 : 0);
+        .run(t, ref, period, autoStatus, JSON.stringify(filteredItems), subtotal, JSON.stringify(adjustments), total, cfg.auto_approve ? 1 : 0);
       // consume one-time adjustments
       adjustments.filter(a => !a.recurring).forEach(a =>
         db.prepare("UPDATE billing_adjustments SET consumed_invoice_id = ? WHERE id = ?").run(r.lastInsertRowid, a.id));
