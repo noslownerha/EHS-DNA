@@ -434,7 +434,8 @@ app.get("/api/config", auth, (req, res) => {
   const departments = db.prepare("SELECT id, name FROM departments WHERE tenant_id = ? AND active = 1").all(req.auth.tenant);
   res.json({
     company: t.name, shortName: t.short_name, industry: t.industry, tagline: t.tagline,
-    triage: { enabled: !!t.triage_enabled, providerName: t.triage_provider_name, providerPhone: t.triage_provider_phone },
+    triage: { enabled: !!t.triage_enabled, providerName: t.triage_provider_name, providerPhone: t.triage_provider_phone,
+              questions: (() => { try { return JSON.parse(t.triage_questions || "null"); } catch { return null; } })() },
     sites, departments,
     // Enabled feature modules — the frontend intersects these with role tabs so a
     // tenant only sees nav for what they've bought.
@@ -443,15 +444,26 @@ app.get("/api/config", auth, (req, res) => {
 });
 app.put("/api/config", auth, requireRole(...ADMINISH), (req, res) => {
   const { company, shortName, industry, tagline, triage } = req.body || {};
+  // Sanitize custom triage questions: array of {id,text}, text trimmed & capped,
+  // max 20 questions. Undefined → leave unchanged (COALESCE null).
+  let triageQuestionsJson = null;
+  if (triage && Array.isArray(triage.questions)) {
+    const clean = triage.questions
+      .map((q, i) => ({ id: Number(q.id) || i + 1, text: String(q.text ?? "").trim().slice(0, 300) }))
+      .filter(q => q.text)
+      .slice(0, 20);
+    triageQuestionsJson = JSON.stringify(clean);
+  }
   db.prepare(`UPDATE tenants SET name = COALESCE(?, name), short_name = COALESCE(?, short_name),
               industry = COALESCE(?, industry), tagline = COALESCE(?, tagline),
               triage_enabled = COALESCE(?, triage_enabled),
               triage_provider_name = COALESCE(?, triage_provider_name),
-              triage_provider_phone = COALESCE(?, triage_provider_phone)
+              triage_provider_phone = COALESCE(?, triage_provider_phone),
+              triage_questions = COALESCE(?, triage_questions)
               WHERE id = ?`)
     .run(company, shortName, industry, tagline,
          triage ? (triage.enabled ? 1 : 0) : null,
-         triage?.providerName, triage?.providerPhone, req.auth.tenant);
+         triage?.providerName, triage?.providerPhone, triageQuestionsJson, req.auth.tenant);
   res.json({ ok: true });
 });
 

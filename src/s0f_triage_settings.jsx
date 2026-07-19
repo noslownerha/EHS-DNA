@@ -1,6 +1,7 @@
-import { COLORS } from "./constants.js";
-import { useState } from "react";
+import { COLORS, BRAND } from "./constants.js";
+import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
+import { api } from "./api.js";
 
 const C = { ...COLORS };
 
@@ -13,30 +14,7 @@ const CONFIGURABLE_ROLES = [
 
 const OUTCOMES = ["Call 911", "Call triage line", "Administer first aid", "Secure the area"];
 
-const SEED_SITES = [
-  {
-    id: 1, name: "Moriah",       location: "Mineville, NY",
-    accessRoles: ["all"],  // stored as JSON array per spec
-    expanded: true,
-  },
-  {
-    id: 2, name: "Middlebury",   location: "Middlebury, VT",
-    accessRoles: ["dept_lead", "erc"],
-    expanded: false,
-  },
-  {
-    id: 3, name: "Shoreham",     location: "Shoreham, VT",
-    accessRoles: ["all"],
-    expanded: false,
-  },
-  {
-    id: 4, name: "Brandenburg",  location: "Brandenburg, KY",
-    accessRoles: ["safety", "erc"],
-    expanded: false,
-  },
-];
-
-const SEED_QUESTIONS = [
+const DEFAULT_QUESTIONS = [
   { id: 1, text: "Is anyone injured?" },
   { id: 2, text: "Are they conscious and breathing normally?" },
   { id: 3, text: "Can they walk and talk normally?" },
@@ -311,14 +289,28 @@ function NotificationRulesEditor({ rules, onChange }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S0fTriageSettings({ onBack, onSave, onHome }) {
   const [enabled,      setEnabled]      = useState(true);
-  const [providerName, setProviderName] = useState("Concentra Occupational Health");
-  const [providerPhone,setProviderPhone]= useState("(800) 555-0147");
-  const [questions,    setQuestions]    = useState(SEED_QUESTIONS);
+  const [providerName, setProviderName] = useState("");
+  const [providerPhone,setProviderPhone]= useState("");
+  const [questions,    setQuestions]    = useState(DEFAULT_QUESTIONS);
   const [notifRules,   setNotifRules]   = useState({});
-  const [sites,        setSites]        = useState(SEED_SITES);
+  // Sites are managed in Company Settings — here we show the tenant's real sites
+  // read-only (from the config already loaded into BRAND), not a mock list.
+  const [sites,        setSites]        = useState(() => (BRAND.siteRecords ?? []).map(s => ({ ...s, accessRoles: ["all"] })));
   const [saved,        setSaved]        = useState(false);
   const [pFocused,     setPFocused]     = useState(false);
   const [phFocused,    setPhFocused]    = useState(false);
+
+  // Load the tenant's real triage settings on mount.
+  useEffect(() => {
+    api.fetchConfig().then(cfg => {
+      const t = cfg?.triage ?? {};
+      setEnabled(t.enabled ?? true);
+      if (t.providerName != null) setProviderName(t.providerName);
+      if (t.providerPhone != null) setProviderPhone(t.providerPhone);
+      if (Array.isArray(t.questions) && t.questions.length) setQuestions(t.questions);
+      if (Array.isArray(cfg?.sites)) setSites(cfg.sites.map(s => ({ ...s, accessRoles: ["all"] })));
+    }).catch(() => { /* keep sensible defaults */ });
+  }, []);
 
   function handleSave() {
     setSaved(true);

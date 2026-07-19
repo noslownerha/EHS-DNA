@@ -189,6 +189,7 @@ export function TriageProvider({
       enabled: payload.enabled,
       providerName: payload.providerName,
       providerPhone: payload.providerPhone,
+      questions: payload.questions,
     }}).then(() => api.fetchConfig())
       .catch(err => console.error("Triage config save failed:", err.message));
   }, []);
@@ -317,6 +318,7 @@ export function TriageRouter({
               enabled:       data.enabled,
               providerName:  data.providerName,
               providerPhone: data.providerPhone,
+              questions:     data.questions,
             });
             back();
           }}

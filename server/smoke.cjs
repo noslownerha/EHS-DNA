@@ -932,6 +932,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("osha: injury without signals stays unclassified (Pending)",
      plainRow && (plainRow.osha_classification == null));
 
+  // ── Triage settings persistence (B3: was mock, now real) ──
+  await fetch(`${B}/api/config`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ triage: { enabled: true, providerName: "WorkCare Clinic", providerPhone: "(800) 555-9000",
+      questions: [{ id: 1, text: "Is the person breathing?" }, { id: 2, text: "Any chemical exposure?" }] } }) }).then(j);
+  const trCfg = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  ok("triage: provider + custom questions persist and read back",
+     trCfg.triage && trCfg.triage.providerName === "WorkCare Clinic" &&
+     Array.isArray(trCfg.triage.questions) && trCfg.triage.questions.length === 2 &&
+     trCfg.triage.questions[0].text === "Is the person breathing?");
+  // Question list is sanitized (capped at 20, blanks dropped).
+  const many = Array.from({ length: 25 }, (_, i) => ({ id: i, text: "q" + i })).concat([{ id: 99, text: "   " }]);
+  await fetch(`${B}/api/config`, { method: "PUT", headers: H(), body: JSON.stringify({ triage: { questions: many } }) }).then(j);
+  const trCfg2 = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  ok("triage: question list sanitized (cap 20, blanks dropped)", trCfg2.triage.questions.length === 20);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

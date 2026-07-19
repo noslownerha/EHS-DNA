@@ -348,6 +348,8 @@ try { db.exec("ALTER TABLE tenants ADD COLUMN recognition_enabled INTEGER DEFAUL
 try { db.exec("ALTER TABLE billing_config ADD COLUMN module_prices TEXT"); } catch {}
 // Per-tenant point values (JSON) — admins can tune what each action is worth.
 try { db.exec("ALTER TABLE tenants ADD COLUMN point_values TEXT"); } catch {}
+// Custom triage decision-tree questions (JSON array of {id,text}); null → use defaults.
+try { db.exec("ALTER TABLE tenants ADD COLUMN triage_questions TEXT"); } catch {}
 
 // Per-tenant module enablement. A row = an explicit on/off for that tenant;
 // absence = "use the module's default". Lets the operator sell modules piecemeal
