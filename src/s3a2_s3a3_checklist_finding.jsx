@@ -295,7 +295,12 @@ export function S3a2ChecklistInProgress({ onHome,
         id: it.id ?? i + 1, section: it.category ?? "Checklist", text: it.label ?? String(it), result: null,
       }))
     : null;
-  const [items,    setItems]    = useState(dbItems?.length ? dbItems : SEED_ITEMS);
+  // If a real checklist was passed but has no items, do NOT substitute demo items —
+  // running against fabricated items would let an inspector file findings against
+  // things that don't exist. Only use SEED_ITEMS when there's no checklist context
+  // at all (standalone demo). A real-but-empty checklist gets an honest empty state.
+  const checklistIsEmpty = checklist && (!dbItems || dbItems.length === 0);
+  const [items,    setItems]    = useState(dbItems?.length ? dbItems : (checklist ? [] : SEED_ITEMS));
   const [findings, setFindings] = useState([]);
   const [expandedFail, setExpandedFail] = useState(null); // item id with inline finding form open
 
@@ -307,6 +312,25 @@ export function S3a2ChecklistInProgress({ onHome,
   const passCount = items.filter(i => i.result === "pass").length;
   const naCount   = items.filter(i => i.result === "na").length;
   const nextId    = useRef(1);
+
+  // Honest empty state: a real checklist with no items can't be run.
+  if (checklistIsEmpty) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column" }}>
+        <div style={{ background: C.forest, padding: "12px 18px" }}>
+          <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: "2.2rem", marginBottom: 12 }}>📋</div>
+          <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>This checklist has no items yet</h2>
+          <p style={{ fontSize: ".86rem", color: C.mist, lineHeight: 1.5, maxWidth: 320 }}>
+            There's nothing to inspect against. An admin can add items to this checklist in the checklist builder, then it'll be ready to run.
+          </p>
+          <button onClick={onBack} style={{ marginTop: 20, padding: "11px 22px", background: C.sage, color: C.white, border: "none", borderRadius: 9, fontWeight: 700, fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Go back</button>
+        </div>
+      </div>
+    );
+  }
 
   function handleResult(itemId, result) {
     setItems(its => its.map(i => i.id === itemId ? { ...i, result } : i));

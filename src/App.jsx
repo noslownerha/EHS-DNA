@@ -76,6 +76,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
   const [assetIdView, setAssetIdView] = useState(null);
+  const [pendingChecklistId, setPendingChecklistId] = useState(null);
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
   const [pickerStep,  setPickerStep]  = useState("top");
@@ -145,6 +146,7 @@ function App() {
     if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
     else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);
     if (tabId === "flag") setPickerStep("top"); // normal Flag entry starts at top
+    if (tabId === "inspect") setPendingChecklistId(null); // manual Inspect entry: fresh Start screen
     setActiveTab(tabId);
   }
   function handleNavigate(dest) { setActiveTab(dest); }
@@ -211,7 +213,8 @@ function App() {
               onHome={handleHome}
               onBack={handleHome}
               onRunInspection={(checklistId, asset) => {
-                // Jump into the inspection flow for this asset's checklist.
+                // Open the inspect flow directly on this asset's checklist.
+                setPendingChecklistId(checklistId);
                 setActiveTab("inspect");
               }}
             />
@@ -233,8 +236,9 @@ function App() {
       case "inspect":
         return (
           <MobileFrame>
-            <InspectionProvider user={userObj} companyName={COMPANY} initialScreen={INSPECTION_SCREENS.START}>
-              <InspectionRouter onDone={handleHome} />
+            <InspectionProvider user={userObj} companyName={COMPANY} initialScreen={INSPECTION_SCREENS.START}
+              initialChecklistId={pendingChecklistId} key={pendingChecklistId ?? "inspect"}>
+              <InspectionRouter onDone={() => { setPendingChecklistId(null); handleHome(); }} />
             </InspectionProvider>
           </MobileFrame>
         );

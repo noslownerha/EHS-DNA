@@ -123,6 +123,7 @@ export const api = {
 
   // inspections & findings
   listChecklists: () => req("/checklists"),
+  getChecklist: (id) => req("/checklists").then(cs => (cs || []).find(c => String(c.id) === String(id)) || null),
   updateChecklist: (id, patch) => req(`/checklists/${id}`, { method: "PUT", body: patch }),
   checklistSchedule: () => req("/checklists/schedule"),
   createChecklist: (c) => req("/checklists", { method: "POST", body: c }),

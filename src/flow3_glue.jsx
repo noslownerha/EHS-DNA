@@ -17,7 +17,7 @@
  *   </InspectionProvider>
  */
 
-import { createContext, useContext, useReducer, useCallback } from "react";
+import { createContext, useContext, useReducer, useCallback, useEffect } from "react";
 import { BRAND, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 
@@ -148,9 +148,20 @@ export function InspectionProvider({
   user        = { name: "Staff", site: "Moriah", role: "Inspector" },
   companyName = BRAND.company,
   initialScreen = INSPECTION_SCREENS.START,
+  initialChecklistId = null,      // when set (e.g. from an asset QR), open straight into this checklist
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
   const stateRef = { current: state };
+
+  // Deep-link from an asset: fetch the asset's checklist and drop the inspector
+  // straight into running it, instead of the generic Start screen. Closes the
+  // scan-to-inspect loop (scan pump → run its inspection) in one tap.
+  useEffect(() => {
+    if (!initialChecklistId) return;
+    api.getChecklist?.(initialChecklistId)
+      .then(cl => { if (cl && (!cl.active || cl.active === 1)) dispatch({ type: "SELECT_CHECKLIST", checklist: cl }); })
+      .catch(() => { /* fall back to the Start screen */ });
+  }, [initialChecklistId]);
 
   const navigate     = useCallback((screen, { replace = false } = {}) => dispatch({ type: "NAVIGATE", screen, replace }), []);
   const back         = useCallback(() => dispatch({ type: "BACK" }), []);
