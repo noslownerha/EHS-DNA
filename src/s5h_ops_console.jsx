@@ -24,6 +24,27 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
   const [moduleData, setModuleData] = useState(null);   // { modules:[], reserved:[] }
   const [moduleBusy, setModuleBusy] = useState(null);   // module key mid-toggle
   const [resetInfo, setResetInfo] = useState(null);   // { email, tempPassword }
+  const [openPacks, setOpenPacks] = useState(null);   // tenantId whose pack picker is open
+  const [packList, setPackList] = useState(null);     // available packs (fetched once)
+  const [packBusy, setPackBusy] = useState(null);     // packId mid-apply
+
+  async function togglePacks(t) {
+    if (openPacks === t.id) { setOpenPacks(null); return; }
+    setOpenPacks(t.id);
+    if (!packList) {
+      try { const d = await api.opTemplatePacks(); setPackList(d.packs); }
+      catch (err) { setError(err.message); }
+    }
+  }
+  async function applyPack(tenantId, pack) {
+    if (!window.confirm(`Add the "${pack.label}" starter pack to this account?\n\n${pack.checklistCount} inspection checklists and ${pack.trainingCount} training courses will be created — all editable afterward. Items with a name already present are skipped.`)) return;
+    setPackBusy(pack.id);
+    try {
+      const r = await api.opApplyTemplatePack(pack.id, tenantId);
+      window.alert(`Added ${r.checklistsAdded} checklist(s) and ${r.trainingsAdded} training(s).${r.skipped ? ` Skipped ${r.skipped} already present.` : ""}`);
+    } catch (err) { setError(err.message); }
+    finally { setPackBusy(null); }
+  }
 
   async function toggleModules(t) {
     if (openModules === t.id) { setOpenModules(null); return; }
@@ -192,6 +213,10 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                 padding: "7px 16px", background: "#EEF2F0", color: C.slate, border: "none",
                 borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
               }}>{openModules === t.id ? "Hide modules" : "Modules"}</button>
+              <button onClick={() => togglePacks(t)} style={{
+                padding: "7px 16px", background: "#EEF2F0", color: C.slate, border: "none",
+                borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
+              }}>{openPacks === t.id ? "Hide templates" : "Templates"}</button>
               {t.active ? (
                 <>
                   <button onClick={async () => {
@@ -282,6 +307,37 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                           <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>{m.blurb}</div>
                         </div>
                         <span style={{ fontSize: ".68rem", fontWeight: 700, color: C.mist, background: "#EEF2F0", padding: "4px 9px", borderRadius: 6, flexShrink: 0 }}>Coming soon</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+
+            {openPacks === t.id && (
+              <div style={{ marginTop: 12, borderTop: "1px solid #F0F4F2", paddingTop: 12 }}>
+                {!packList ? (
+                  <div style={{ fontSize: ".8rem", color: C.mist }}>Loading packs…</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: ".74rem", color: C.mist, marginBottom: 10 }}>
+                      Apply an industry starter pack — creates ready-to-use inspection checklists and training courses for this account. Everything is editable afterward; existing items are never overwritten.
+                    </div>
+                    {packList.map(p => (
+                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${C.chalk}` }}>
+                        <div style={{ flex: 1, paddingRight: 12 }}>
+                          <div style={{ fontSize: ".85rem", fontWeight: 700, color: C.ink }}>{p.label}</div>
+                          <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>{p.blurb}</div>
+                          <div style={{ fontSize: ".68rem", color: C.sage, marginTop: 3, fontWeight: 600 }}>{p.checklistCount} checklists · {p.trainingCount} trainings</div>
+                        </div>
+                        <button
+                          onClick={() => applyPack(t.id, p)}
+                          disabled={packBusy === p.id}
+                          style={{
+                            padding: "7px 15px", background: packBusy === p.id ? "#CBD5D1" : C.sage, color: "#fff", border: "none",
+                            borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 700,
+                            cursor: packBusy === p.id ? "wait" : "pointer", flexShrink: 0,
+                          }}>{packBusy === p.id ? "Applying…" : "Apply"}</button>
                       </div>
                     ))}
                   </>

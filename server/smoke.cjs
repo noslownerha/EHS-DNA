@@ -1004,6 +1004,22 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("equipment: existing procedure can be edited (title + steps update)",
      editedProc && editedProc.title === "After edit" && JSON.parse(editedProc.steps).length === 3);
 
+  // ── Industry template packs ──
+  const packs = await fetch(`${B}/api/op/template-packs`, { headers: opH() }).then(j);
+  ok("templates: operator can list packs (incl. distillery)",
+     packs && Array.isArray(packs.packs) && packs.packs.some(p => p.id === "distillery" && p.checklistCount > 0));
+  const packForbidden = await fetch(`${B}/api/op/template-packs`, { headers: H() });
+  ok("templates: pack list is operator-only (admin 403)", packForbidden.status === 403);
+  // Apply the distillery pack to tenant 1, then confirm it's idempotent by name.
+  const applied = await fetch(`${B}/api/op/template-packs/distillery/apply`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ tenantId: 1 }) }).then(j);
+  ok("templates: applying a pack creates checklists + trainings",
+     applied.ok && (applied.checklistsAdded + applied.trainingsAdded) > 0);
+  const reapplied = await fetch(`${B}/api/op/template-packs/distillery/apply`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ tenantId: 1 }) }).then(j);
+  ok("templates: re-applying is idempotent (all skipped by name)",
+     reapplied.checklistsAdded === 0 && reapplied.trainingsAdded === 0 && reapplied.skipped > 0);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
