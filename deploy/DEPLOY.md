@@ -65,6 +65,39 @@ upgrading Node via nodesource is the long-term fix:
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt install -y nodejs
 ```
 
+## Restore (and REHEARSE it before you need it)
+A backup you have never restored is a hope, not a backup. Rehearse now:
+```bash
+# Safe rehearsal — restores the latest local backup to a scratch copy and
+# integrity-checks it. Changes NOTHING on the live system.
+deploy/restore.sh --verify
+```
+You should see `integrity: ok` and non-zero tenants/users, then `REHEARSAL OK`.
+
+Real recovery (replaces the live DB; stops app, snapshots current DB as an undo
+point, restores, restarts, health-checks):
+```bash
+deploy/restore.sh --live /home/ehs-platform/backups/ehs-YYYYMMDD-HHMM.db.gz
+# type  RESTORE LIVE  when prompted
+```
+Pull an off-site copy from B2 first if the box was lost:
+```bash
+deploy/restore.sh --from-b2 ehs-YYYYMMDD-HHMM.db.gz --live
+```
+Photos (disk-stored evidence) restore separately from B2:
+`rclone copy b2:ehsdna-backups/photos/ /home/ehs-platform/data/photos/`
+
+## Uptime monitoring
+The app exposes `GET /api/health` (200 `{status:"ok"}` when the DB responds, 503
+`degraded` otherwise). Point an external monitor at it so you hear about an
+outage before a customer does:
+- URL to watch: `https://app.ehsdna.com/api/health`
+- Alert when: status is not 200, body lacks `"ok"`, or response takes >30s
+- A free tier of UptimeRobot / Better Uptime / Healthchecks.io is plenty.
+Also worth a cron heartbeat so a *silent backup failure* pages you: pipe
+`backup.sh` success to a Healthchecks.io ping URL (it alerts when the nightly
+ping goes missing).
+
 ## Where things live
 - Database: `/home/ehs-platform/data/ehs.db` (WAL mode)
 - Backups:  `/home/ehs-platform/backups/` (gzip, 30 days)
