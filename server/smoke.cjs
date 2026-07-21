@@ -292,6 +292,41 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
     body: JSON.stringify({ email: "locktest@whistlepig.com", password: lkReset.tempPassword }) });
   ok("password reset clears the lockout — fresh login succeeds immediately", postResetLogin.status === 200);
 
+  // Self-serve password reset (forgot-password -> emailed token -> new password).
+  // The email itself can't be inspected in smoke (no provider configured), but
+  // the token lands in password_resets and the full redemption flow is real.
+  await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ email: "resettest@whistlepig.com", name: "Reset Test", role: "staff" }) });
+  const frgOk = await fetch(`${B}/api/auth/forgot`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "resettest@whistlepig.com" }) });
+  ok("forgot-password returns ok for a real account", frgOk.status === 200);
+  const frgOkFake = await fetch(`${B}/api/auth/forgot`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "no-such-account@nowhere.com" }) });
+  ok("forgot-password returns the SAME ok for a non-existent account (no enumeration)", frgOkFake.status === 200);
+
+  const { open: openSqlite } = require("./sqlite.cjs");
+  const smokeDb = openSqlite(process.env.EHS_DB_PATH || "/tmp/smoke.db");
+  const resetRow = smokeDb.prepare(`SELECT pr.token FROM password_resets pr JOIN users u ON u.id = pr.user_id
+      WHERE u.email = 'resettest@whistlepig.com' ORDER BY pr.id DESC LIMIT 1`).get();
+  ok("forgot-password created a real reset token", !!resetRow?.token);
+
+  const resetBad = await fetch(`${B}/api/auth/reset-password`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: "not-a-real-token", next: "DoesntMatter1!" }) });
+  ok("reset-password rejects an invalid token", resetBad.status === 400);
+  const resetShort = await fetch(`${B}/api/auth/reset-password`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: resetRow.token, next: "short" }) });
+  ok("reset-password rejects a too-short password", resetShort.status === 400 && /8\+/.test((await resetShort.json()).error));
+
+  const resetGood = await fetch(`${B}/api/auth/reset-password`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: resetRow.token, next: "BrandNewPw1!" }) });
+  ok("reset-password succeeds with a valid token + real password", resetGood.status === 200);
+  const loginAfterReset = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "resettest@whistlepig.com", password: "BrandNewPw1!" }) });
+  ok("can log in immediately with the newly-set password", loginAfterReset.status === 200);
+  const reuseToken = await fetch(`${B}/api/auth/reset-password`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: resetRow.token, next: "AnotherOne1!" }) });
+  ok("a reset token cannot be reused (single-use)", reuseToken.status === 400);
+
   // Operator billing pause: pausing a tenant locks its team out with the AP/billing message
   const opLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "ahrenwolson@gmail.com", password: process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026" }) }).then(j);

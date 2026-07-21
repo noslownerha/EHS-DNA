@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const { sendAlert, sendDigest, emailConfigured } = require("./email.cjs");
+const { sendAlert, sendPasswordReset, sendDigest, emailConfigured } = require("./email.cjs");
 const db = require("./db.cjs");
 const { MODULES, LIVE_MODULES, moduleForPath } = require("./modules.cjs");
 
@@ -355,20 +355,46 @@ function requireOperator(req, res, next) {
   return req.auth.op ? next() : res.status(403).json({ error: "Operator access only" });
 }
 
-app.post("/api/auth/forgot", (req, res) => {
+app.post("/api/auth/forgot", async (req, res) => {
   const email = String(req.body?.email ?? "").toLowerCase().trim();
   const user = email && db.prepare("SELECT * FROM users WHERE email = ? AND active = 1").get(email);
   if (user) {
+    // Self-serve: a single-use, 1-hour token emailed directly to the user. Before
+    // this, "forgot password" only notified OTHER admins to manually issue a temp
+    // password — which left a single-admin tenant with no recovery path at all.
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    db.prepare("INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)").run(user.id, token, expiresAt);
+    const tenant = db.prepare("SELECT name FROM tenants WHERE id = ?").get(user.tenant_id);
+    sendPasswordReset(user.email, { name: user.name, token, company: tenant?.name }).catch(() => {});
+    // Also notify other admins for visibility/fallback (e.g. if email isn't
+    // configured on this deploy) — same behavior as before, just no longer the
+    // only path.
     const admins = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND id != ?")
       .all(user.tenant_id, user.id);
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
                              VALUES (?, ?, ?, ?, 'user', ?)`);
     admins.forEach(a => stmt.run(user.tenant_id, a.id,
       `🔑 Password reset requested`,
-      `${user.name} (${user.email}) requested a password reset. Use Manage Staff → Reset to issue a temporary password.`,
+      `${user.name} (${user.email}) requested a password reset. A reset link was emailed to them directly.`,
       String(user.id)));
   }
   res.json({ ok: true }); // always ok — no account enumeration
+});
+
+app.post("/api/auth/reset-password", (req, res) => {
+  const { token, next: nextPw } = req.body || {};
+  if (!token) return res.status(400).json({ error: "Missing reset token" });
+  if (!nextPw || nextPw.length < 8) return res.status(400).json({ error: "New password must be 8+ characters" });
+  const row = db.prepare("SELECT * FROM password_resets WHERE token = ?").get(token);
+  if (!row || row.used_at || new Date(row.expires_at) < new Date())
+    return res.status(400).json({ error: "This reset link is invalid or has expired. Request a new one." });
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(row.user_id);
+  if (!user) return res.status(400).json({ error: "This reset link is invalid or has expired. Request a new one." });
+  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?").run(bcrypt.hashSync(nextPw, 10), user.id);
+  db.prepare("UPDATE password_resets SET used_at = datetime('now') WHERE id = ?").run(row.id);
+  db.prepare("DELETE FROM login_failures WHERE email = ?").run(user.email); // fresh password → no stale lockout
+  res.json({ ok: true });
 });
 
 app.post("/api/auth/change-password", auth, (req, res) => {

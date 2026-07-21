@@ -15,6 +15,14 @@ export default function LandingPage({ onEnter }) {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  // A password-reset email link lands here as /?resetToken=... — this works
+  // while fully logged out (unlike the ?open= deep-link pattern in App.jsx,
+  // which only fires once a user is already authenticated).
+  const [resetToken] = useState(() => new URLSearchParams(window.location.search).get("resetToken"));
+  const [resetPw, setResetPw]   = useState("");
+  const [resetPw2, setResetPw2] = useState("");
+  const [resetDone, setResetDone] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
   const [error, setError]       = useState(() => {
     try {
       const m = sessionStorage.getItem("ehs_suspended_msg");
@@ -46,6 +54,31 @@ export default function LandingPage({ onEnter }) {
       else setError("Could not reach the server — try again");
       setBusy(false);
     }
+  }
+
+  const [resetErr, setResetErr] = useState("");
+  async function handleResetSubmit(e) {
+    e.preventDefault();
+    setResetErr("");
+    if (resetPw.length < 8) return setResetErr("New password must be 8+ characters.");
+    if (resetPw !== resetPw2) return setResetErr("Passwords don't match.");
+    setResetBusy(true);
+    try {
+      await api.resetPassword(resetToken, resetPw);
+      setResetDone(true);
+    } catch (err) {
+      setResetErr(err.message || "That reset link is invalid or has expired. Request a new one below.");
+    } finally {
+      setResetBusy(false);
+    }
+  }
+  function backToSignIn() {
+    // Clear the token from the URL so a refresh doesn't re-show the reset form.
+    const params = new URLSearchParams(window.location.search);
+    params.delete("resetToken");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    window.location.reload();
   }
 
   return (
@@ -117,6 +150,71 @@ export default function LandingPage({ onEnter }) {
           </p>
         </div>
 
+        {resetToken ? (
+          resetDone ? (
+            <>
+              {/* Reset succeeded */}
+              <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
+                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
+                  Password updated
+                </p>
+              </div>
+              <div className="a4" style={{ width: "100%", textAlign: "center" }}>
+                <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.7)", lineHeight: 1.6, marginBottom: 20 }}>
+                  Your password has been changed. Sign in with your new password.
+                </p>
+                <button type="button" onClick={backToSignIn} style={{
+                  width: "100%", padding: "14px 18px", background: C.sage, border: "1px solid rgba(168,213,181,.2)",
+                  borderRadius: 11, cursor: "pointer", fontSize: ".95rem", fontWeight: 700, color: "#fff",
+                  fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 16px rgba(74,140,92,.25)",
+                }}>Back to sign in →</button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Set new password (landed here from an emailed reset link) */}
+              <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
+                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
+                  Set a new password
+                </p>
+              </div>
+              <form className="a4" onSubmit={handleResetSubmit} style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+                <input
+                  type="password" required autoComplete="new-password" placeholder="New password (8+ characters)"
+                  value={resetPw} onChange={e => setResetPw(e.target.value)}
+                  style={inputStyle}
+                />
+                <input
+                  type="password" required autoComplete="new-password" placeholder="Confirm new password"
+                  value={resetPw2} onChange={e => setResetPw2(e.target.value)}
+                  style={inputStyle}
+                />
+                {resetErr && (
+                  <div style={{ fontSize: ".78rem", color: "#F0A5A5", background: "rgba(220,80,80,.12)", border: "1px solid rgba(220,80,80,.25)", borderRadius: 8, padding: "8px 12px" }}>
+                    {resetErr}
+                  </div>
+                )}
+                <button type="submit" disabled={resetBusy} style={{
+                  width: "100%", padding: "14px 18px", marginTop: 2,
+                  background: resetBusy ? "rgba(74,140,92,.5)" : C.sage,
+                  border: "1px solid rgba(168,213,181,.2)",
+                  borderRadius: 11, cursor: resetBusy ? "default" : "pointer",
+                  fontSize: ".95rem", fontWeight: 700, color: "#fff",
+                  fontFamily: "'DM Sans', sans-serif",
+                  boxShadow: "0 4px 16px rgba(74,140,92,.25)",
+                }}>
+                  {resetBusy ? "Saving…" : "Set new password →"}
+                </button>
+              </form>
+              <div style={{ marginTop: 20, textAlign: "center" }}>
+                <button type="button" onClick={backToSignIn} style={{ background: "none", border: "none", color: "rgba(168,213,181,.6)", fontSize: ".78rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                  ← Back to sign in
+                </button>
+              </div>
+            </>
+          )
+        ) : (
+        <>
         {/* Sign-in label */}
         <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
           <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
@@ -168,7 +266,7 @@ export default function LandingPage({ onEnter }) {
             if (!em) return;
             try { await api.forgotPassword(em); } catch {}
             setError(null);
-            alert("Your administrator has been notified and will send you a temporary password.");
+            alert(`If an account exists for ${em}, we've emailed a link to reset the password. Check your inbox (and spam folder) — the link is valid for 1 hour.`);
           }} style={{ background: "none", border: "none", color: "rgba(168,213,181,.6)", fontSize: ".78rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
             Forgot password?
           </button>
@@ -176,6 +274,8 @@ export default function LandingPage({ onEnter }) {
             Access is provisioned by your administrator
           </p>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

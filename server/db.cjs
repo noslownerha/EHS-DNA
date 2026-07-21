@@ -51,6 +51,17 @@ CREATE TABLE IF NOT EXISTS training_groups (
   recurrence TEXT,
   active INTEGER DEFAULT 1
 );
+-- Self-serve password reset. A token is single-use (used_at set on redemption)
+-- and time-limited (expires_at); the emailed link carries the token, never the
+-- password itself. Old/expired rows are harmless — never queried once expired.
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  token TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenants(id),

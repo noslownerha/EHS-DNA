@@ -65,6 +65,7 @@ export const api = {
   },
   logout: () => setToken(null),
   forgotPassword: (email) => req("/auth/forgot", { method: "POST", body: { email } }),
+  resetPassword: (token, next) => req("/auth/reset-password", { method: "POST", body: { token, next } }),
   opTenantUsers: (id) => req(`/op/tenants/${id}/users`),
   opTenantModules: (id) => req(`/op/tenants/${id}/modules`),
   opTemplatePacks: () => req("/op/template-packs"),

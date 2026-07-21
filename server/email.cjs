@@ -166,6 +166,21 @@ async function sendAlert(to, { title, meta, linkKind, linkRef, company }) {
 }
 
 /**
+ * Self-serve password reset email. Uses ?resetToken= (NOT the ?open= deep-link
+ * pattern, which App.jsx only processes once a user is already logged in — a
+ * reset must work while logged OUT). The link carries only an opaque token,
+ * never the password itself.
+ */
+async function sendPasswordReset(to, { name, token, company }) {
+  const link = `${APP_URL}/?resetToken=${encodeURIComponent(token)}`;
+  const heading = "Reset your password";
+  const meta = `Hi ${name || "there"} — click below to set a new password. This link expires in 1 hour and can only be used once. If you didn't request this, you can safely ignore this email.`;
+  const html = renderAlertHtml({ heading, meta, link, linkLabel: "Set new password", company });
+  const text = [heading, meta, "", `Set new password: ${link}`].join("\n");
+  return sendEmail(to, "Reset your EHS DNA password", text, html);
+}
+
+/**
  * Weekly executive digest. The buyer (VP Ops / owner) rarely opens the app — this
  * email IS the product to them. A clean scorecard of the week's safety posture with
  * a single deep link back in. `metrics` is assembled by the caller from real data.
@@ -248,4 +263,4 @@ async function sendDigest(to, { company, periodLabel, metrics }) {
   return sendEmail(to, `Weekly safety digest — ${company || "EHS DNA"}`, text, html);
 }
 
-module.exports = { sendEmail, sendAlert, sendDigest, emailConfigured };
+module.exports = { sendEmail, sendAlert, sendPasswordReset, sendDigest, emailConfigured };
