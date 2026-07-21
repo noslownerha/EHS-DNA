@@ -172,6 +172,8 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   const [osha300, setOsha300]     = useState(null);
   const [osha300Loading, setOsha300Loading] = useState(false);
   const [ftData, setFtData]       = useState(null);   // real findings + training summary
+  const [findingsList, setFindingsList] = useState(null); // full findings for drill-down
+  const [openBucket, setOpenBucket] = useState(null);  // which finding bucket is expanded
 
   // Load the OSHA 300 log/300A summary for the selected year (on demand).
   useEffect(() => {
@@ -216,6 +218,9 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
     if (tab !== "findings" && tab !== "training") return;
     const ym = labelToYm[period] || null;   // quarters won't map → null = lifetime/current
     api.reportFindingsTraining(ym).then(setFtData).catch(() => setFtData(null));
+    if (tab === "findings" && findingsList === null) {
+      api.listFindings().then(setFindingsList).catch(() => setFindingsList([]));
+    }
   }, [tab, period, rawMonths.length]); // eslint-disable-line
 
   // Build MONTHLY/QUARTERLY from real data, honoring the site filter.
@@ -721,23 +726,52 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
 
               {tab === "findings" && (
                 <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 22px" }}>
-                  <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Findings Summary — {period}</h3>
+                  <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 4 }}>Findings Summary — {period}</h3>
+                  <div style={{ fontSize: ".72rem", color: C.mist, marginBottom: 14 }}>Tap a row to see the findings behind the number.</div>
                   {!ftData ? (
                     <div style={{ padding: 20, textAlign: "center", color: C.mist, fontSize: ".85rem" }}>Loading…</div>
-                  ) : (
-                  [
-                    { label: "New findings logged",   value: ftData.findings.new,             color: C.ink    },
-                    { label: "Critical",              value: ftData.findings.critical,        color: C.red    },
-                    { label: "High severity",         value: ftData.findings.high,            color: C.orange },
-                    { label: "Resolved in period",    value: ftData.findings.resolvedInPeriod, color: C.sage  },
-                    { label: "Currently open",        value: ftData.findings.open,            color: C.navy   },
-                  ].map((row, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: i < 4 ? "1px solid #F0F4F2" : "none" }}>
-                      <span style={{ fontSize: ".88rem", color: C.slate }}>{row.label}</span>
-                      <span style={{ fontWeight: 700, color: row.color, fontSize: ".95rem" }}>{row.value}</span>
-                    </div>
-                  ))
-                  )}
+                  ) : (() => {
+                    const all = findingsList || [];
+                    const buckets = [
+                      { key: "new",      label: "New findings logged", value: ftData.findings.new,             color: C.ink,    filter: () => all },
+                      { key: "critical", label: "Critical",            value: ftData.findings.critical,        color: C.red,    filter: () => all.filter(f => f.severity === "critical") },
+                      { key: "high",     label: "High severity",       value: ftData.findings.high,            color: C.orange, filter: () => all.filter(f => f.severity === "high") },
+                      { key: "resolved", label: "Resolved in period",  value: ftData.findings.resolvedInPeriod, color: C.sage,  filter: () => all.filter(f => f.status === "resolved") },
+                      { key: "open",     label: "Currently open",      value: ftData.findings.open,            color: C.navy,   filter: () => all.filter(f => f.status === "open") },
+                    ];
+                    return buckets.map((b, i) => {
+                      const isOpen = openBucket === b.key;
+                      const rows = isOpen ? b.filter() : [];
+                      const clickable = b.value > 0;
+                      return (
+                        <div key={b.key} style={{ borderBottom: i < buckets.length - 1 && !isOpen ? "1px solid #F0F4F2" : "none" }}>
+                          <div onClick={() => clickable && setOpenBucket(isOpen ? null : b.key)}
+                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", cursor: clickable ? "pointer" : "default" }}>
+                            <span style={{ fontSize: ".88rem", color: C.slate, display: "flex", alignItems: "center", gap: 6 }}>
+                              {clickable && <span style={{ fontSize: ".7rem", color: C.mist, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▶</span>}
+                              {b.label}
+                            </span>
+                            <span style={{ fontWeight: 700, color: b.color, fontSize: ".95rem" }}>{b.value}</span>
+                          </div>
+                          {isOpen && (
+                            <div style={{ paddingBottom: 10 }}>
+                              {rows.length === 0 ? (
+                                <div style={{ fontSize: ".78rem", color: C.mist, padding: "4px 0 8px 18px" }}>No matching findings on record.</div>
+                              ) : rows.slice(0, 25).map(f => (
+                                <div key={f.id} style={{ padding: "8px 10px 8px 18px", marginBottom: 6, background: C.chalk, borderRadius: 7, borderLeft: `3px solid ${b.color}` }}>
+                                  <div style={{ fontSize: ".82rem", color: C.ink, lineHeight: 1.35 }}>{f.description}</div>
+                                  <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 3 }}>
+                                    {f.site_name ?? "—"} · {f.severity} · {f.status}{f.created_at ? ` · ${String(f.created_at).slice(0, 10)}` : ""}
+                                  </div>
+                                </div>
+                              ))}
+                              {rows.length > 25 && <div style={{ fontSize: ".72rem", color: C.mist, paddingLeft: 18 }}>+{rows.length - 25} more…</div>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
 
