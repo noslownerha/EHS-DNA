@@ -621,6 +621,24 @@ function ensureDefaults() {
     console.log("Backfilled: response checklists");
   }
 
+  // Append investigation follow-up steps to the injury response checklist for any
+  // tenant still on the original 5-item immediate-response default (untouched).
+  // Skips tenants that have customized theirs, so we never clobber edits.
+  try {
+    const OLD_INJURY = JSON.stringify(["Complete first aid log", "Notify shift supervisor",
+      "Preserve scene — don't move anything until photos are done", "Secure the area if hazard still present",
+      "Check in with the injured person within 24 hours"]);
+    const NEW_INJURY = JSON.stringify(["Complete first aid log", "Notify shift supervisor",
+      "Preserve scene — don't move anything until photos are done", "Secure the area if hazard still present",
+      "Check in with the injured person within 24 hours",
+      "Determine and record root cause", "Set OSHA recordability classification",
+      "Open corrective action(s) to prevent recurrence",
+      "Notify HR / Workers' Comp if applicable", "Confirm case entered on the OSHA 300 log if recordable"]);
+    const upd = db.prepare("UPDATE response_checklists SET items = ? WHERE incident_type = 'injury' AND items = ?");
+    const r = upd.run(NEW_INJURY, OLD_INJURY);
+    if (r.changes > 0) console.log(`Backfilled: injury investigation steps (${r.changes} tenant(s))`);
+  } catch {}
+
   const hasRulesTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notification_rules'").get();
   if (hasRulesTable && db.prepare("SELECT COUNT(*) n FROM notification_rules WHERE tenant_id = 1").get().n === 0) {
     db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)

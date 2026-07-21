@@ -1859,9 +1859,15 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
       db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)
                   VALUES (?, 'engagement_any', 'engagement', 'any', '["admin","safety"]', 0)`).run(tid);
       const rc = db.prepare("INSERT INTO response_checklists (tenant_id, incident_type, items) VALUES (?, ?, ?)");
-      rc.run(tid, "injury", JSON.stringify(["Complete first aid log", "Notify shift supervisor",
+      rc.run(tid, "injury", JSON.stringify([
+        // Immediate response
+        "Complete first aid log", "Notify shift supervisor",
         "Preserve scene until photos are done", "Secure the area if hazard still present",
-        "Check in with the injured person within 24 hours"]));
+        "Check in with the injured person within 24 hours",
+        // Investigation & follow-up (elevated staff)
+        "Determine and record root cause", "Set OSHA recordability classification",
+        "Open corrective action(s) to prevent recurrence",
+        "Notify HR / Workers' Comp if applicable", "Confirm case entered on the OSHA 300 log if recordable"]));
       // Seed explicit module rows from the registry defaults, so the operator's
       // module grid starts from a concrete, editable state rather than implicit
       // defaults. New tenants get every live module on by default.
