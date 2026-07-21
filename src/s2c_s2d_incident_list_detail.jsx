@@ -281,9 +281,9 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
             const cas = CA_STATUS[inc.caStatus];
             const osha = OSHA_COLORS[inc.osha] ?? OSHA_COLORS["Pending"];
             return (
-              <div key={inc.id} onClick={() => onViewIncident?.(inc.id)} style={{
-                background: C.white, borderRadius: 10, padding: "12px 14px", marginBottom: 8,
-                boxShadow: "0 2px 12px rgba(15,31,23,.07)", cursor: "pointer",
+              <div key={inc.id} onClick={() => onViewIncident?.(inc.id)} className="clickable-card has-chevron" style={{
+                background: C.white, borderRadius: 10, padding: "12px 26px 12px 14px", marginBottom: 8,
+                boxShadow: "0 2px 12px rgba(15,31,23,.07)",
                 borderLeft: `3px solid ${SEV_COLORS[inc.severity] ?? C.mist}`,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>

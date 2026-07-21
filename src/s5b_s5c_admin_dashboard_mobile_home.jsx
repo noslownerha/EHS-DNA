@@ -151,7 +151,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
         {/* KPI tiles */}
         <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 8 }}>
           {kpis.map((kpi, i) => (
-            <button key={i} onClick={() => onNavigate?.(kpi.dest)} className="kpi-tile" style={{
+            <button key={i} onClick={() => onNavigate?.(kpi.dest)} className="kpi-tile clickable-card" style={{
               background: C.white, borderRadius: 10,
               boxShadow: "0 2px 12px rgba(15,31,23,.07)",
               padding: "20px 22px", height: 90, cursor: "pointer",

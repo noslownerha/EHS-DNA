@@ -1,2 +1,17 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'DM Sans', sans-serif; background: #F4F7F5; }
+
+/* ── Clickable-vs-display affordance ─────────────────────────────────────────
+   Any card/tile that drills in gets .clickable-card: a pointer, a gentle lift on
+   hover (desktop), and a press feedback on tap (mobile) so interactive surfaces
+   feel distinct from static display cards, which get none of this. */
+.clickable-card { cursor: pointer; transition: box-shadow .15s ease, transform .1s ease; }
+.clickable-card:hover { box-shadow: 0 4px 18px rgba(15,31,23,.14); }
+.clickable-card:active { transform: scale(.985); }
+/* A small chevron marks a drill-in target at rest (works without hover, i.e. on
+   touch). Add .has-chevron alongside .clickable-card on a position:relative card. */
+.has-chevron { position: relative; }
+.has-chevron::after {
+  content: "›"; position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+  color: #9FB3AD; font-size: 1.25rem; line-height: 1; font-weight: 700; pointer-events: none;
+}
