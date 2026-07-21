@@ -7,23 +7,9 @@ import { api } from "./api.js";
 const C = { ...COLORS };
 
 // ── Seed TRIR data ────────────────────────────────────────────────────────────
-// TRIR = (recordable incidents × 200,000) / total hours worked
-const MONTHLY_DATA = {
-  "Jan 2024": { incidents: 0, hours: 14200, trir: 0.00,   prevYearTrir: 1.41, blsRate: 2.8 },
-  "Feb 2024": { incidents: 1, hours: 13800, trir: 1.45,   prevYearTrir: 0.00, blsRate: 2.8 },
-  "Mar 2024": { incidents: 0, hours: 14100, trir: 0.00,   prevYearTrir: 2.84, blsRate: 2.8 },
-  "Apr 2024": { incidents: 1, hours: 14500, trir: 1.38,   prevYearTrir: 0.00, blsRate: 2.8 },
-  "May 2024": { incidents: 0, hours: 14300, trir: 0.00,   prevYearTrir: 1.40, blsRate: 2.8 },
-  "Jun 2024": { incidents: 1, hours: 14600, trir: 1.37,   prevYearTrir: 0.00, blsRate: 2.8 },
-};
-
-const QUARTERLY_DATA = {
-  "Q1 2024": { incidents: 1, hours: 42100, trir: 0.48, prevYearTrir: 1.42, blsRate: 2.8 },
-  "Q2 2024": { incidents: 2, hours: 43400, trir: 0.92, prevYearTrir: 0.47, blsRate: 2.8 },
-  "Q3 2023": { incidents: 3, hours: 41200, trir: 1.46, prevYearTrir: null,  blsRate: 2.8 },
-  "Q4 2023": { incidents: 1, hours: 42800, trir: 0.47, prevYearTrir: null,  blsRate: 2.8 },
-  "Q3 2022": { incidents: 2, hours: 40900, trir: 0.98, prevYearTrir: null,  blsRate: 2.8 },
-};
+// TRIR = (recordable incidents × 200,000) / total hours worked.
+// Trend data is computed live from /api/reports/incident-summary (see MONTHLY_LIVE
+// / QUARTERLY_LIVE below) — there is intentionally no seed/sample data here.
 
 const SITES = () => ["All sites", ...(BRAND.siteRecords ?? []).map(s => s.name)];
 
@@ -165,7 +151,7 @@ function DesktopNav({ companyName = BRAND.company, onHome }) {
 export default function S5dReportBuilder({ companyName = BRAND.company, onBack, onHome }) {
   // Spec §15.3: user selects (1) time frame type, (2) specific period
   const [frameType,   setFrameType]   = useState("monthly");    // "monthly" | "quarterly"
-  const [period,      setPeriod]      = useState("Jun 2024");
+  const [period,      setPeriod]      = useState("");
   const [site,        setSite]        = useState("All sites");
   const [showBls,     setShowBls]     = useState(false);         // off by default per spec
   const [showPrevYear,setShowPrevYear]= useState(false);         // off by default per spec
@@ -185,6 +171,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   const [oshaYear, setOshaYear]   = useState(new Date().getFullYear());
   const [osha300, setOsha300]     = useState(null);
   const [osha300Loading, setOsha300Loading] = useState(false);
+  const [ftData, setFtData]       = useState(null);   // real findings + training summary
 
   // Load the OSHA 300 log/300A summary for the selected year (on demand).
   useEffect(() => {
@@ -217,6 +204,19 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
     api.getLaborHours().then(setLaborHours).catch(() => {});
   }
   useEffect(() => { loadReport(); }, []);
+
+  // Map a display label ("Jun 2024") back to its YYYY-MM so we can scope the
+  // findings/training summary to the selected period.
+  const labelToYm = {};
+  rawMonths.forEach(m => { labelToYm[new Date(m.month + "-15").toLocaleDateString("en-US", { month: "short", year: "numeric" })] = m.month; });
+
+  // Load real findings + training compliance for the Findings/Training tabs,
+  // scoped to the selected period (falls back to lifetime if the label is a quarter).
+  useEffect(() => {
+    if (tab !== "findings" && tab !== "training") return;
+    const ym = labelToYm[period] || null;   // quarters won't map → null = lifetime/current
+    api.reportFindingsTraining(ym).then(setFtData).catch(() => setFtData(null));
+  }, [tab, period, rawMonths.length]); // eslint-disable-line
 
   // Build MONTHLY/QUARTERLY from real data, honoring the site filter.
   // TRIR uses RECORDABLE incidents (OSHA definition), not all injuries.
@@ -716,35 +716,46 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
               {tab === "findings" && (
                 <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 22px" }}>
                   <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Findings Summary — {period}</h3>
-                  {[
-                    { label: "New findings logged",   value: 4, color: C.ink    },
-                    { label: "Critical",              value: 1, color: C.red    },
-                    { label: "Major",                 value: 2, color: C.orange },
-                    { label: "Resolved in period",    value: 3, color: C.sage   },
-                    { label: "CapEx-flagged",         value: 1, color: C.navy   },
+                  {!ftData ? (
+                    <div style={{ padding: 20, textAlign: "center", color: C.mist, fontSize: ".85rem" }}>Loading…</div>
+                  ) : (
+                  [
+                    { label: "New findings logged",   value: ftData.findings.new,             color: C.ink    },
+                    { label: "Critical",              value: ftData.findings.critical,        color: C.red    },
+                    { label: "High severity",         value: ftData.findings.high,            color: C.orange },
+                    { label: "Resolved in period",    value: ftData.findings.resolvedInPeriod, color: C.sage  },
+                    { label: "Currently open",        value: ftData.findings.open,            color: C.navy   },
                   ].map((row, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: i < 4 ? "1px solid #F0F4F2" : "none" }}>
                       <span style={{ fontSize: ".88rem", color: C.slate }}>{row.label}</span>
                       <span style={{ fontWeight: 700, color: row.color, fontSize: ".95rem" }}>{row.value}</span>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               )}
 
               {tab === "training" && (
                 <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 22px" }}>
                   <h3 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 16 }}>Training Compliance — {period}</h3>
-                  {[
-                    { label: "Overall compliance",       value: "74%",  color: C.gold  },
-                    { label: "Staff with overdue training",value: 7,    color: C.red   },
-                    { label: "Completions this period",  value: 14,     color: C.ink   },
-                    { label: "Expiring within 30 days",  value: 3,      color: C.gold  },
+                  {!ftData ? (
+                    <div style={{ padding: 20, textAlign: "center", color: C.mist, fontSize: ".85rem" }}>Loading…</div>
+                  ) : (
+                  [
+                    { label: "Overall compliance",        value: ftData.training.compliancePct == null ? "—" : `${ftData.training.compliancePct}%`, color: C.gold },
+                    { label: "Staff with overdue training", value: ftData.training.overdue,          color: C.red  },
+                    { label: "Completions this period",   value: ftData.training.completionsThisPeriod, color: C.ink },
+                    { label: "Expiring within 30 days",   value: ftData.training.expiringSoon,        color: C.gold },
                   ].map((row, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: i < 3 ? "1px solid #F0F4F2" : "none" }}>
                       <span style={{ fontSize: ".88rem", color: C.slate }}>{row.label}</span>
                       <span style={{ fontWeight: 700, color: row.color, fontSize: ".95rem" }}>{row.value}</span>
                     </div>
-                  ))}
+                  ))
+                  )}
+                  {ftData && ftData.training.compliancePct == null && (
+                    <div style={{ fontSize: ".76rem", color: C.mist, marginTop: 10, lineHeight: 1.4 }}>No training assignments with completions yet — compliance shows once staff have training records.</div>
+                  )}
                 </div>
               )}
 

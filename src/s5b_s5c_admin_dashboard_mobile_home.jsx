@@ -5,13 +5,6 @@ import { api } from "./api.js";
 
 const C = { ...COLORS };
 
-const SITES = [
-  { name: "Moriah",       location: "Mineville, NY",    staff: 18, daysSince: 47, compliance: 74, openIncidents: 2, openCAs: 4, criticalFindings: 2 },
-  { name: "Middlebury",   location: "Middlebury, VT",   staff: 17, daysSince: 112, compliance: 91, openIncidents: 1, openCAs: 1, criticalFindings: 0 },
-  { name: "Shoreham",     location: "Shoreham, VT",     staff: 9,  daysSince: 23,  compliance: 68, openIncidents: 0, openCAs: 2, criticalFindings: 1 },
-  { name: "Brandenburg",  location: "Brandenburg, KY",  staff: 11, daysSince: 198, compliance: 100, openIncidents: 0, openCAs: 0, criticalFindings: 0 },
-];
-
 function DesktopNav({ companyName = BRAND.company, label, onHome }) {
   return (
     <EHSHeader onHome={onHome} title={companyName} rightContent={
@@ -63,7 +56,13 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
   const totalCritical   = SITES.reduce((n, s) => n + s.criticalFindings, 0);
   const avgCompliance   = SITES.length ? Math.round(SITES.reduce((n, s) => n + s.compliance, 0) / SITES.length) : 0;
   const belowThreshold  = SITES.filter(s => s.compliance < 80).length;
-  const bestDays        = SITES.length ? Math.max(...SITES.map(s => s.daysSince)) : 0;
+  // Average days since the last incident across sites that HAVE had one. A site
+  // with no incidents on record (server sends 999 as the sentinel) is excluded
+  // rather than counted as a real streak, so the average stays honest.
+  const sitesWithHistory = SITES.filter(s => s.daysSince < 999);
+  const avgDaysSince = sitesWithHistory.length
+    ? Math.round(sitesWithHistory.reduce((n, s) => n + s.daysSince, 0) / sitesWithHistory.length)
+    : null;
 
   const kpis = [
     { label: "Open incidents",      value: totalIncidents, color: C.red,    dest: "incidents", module: "incidents" },
@@ -102,7 +101,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>{companyName}</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
-              {SITES.length} sites · {totalStaff} staff · all-time best: {bestDays} days since recordable
+              {SITES.length} sites · {totalStaff} staff{avgDaysSince != null ? ` · avg ${avgDaysSince} days since last incident` : ""}
             </p>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

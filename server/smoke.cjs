@@ -1020,6 +1020,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("templates: re-applying is idempotent (all skipped by name)",
      reapplied.checklistsAdded === 0 && reapplied.trainingsAdded === 0 && reapplied.skipped > 0);
 
+  // ── Reports are REAL: recordable matching + findings/training ──
+  // File an injury and confirm it recordable → it must count in the summary (was a bug: exact-string match missed "Recordable – …").
+  const recInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", siteId: 1, description: "Recordable match smoke test injury" }) }).then(j);
+  await fetch(`${B}/api/incidents/${recInc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ oshaClassification: "Recordable – Medical treatment" }) }).then(j);
+  const summ = await fetch(`${B}/api/reports/incident-summary`, { headers: H() }).then(j);
+  const totalRec = (summ.months || []).reduce((a, m) => a + m.recordables, 0);
+  ok("reports: confirmed 'Recordable – …' classification counts in the summary", totalRec >= 1);
+  // Findings/training endpoint returns a real shape (not hardcoded 74%/4/1/2).
+  const ft = await fetch(`${B}/api/reports/findings-training`, { headers: H() }).then(j);
+  ok("reports: findings-training returns real structured summary",
+     ft && ft.findings && typeof ft.findings.critical === "number" &&
+     ft.training && ("compliancePct" in ft.training) && typeof ft.training.overdue === "number");
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

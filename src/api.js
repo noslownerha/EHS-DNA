@@ -99,6 +99,8 @@ export const api = {
   dashboardSummary: () => req("/dashboard/summary"),
   dashboardCompliance: () => req("/dashboard/compliance"),
   reportIncidentSummary: () => req("/reports/incident-summary"),
+  reportFindingsTraining: (period) => req(`/reports/findings-training${period ? `?period=${encodeURIComponent(period)}` : ""}`),
+  programSummary: (months = 1) => req(`/reports/program-summary?months=${months}`),
   osha300: (year) => req(`/reports/osha300?year=${year}`),
   getLaborHours: () => req("/labor-hours"),
   setLaborHours: (siteId, month, hours) => req("/labor-hours", { method: "PUT", body: { siteId, month, hours } }),

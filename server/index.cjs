@@ -754,6 +754,17 @@ function pointsFor(tenantId) {
 }
 const periodOf = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
+// Canonical recordability test — the ONE definition used by every report, the TRIR
+// calc, the digest, and the 300 log. A case counts as recordable only when safety
+// has CONFIRMED a "Recordable – …" classification (Medical treatment, Restricted
+// work, Days away, Fatality, First aid only). It deliberately excludes:
+//   • "Review: likely recordable"  — the provisional auto-flag, not yet confirmed
+//   • "Non-recordable" / "Pending" / null
+// (Prior bug: three call sites disagreed — one matched only the exact string
+// "Recordable", so real classifications like "Recordable – Medical treatment"
+// silently never counted, and the whole report looked empty.)
+const isRecordableClass = (c) => typeof c === "string" && c.startsWith("Recordable");
+
 // Award points. `status` is 'confirmed' for immediate awards (kudos, training) or
 // 'pending' for report-linked awards that only count once safety reviews the
 // report — dedup guards against awarding the same source twice.
@@ -1955,7 +1966,7 @@ app.get("/api/reports/incident-summary", auth, requireRole(...CAN_SEE_ALL_INCIDE
     const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
     months.push(m.toISOString().slice(0, 7));
   }
-  const isRecordable = c => c === "Recordable";
+  const isRecordable = isRecordableClass;
   let anyEstimated = false, anyActual = false;
   const out = months.map(ym => {
     const monthRows = rows.filter(r => r.ym === ym);
@@ -1985,7 +1996,94 @@ app.get("/api/reports/incident-summary", auth, requireRole(...CAN_SEE_ALL_INCIDE
   res.json({ months: out, hoursNote });
 });
 
-// ── OSHA 300 log + 300A annual summary ───────────────────────────────────────
+// ── Findings + training compliance summary (real data for the report tabs) ───
+// The report builder's Findings and Training tabs used to show hardcoded numbers;
+// this endpoint backs them with the tenant's actual records. `months` (default 1)
+// scopes the "this period" counts to a trailing window; lifetime/open counts are
+// point-in-time.
+app.get("/api/reports/program-summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
+  const t = req.auth.tenant;
+  const months = Math.max(1, Math.min(24, parseInt(req.query.months, 10) || 1));
+  const since = `datetime('now','-${months} months')`;
+  const scope = siteScope(req);
+  const siteClause = scope === null ? "" : ` AND site_id = ${Number(scope)}`;
+
+  // Findings — bucketed by severity + status, plus new/resolved in the window.
+  const f = db.prepare(`
+    SELECT
+      SUM(CASE WHEN created_at > ${since} THEN 1 ELSE 0 END) AS newInPeriod,
+      SUM(CASE WHEN status='open' AND severity IN ('critical') THEN 1 ELSE 0 END) AS critical,
+      SUM(CASE WHEN status='open' AND severity IN ('high','major') THEN 1 ELSE 0 END) AS major,
+      SUM(CASE WHEN status='open' AND severity IN ('medium','low') THEN 1 ELSE 0 END) AS minorOpen,
+      SUM(CASE WHEN status='resolved' AND resolved_at > ${since} THEN 1 ELSE 0 END) AS resolvedInPeriod,
+      SUM(CASE WHEN status='open' THEN 1 ELSE 0 END) AS totalOpen
+    FROM findings WHERE tenant_id = ?${siteClause}`).get(t);
+
+  // CapEx-blocked corrective actions (that's where the capex state lives).
+  const capex = db.prepare(`SELECT COUNT(*) n FROM corrective_actions
+    WHERE tenant_id = ? AND status = 'capex_blocked'`).get(t).n;
+
+  // Training compliance — latest completion per active staff × active required
+  // training; overdue = expired or never completed. Compliance = current / required.
+  const staff = db.prepare(`SELECT id FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0`).all(t).map(u => u.id);
+  const requiredTrainings = db.prepare(`SELECT id, required_roles, required_departments FROM trainings
+    WHERE tenant_id = ? AND active = 1`).all(t);
+  // Simple model: every active required training applies to every active staffer.
+  // (Role/dept targeting can refine this later; the point is real, not seeded.)
+  const requiredCount = staff.length * requiredTrainings.length;
+  let current = 0, overdue = 0;
+  const latest = db.prepare(`SELECT expires_at FROM training_completions
+    WHERE tenant_id = ? AND user_id = ? AND training_id = ?
+    ORDER BY id DESC LIMIT 1`);
+  for (const uid of staff) {
+    for (const tr of requiredTrainings) {
+      const c = latest.get(t, uid, tr.id);
+      if (!c) { overdue++; continue; }                 // never completed
+      if (c.expires_at && new Date(c.expires_at) < new Date()) overdue++;  // expired
+      else current++;
+    }
+  }
+  const compliancePct = requiredCount > 0 ? Math.round((current / requiredCount) * 100) : null;
+  const completionsInPeriod = db.prepare(`SELECT COUNT(*) n FROM training_completions
+    WHERE tenant_id = ? AND completed_at > ${since}`).get(t).n;
+  const expiringSoon = db.prepare(`SELECT COUNT(*) n FROM training_completions tc
+    WHERE tc.tenant_id = ? AND tc.expires_at IS NOT NULL
+      AND tc.expires_at > datetime('now') AND tc.expires_at < datetime('now','+30 days')
+      AND tc.id IN (SELECT MAX(id) FROM training_completions GROUP BY user_id, training_id)`).get(t).n;
+  // Staff with at least one overdue/missing required training.
+  const staffWithOverdue = (() => {
+    let n = 0;
+    for (const uid of staff) {
+      let bad = false;
+      for (const tr of requiredTrainings) {
+        const c = latest.get(t, uid, tr.id);
+        if (!c || (c.expires_at && new Date(c.expires_at) < new Date())) { bad = true; break; }
+      }
+      if (bad) n++;
+    }
+    return n;
+  })();
+
+  res.json({
+    findings: {
+      newInPeriod: f.newInPeriod || 0,
+      critical: f.critical || 0,
+      major: f.major || 0,
+      minorOpen: f.minorOpen || 0,
+      resolvedInPeriod: f.resolvedInPeriod || 0,
+      totalOpen: f.totalOpen || 0,
+      capexBlocked: capex,
+    },
+    training: {
+      compliancePct,                       // null when no required trainings configured
+      staffWithOverdue,
+      completionsInPeriod,
+      expiringSoon,
+      requiredCount,
+    },
+  });
+});
+
 // Maps our recordable classifications onto the 300's case-classification columns.
 // The 300 log is per-case; the 300A is the annual totals establishments must post
 // Feb 1–Apr 30. Recordability is driven by the (safety-confirmed) osha_classification
@@ -2028,6 +2126,51 @@ function osha300Rows(tenantId, year, scope) {
       };
     });
 }
+
+// Real findings-summary + training-compliance for the Report Builder's Findings
+// and Training tabs (previously hardcoded). Optional ?period=YYYY-MM scopes the
+// period-specific counts; lifetime/current counts ignore it.
+app.get("/api/reports/findings-training", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
+  const t = req.auth.tenant;
+  const period = /^\d{4}-\d{2}$/.test(req.query.period || "") ? req.query.period : null;
+  const monthClause = period ? "AND strftime('%Y-%m', created_at) = ?" : "";
+  const pArgs = period ? [period] : [];
+
+  // Findings — severity is one of low|medium|high|critical; status open|resolved.
+  const fNew = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? ${monthClause}`).get(t, ...pArgs).n;
+  const fCritical = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND severity='critical' ${monthClause}`).get(t, ...pArgs).n;
+  const fHigh = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND severity='high' ${monthClause}`).get(t, ...pArgs).n;
+  const fOpen = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='open'`).get(t).n;
+  const fResolved = period
+    ? db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='resolved' AND strftime('%Y-%m', resolved_at)=?`).get(t, period).n
+    : db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='resolved'`).get(t).n;
+
+  // Training compliance — for each active staff user × each active training that
+  // applies, the latest completion; overall compliance = current (not expired) ÷ required.
+  const overdue = db.prepare(`SELECT COUNT(*) n FROM training_completions tc
+      JOIN trainings tr ON tr.id = tc.training_id AND tr.active = 1
+      JOIN users u ON u.id = tc.user_id AND u.active = 1 AND u.is_operator = 0
+      WHERE tc.tenant_id=? AND tc.expires_at IS NOT NULL AND tc.expires_at < datetime('now')
+        AND tc.id IN (SELECT MAX(id) FROM training_completions GROUP BY user_id, training_id)`).get(t).n;
+  const current = db.prepare(`SELECT COUNT(*) n FROM training_completions tc
+      JOIN trainings tr ON tr.id = tc.training_id AND tr.active = 1
+      JOIN users u ON u.id = tc.user_id AND u.active = 1 AND u.is_operator = 0
+      WHERE tc.tenant_id=? AND (tc.expires_at IS NULL OR tc.expires_at >= datetime('now'))
+        AND tc.id IN (SELECT MAX(id) FROM training_completions GROUP BY user_id, training_id)`).get(t).n;
+  const totalLatest = current + overdue;
+  const compliancePct = totalLatest > 0 ? Math.round((current / totalLatest) * 100) : null;
+  const completionsThisPeriod = db.prepare(`SELECT COUNT(*) n FROM training_completions
+      WHERE tenant_id=? ${period ? "AND strftime('%Y-%m', completed_at)=?" : ""}`).get(t, ...pArgs).n;
+  const expiringSoon = db.prepare(`SELECT COUNT(*) n FROM training_completions tc
+      WHERE tc.tenant_id=? AND tc.expires_at IS NOT NULL
+        AND tc.expires_at >= datetime('now') AND tc.expires_at < datetime('now','+30 days')
+        AND tc.id IN (SELECT MAX(id) FROM training_completions GROUP BY user_id, training_id)`).get(t).n;
+
+  res.json({
+    findings: { new: fNew, critical: fCritical, high: fHigh, open: fOpen, resolvedInPeriod: fResolved },
+    training: { compliancePct, overdue, completionsThisPeriod, expiringSoon },
+  });
+});
 
 app.get("/api/reports/osha300", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (req, res) => {
   const t = req.auth.tenant;
