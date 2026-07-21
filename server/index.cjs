@@ -2505,6 +2505,7 @@ require("./billing.cjs")(app, db, auth, () => requireOperator);
 // ── Equipment & Assets module ─────────────────────────────────────────────────
 require("./equipment.cjs")(app, db, auth, requireRole, ADMINISH, { storePhoto });
 require("./templates.cjs")(app, db, auth, requireOperator);
+require("./mbr.cjs")(app, db, auth, requireRole, { isRecordableClass, staffCompliance, CAN_SEE_ALL_INCIDENTS });
 
 // ── Training compliance summary (per-staff rollup against required trainings) ─
 // Shared compliance definition: a staff member is compliant when every required

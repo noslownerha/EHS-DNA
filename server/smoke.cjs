@@ -1080,6 +1080,19 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const anForbidden = await fetch(`${B}/api/op/analytics`, { headers: H() });
   ok("op analytics: forbidden for non-operator", anForbidden.status === 403);
 
+  // ── MBR/QBR slide export ──
+  const mbrPrev = await fetch(`${B}/api/reports/mbr/preview`, { headers: H() }).then(j);
+  ok("mbr: preview returns real KPI structure",
+     mbrPrev && mbrPrev.kpis && typeof mbrPrev.kpis.trirYTD === "number" &&
+     Array.isArray(mbrPrev.sites) && Array.isArray(mbrPrev.training) && mbrPrev.events);
+  const mbrRes = await fetch(`${B}/api/reports/mbr/export`, { headers: H() });
+  const mbrBuf = Buffer.from(await mbrRes.arrayBuffer());
+  // A .pptx is a ZIP — first two bytes are "PK".
+  ok("mbr: export returns a valid .pptx (ZIP/PK, non-trivial size)",
+     mbrRes.status === 200 && mbrBuf.length > 10000 && mbrBuf[0] === 0x50 && mbrBuf[1] === 0x4B);
+  const mbrNoAuth = await fetch(`${B}/api/reports/mbr/export`);
+  ok("mbr: export requires auth", mbrNoAuth.status === 401);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

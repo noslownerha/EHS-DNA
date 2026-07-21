@@ -172,6 +172,8 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   const [osha300, setOsha300]     = useState(null);
   const [osha300Loading, setOsha300Loading] = useState(false);
   const [ftData, setFtData]       = useState(null);   // real findings + training summary
+  const [mbrBusy, setMbrBusy]     = useState(false);
+  const [mbrErr, setMbrErr]       = useState("");
   const [findingsList, setFindingsList] = useState(null); // full findings for drill-down
   const [openBucket, setOpenBucket] = useState(null);  // which finding bucket is expanded
 
@@ -402,12 +404,23 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
         {/* Header */}
-        <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>Report Builder</h1>
             <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>Generate reports for any historical period. Includes TRIR, incident summary, and training compliance.</p>
           </div>
+          <button onClick={async () => {
+            setMbrBusy(true); setMbrErr("");
+            try { await api.mbrExport(labelToYm[period] || null); }
+            catch (e) { setMbrErr("Export failed — try again."); }
+            finally { setMbrBusy(false); }
+          }} disabled={mbrBusy} style={{
+            padding: "10px 18px", background: mbrBusy ? "#C8D8CE" : C.sage, color: "#fff", border: "none",
+            borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
+            cursor: mbrBusy ? "wait" : "pointer", whiteSpace: "nowrap",
+          }}>{mbrBusy ? "Generating…" : "📊 Export MBR slide"}</button>
         </div>
+        {mbrErr && <div style={{ marginTop: -12, marginBottom: 16, fontSize: ".8rem", color: C.red }}>{mbrErr}</div>}
 
         <div className="split-pane" style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
 

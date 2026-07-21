@@ -101,6 +101,23 @@ export const api = {
   dashboardCompliance: () => req("/dashboard/compliance"),
   reportIncidentSummary: () => req("/reports/incident-summary"),
   reportFindingsTraining: (period) => req(`/reports/findings-training${period ? `?period=${encodeURIComponent(period)}` : ""}`),
+  mbrPreview: (period) => req(`/reports/mbr/preview${period ? `?period=${encodeURIComponent(period)}` : ""}`),
+  // Fetches the MBR .pptx with auth and triggers a browser download.
+  mbrExport: async (period) => {
+    const res = await fetch(`/api/reports/mbr/export${period ? `?period=${encodeURIComponent(period)}` : ""}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) throw new Error(`Export failed (HTTP ${res.status})`);
+    const blob = await res.blob();
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = cd.match(/filename="?([^"]+)"?/);
+    const name = m ? m[1] : "EHS-MBR.pptx";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
   programSummary: (months = 1) => req(`/reports/program-summary?months=${months}`),
   osha300: (year) => req(`/reports/osha300?year=${year}`),
   getLaborHours: () => req("/labor-hours"),
