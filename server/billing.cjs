@@ -78,11 +78,17 @@ module.exports = function mountBilling(app, db, auth, requireRole) {
     const sites = db.prepare("SELECT COUNT(*) n FROM sites WHERE tenant_id = ? AND active = 1").get(t).n;
     const users = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND active = 1").get(t).n;
 
+    // The base license includes the first site; only ADDITIONAL sites are charged.
+    const billableSites = Math.max(0, sites - 1);
     const lineItems = [
-      { label: "Platform base license", qty: 1, rate: cfg.base_price, amount: money(cfg.base_price) },
-      { label: "Active sites", qty: sites, rate: cfg.per_site, amount: money(sites * cfg.per_site) },
-      { label: "Active users", qty: users, rate: cfg.per_user, amount: money(users * cfg.per_user) },
+      { label: "Platform base license (includes 1st site)", qty: 1, rate: cfg.base_price, amount: money(cfg.base_price) },
     ];
+    if (billableSites > 0) {
+      lineItems.push({ label: "Additional sites", qty: billableSites, rate: cfg.per_site, amount: money(billableSites * cfg.per_site) });
+    }
+    if (cfg.per_user > 0) {
+      lineItems.push({ label: "Active users", qty: users, rate: cfg.per_user, amount: money(users * cfg.per_user) });
+    }
 
     // Per-module charges: a line item for each ENABLED, priced module. Enablement =
     // explicit tenant_modules row, else the registry default. This bills the tenant

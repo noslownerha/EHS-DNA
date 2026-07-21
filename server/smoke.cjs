@@ -901,6 +901,11 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const invItems = theInv ? JSON.parse(theInv.line_items) : [];
   ok("billing: enabled module bills as its own line item",
      invItems.some(li => /Equipment/.test(li.label) && li.amount === 50));
+  // The base license includes the first site — only ADDITIONAL sites are billed.
+  ok("billing: base line notes it includes the first site",
+     invItems.some(li => /base/i.test(li.label) && /1st site|first site|includes/i.test(li.label)));
+  ok("billing: no full-count 'Active sites' line (additional-only)",
+     !invItems.some(li => li.label === "Active sites"));
 
   // ── GPS auto-tag on reports ──
   const gpsRep = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),

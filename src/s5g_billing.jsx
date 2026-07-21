@@ -155,12 +155,17 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
             <div><span style={label}>Base / month</span>
               <input style={input} type="number" step="0.01" value={cfg.base_price}
                 onChange={e => { setCfg(c => ({ ...c, base_price: e.target.value })); setSaved(false); }} /></div>
-            <div><span style={label}>Per site</span>
+            <div><span style={label}>Per additional site</span>
               <input style={input} type="number" step="0.01" value={cfg.per_site}
                 onChange={e => { setCfg(c => ({ ...c, per_site: e.target.value })); setSaved(false); }} /></div>
             <div><span style={label}>Per user</span>
               <input style={input} type="number" step="0.01" value={cfg.per_user}
                 onChange={e => { setCfg(c => ({ ...c, per_user: e.target.value })); setSaved(false); }} /></div>
+          </div>
+          <div style={{ fontSize: ".74rem", color: C.mist, marginTop: 8 }}>
+            The base license includes the first site. Only additional sites are billed the per-site rate. Leave per-user at 0 for flat/modular pricing.
+          </div>
+          <div style={{ marginTop: 12 }}>
             <div><span style={label}>Billing contact</span>
               <input style={input} value={cfg.billing_contact ?? ""}
                 onChange={e => { setCfg(c => ({ ...c, billing_contact: e.target.value })); setSaved(false); }} /></div>
