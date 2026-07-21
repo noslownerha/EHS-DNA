@@ -1101,6 +1101,44 @@ app.get("/api/points/leaderboard", auth, (req, res) => {
              me: { points: mine, rank: mine > 0 ? ahead + 1 : null } });
 });
 
+// Tangible-reward redemption ("gift-card log"): logs that a staff member spent
+// confirmed points on a real-world reward. Modeled as a NEGATIVE points_ledger
+// entry (reason='redemption') rather than a new table — the existing balance
+// math (SUM of confirmed points) already reduces correctly, and the ledger's
+// note/awarded_by fields already carry exactly what a redemption needs to record.
+app.post("/api/recognition/redeem", auth, requireRole(...ADMINISH), (req, res) => {
+  const t = req.auth.tenant;
+  const userId = Number(req.body?.userId);
+  const points = Number(req.body?.points);
+  const description = String(req.body?.description ?? "").trim();
+  if (!userId || !Number.isInteger(points) || points <= 0)
+    return res.status(400).json({ error: "userId and a positive whole-number points amount are required" });
+  if (!description) return res.status(400).json({ error: "A description of the reward is required (e.g. '$25 Amazon gift card')" });
+  const target = db.prepare("SELECT id FROM users WHERE id = ? AND tenant_id = ?").get(userId, t);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  const balance = db.prepare("SELECT COALESCE(SUM(points),0) n FROM points_ledger WHERE tenant_id=? AND user_id=? AND status='confirmed'").get(t, userId).n;
+  if (points > balance) return res.status(400).json({ error: `Only ${balance} points available — can't redeem ${points}` });
+  db.prepare(`INSERT INTO points_ledger (tenant_id, user_id, points, reason, source_type, awarded_by, period, status, note)
+              VALUES (?, ?, ?, 'redemption', 'manual', ?, ?, 'confirmed', ?)`)
+    .run(t, userId, -points, req.auth.uid, periodOf(), description.slice(0, 300));
+  const newBalance = balance - points;
+  res.json({ ok: true, newBalance });
+});
+
+// Redemption history — all tenants' redemptions, or one user's, newest first.
+app.get("/api/recognition/redemptions", auth, requireRole(...ADMINISH), (req, res) => {
+  const t = req.auth.tenant;
+  const userId = req.query.userId ? Number(req.query.userId) : null;
+  const rows = db.prepare(`SELECT l.id, l.user_id, u.name AS user_name, -l.points AS points, l.note AS description,
+                                  l.created_at, a.name AS logged_by
+                           FROM points_ledger l JOIN users u ON u.id = l.user_id
+                           LEFT JOIN users a ON a.id = l.awarded_by
+                           WHERE l.tenant_id = ? AND l.reason = 'redemption' ${userId ? "AND l.user_id = ?" : ""}
+                           ORDER BY l.created_at DESC LIMIT 200`)
+    .all(...(userId ? [t, userId] : [t]));
+  res.json(rows);
+});
+
 // The previous month's champion — powers the "reset ceremony": when a new month
 // starts, everyone sees who won the month just ended. Returns the top scorer of the
 // prior period (null if nobody scored), plus a short hall-of-fame of past winners.
@@ -1210,6 +1248,19 @@ app.put("/api/points/values", auth, requireRole(...ADMINISH), (req, res) => {
   }
   db.prepare("UPDATE tenants SET point_values = ? WHERE id = ?").run(JSON.stringify(clean), req.auth.tenant);
   res.json({ ok: true, values: clean });
+});
+
+// Admin-facing: any staff member's confirmed point balance (for Manage Staff's
+// reward-redemption panel — an admin needs to see the balance before logging one).
+// MUST come LAST among /api/points/* routes: Express matches routes in
+// registration order, and ':userId' matches any string literally — placed
+// earlier it would silently swallow /champion, /badges, /values, etc.
+app.get("/api/points/:userId", auth, requireRole(...ADMINISH), (req, res) => {
+  const t = req.auth.tenant, u = Number(req.params.userId);
+  const target = db.prepare("SELECT id FROM users WHERE id = ? AND tenant_id = ?").get(u, t);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  const confirmed = db.prepare("SELECT COALESCE(SUM(points),0) n FROM points_ledger WHERE tenant_id=? AND user_id=? AND status='confirmed'").get(t, u).n;
+  res.json({ confirmed });
 });
 
 // ── Corrective actions ───────────────────────────────────────────────────────

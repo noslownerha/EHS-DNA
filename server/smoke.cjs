@@ -927,6 +927,26 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const cd = await fetch(`${B}/api/assets/${created.id}`, { headers: H() }).then(j);
   ok("equipment: created asset reads back with its procedure", cd.loto && cd.loto.length === 1);
 
+  // ── Recognition: tangible-reward redemption ("gift-card log") ──
+  // Route-ordering guard: /api/points/:userId must NOT shadow the named routes
+  // below it (champion/badges/values) — it must be registered LAST among
+  // /api/points/* or Express matches it first and silently breaks all three.
+  const rwUser = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ email: "rewardsmoke@whistlepig.com", name: "Reward Smoke", role: "staff" }) }).then(j);
+  await fetch(`${B}/api/points/award`, { method: "POST", headers: H(),
+    body: JSON.stringify({ userId: rwUser.id, points: 100, reason: "manual", note: "smoke seed" }) });
+  const rwBalance1 = await fetch(`${B}/api/points/${rwUser.id}`, { headers: H() }).then(j);
+  ok("recognition: admin can read any user's point balance", rwBalance1.confirmed === 100);
+  const rwRedeem = await fetch(`${B}/api/recognition/redeem`, { method: "POST", headers: H(),
+    body: JSON.stringify({ userId: rwUser.id, points: 25, description: "$25 Amazon gift card" }) }).then(j);
+  ok("recognition: redemption deducts points correctly", rwRedeem.newBalance === 75);
+  const rwOver = await fetch(`${B}/api/recognition/redeem`, { method: "POST", headers: H(),
+    body: JSON.stringify({ userId: rwUser.id, points: 9999, description: "too much" }) });
+  ok("recognition: cannot redeem more than the available balance", rwOver.status === 400);
+  const rwHist = await fetch(`${B}/api/recognition/redemptions?userId=${rwUser.id}`, { headers: H() }).then(j);
+  ok("recognition: redemption appears in history with description + points",
+     rwHist.length === 1 && rwHist[0].description === "$25 Amazon gift card" && rwHist[0].points === 25);
+
   // ── Recognition: champion + badges ──
   const champ = await fetch(`${B}/api/points/champion`, { headers: sH }).then(j);
   ok("recognition: champion endpoint returns shape",

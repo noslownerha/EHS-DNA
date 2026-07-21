@@ -39,6 +39,40 @@ export default function S5eManageStaff({ companyName, onHome }) {
   const [importRows, setImportRows] = useState(null);   // parsed preview
   const [importResult, setImportResult] = useState(null);
   const [importBusy, setImportBusy] = useState(false);
+  // Tangible-reward redemption ("gift-card log") — logging that a staff member
+  // spent confirmed recognition points on a real-world reward.
+  const [redeemFor, setRedeemFor] = useState(null);       // the user object being redeemed for
+  const [redeemBalance, setRedeemBalance] = useState(null);
+  const [redeemHistory, setRedeemHistory] = useState([]);
+  const [redeemPoints, setRedeemPoints] = useState("");
+  const [redeemDesc, setRedeemDesc] = useState("");
+  const [redeemBusy, setRedeemBusy] = useState(false);
+  const [redeemErr, setRedeemErr] = useState("");
+
+  function openRedeem(u) {
+    setRedeemFor(u); setRedeemPoints(""); setRedeemDesc(""); setRedeemErr("");
+    setRedeemBalance(null); setRedeemHistory([]);
+    api.pointsFor(u.id).then(r => setRedeemBalance(r.confirmed)).catch(() => setRedeemBalance(0));
+    api.listRedemptions(u.id).then(setRedeemHistory).catch(() => setRedeemHistory([]));
+  }
+  async function submitRedeem(e) {
+    e.preventDefault();
+    setRedeemErr("");
+    const pts = Number(redeemPoints);
+    if (!Number.isInteger(pts) || pts <= 0) return setRedeemErr("Enter a whole number of points greater than 0.");
+    if (!redeemDesc.trim()) return setRedeemErr("Describe the reward (e.g. \"$25 Amazon gift card\").");
+    setRedeemBusy(true);
+    try {
+      const res = await api.redeemReward(redeemFor.id, pts, redeemDesc.trim());
+      setRedeemBalance(res.newBalance);
+      setRedeemHistory(await api.listRedemptions(redeemFor.id));
+      setRedeemPoints(""); setRedeemDesc("");
+    } catch (err) {
+      setRedeemErr(err.message || "Couldn't log the redemption — try again.");
+    } finally {
+      setRedeemBusy(false);
+    }
+  }
 
   function downloadTemplate() {
     const siteNames = sites.map(s => s.name).join(" | ");
@@ -254,6 +288,11 @@ export default function S5eManageStaff({ companyName, onHome }) {
                       padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif", marginRight: 6,
                     }}>Reset password</button>
+                    <button onClick={() => openRedeem(u)} style={{
+                      background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
+                      padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif", marginRight: 6,
+                    }}>🎁 Log reward</button>
                     <button onClick={() => setEditing({
                       id: u.id, name: u.name, role: u.role, email: u.email,
                       siteId: sites.find(s => s.name === u.site)?.id ?? "",
@@ -362,6 +401,54 @@ export default function S5eManageStaff({ companyName, onHome }) {
               <button type="submit" style={{ flex: 1, padding: "10px 0", background: C.sage, color: "#fff", border: "none", borderRadius: 7, fontSize: ".88rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Save</button>
               <button type="button" onClick={() => setEditing(null)} style={{ padding: "10px 16px", background: "none", border: "1px solid #D0DEDB", borderRadius: 7, fontSize: ".85rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
             </div>
+          </form>
+        </div>
+      )}
+
+      {redeemFor && (
+        <div onClick={() => setRedeemFor(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,31,23,.45)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+          <form onClick={e => e.stopPropagation()} onSubmit={submitRedeem} style={{
+            background: C.white, borderRadius: 12, padding: 22, width: "100%", maxWidth: 440,
+            boxShadow: "0 20px 60px rgba(0,0,0,.3)", maxHeight: "85vh", overflowY: "auto",
+          }}>
+            <h3 style={{ fontSize: "1rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Log a reward redemption</h3>
+            <p style={{ fontSize: ".76rem", color: C.mist, marginBottom: 4 }}>{redeemFor.name}</p>
+            <p style={{ fontSize: ".8rem", color: C.sage, fontWeight: 700, marginBottom: 14 }}>
+              {redeemBalance === null ? "Loading balance…" : `${redeemBalance} points available`}
+            </p>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input style={inputStyle} type="number" min="1" step="1" required placeholder="Points to redeem"
+                value={redeemPoints} onChange={e => setRedeemPoints(e.target.value)} />
+              <input style={inputStyle} required placeholder='Reward description (e.g. "$25 Amazon gift card")'
+                value={redeemDesc} onChange={e => setRedeemDesc(e.target.value)} maxLength={300} />
+            </div>
+            {redeemErr && (
+              <div style={{ fontSize: ".78rem", color: C.red, background: C.redLt, borderRadius: 7, padding: "8px 12px", marginTop: 10 }}>{redeemErr}</div>
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button type="submit" disabled={redeemBusy || redeemBalance === null} style={{
+                flex: 1, padding: "10px 0", background: redeemBusy ? "#CBD5D1" : C.sage, color: "#fff", border: "none",
+                borderRadius: 7, fontSize: ".88rem", fontWeight: 700, cursor: redeemBusy ? "wait" : "pointer", fontFamily: "'DM Sans', sans-serif",
+              }}>{redeemBusy ? "Logging…" : "Log redemption"}</button>
+              <button type="button" onClick={() => setRedeemFor(null)} style={{ padding: "10px 16px", background: "none", border: "1px solid #D0DEDB", borderRadius: 7, fontSize: ".85rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Close</button>
+            </div>
+
+            {redeemHistory.length > 0 && (
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #EEF3F0" }}>
+                <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: C.mist, marginBottom: 8 }}>Redemption history</div>
+                {redeemHistory.map(h => (
+                  <div key={h.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "7px 0", borderBottom: "1px solid #F5F7F6" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: ".82rem", color: C.ink }}>{h.description}</div>
+                      <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 1 }}>
+                        {String(h.created_at).slice(0, 10)}{h.logged_by ? ` · logged by ${h.logged_by}` : ""}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: ".82rem", fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>−{h.points} pts</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
         </div>
       )}
