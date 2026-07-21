@@ -1807,6 +1807,88 @@ app.put("/api/op/tenants/:id/modules/:module", auth, requireOperator, (req, res)
   res.json({ ok: true, module: mod, enabled: !!enabled });
 });
 
+// Operator analytics — the business view of the platform, NOT customer safety
+// data. MRR & revenue projection, per-tenant usage/adoption, and module efficacy.
+// mrrFor mirrors invoice math: base includes the 1st site; only additional sites
+// bill; per-user only when > 0; each enabled+priced module adds its price.
+function mrrFor(tenantId) {
+  const cfg = db.prepare("SELECT * FROM billing_config WHERE tenant_id = ?").get(tenantId);
+  if (!cfg) return { total: 0, base: 0, sites: 0, users: 0, modules: 0 };
+  const sites = db.prepare("SELECT COUNT(*) n FROM sites WHERE tenant_id = ? AND active = 1").get(tenantId).n;
+  const users = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0").get(tenantId).n;
+  const base = cfg.base_price || 0;
+  const siteRev = Math.max(0, sites - 1) * (cfg.per_site || 0);
+  const userRev = (cfg.per_user || 0) > 0 ? users * cfg.per_user : 0;
+  let modulePrices = {}; try { modulePrices = JSON.parse(cfg.module_prices || "{}"); } catch {}
+  let moduleRev = 0;
+  for (const [key, price] of Object.entries(modulePrices)) {
+    if (!price || price <= 0) continue;
+    if (moduleOn(tenantId, key)) moduleRev += price;
+  }
+  return { total: Math.round((base + siteRev + userRev + moduleRev) * 100) / 100,
+           base, sites: siteRev, users: userRev, modules: moduleRev };
+}
+
+app.get("/api/op/analytics", auth, requireOperator, (req, res) => {
+  const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
+  const now = Date.now();
+  const DAY = 86400000;
+  const activeTenants = tenants.filter(t => t.active !== 0);
+
+  // Module efficacy: across active tenants, how many have each module enabled, and
+  // how many are actually USING it (have created the relevant records).
+  const MODULE_USAGE = {
+    incidents:          "SELECT COUNT(*) n FROM incidents WHERE tenant_id = ?",
+    inspections:        "SELECT COUNT(*) n FROM inspections WHERE tenant_id = ?",
+    corrective_actions: "SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id = ?",
+    lms:                "SELECT COUNT(*) n FROM training_completions WHERE tenant_id = ?",
+    equipment:          "SELECT COUNT(*) n FROM assets WHERE tenant_id = ?",
+    recognition:        "SELECT COUNT(*) n FROM points_ledger WHERE tenant_id = ?",
+    reporting:          "SELECT COUNT(*) n FROM incidents WHERE tenant_id = ?",
+  };
+  const moduleEfficacy = Object.keys(MODULE_USAGE).map(key => {
+    let enabled = 0, using = 0;
+    for (const t of activeTenants) {
+      if (!moduleOn(t.id, key)) continue;
+      enabled++;
+      try { if (db.prepare(MODULE_USAGE[key]).get(t.id).n > 0) using++; } catch {}
+    }
+    return { module: key, enabled, using,
+             adoptionPct: enabled > 0 ? Math.round((using / enabled) * 100) : null };
+  });
+
+  // Per-tenant rollup: MRR, size, and a simple activity signal (reports in last 30d).
+  const perTenant = tenants.map(t => {
+    const mrr = mrrFor(t.id);
+    const users = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0").get(t.id).n;
+    const sites = db.prepare("SELECT COUNT(*) n FROM sites WHERE tenant_id = ? AND active = 1").get(t.id).n;
+    const recent = db.prepare("SELECT COUNT(*) n FROM incidents WHERE tenant_id = ? AND created_at >= ?")
+      .get(t.id, new Date(now - 30 * DAY).toISOString()).n;
+    const lastReport = db.prepare("SELECT MAX(created_at) d FROM incidents WHERE tenant_id = ?").get(t.id).d;
+    const daysSinceActivity = lastReport ? Math.floor((now - new Date(lastReport).getTime()) / DAY) : null;
+    return { id: t.id, name: t.name, active: t.active !== 0, users, sites,
+             mrr: mrr.total, reports30d: recent, daysSinceActivity };
+  });
+
+  const activeMrr = perTenant.filter(t => t.active).reduce((s, t) => s + t.mrr, 0);
+  const summary = {
+    tenants: tenants.length,
+    activeTenants: activeTenants.length,
+    suspendedTenants: tenants.length - activeTenants.length,
+    totalUsers: perTenant.reduce((s, t) => s + t.users, 0),
+    totalSites: perTenant.reduce((s, t) => s + t.sites, 0),
+    mrr: Math.round(activeMrr * 100) / 100,
+    arr: Math.round(activeMrr * 12 * 100) / 100,
+    avgMrrPerTenant: activeTenants.length ? Math.round((activeMrr / activeTenants.length) * 100) / 100 : 0,
+    // Simple engagement signal: active tenants with a report in the last 30 days.
+    engagedTenants: perTenant.filter(t => t.active && t.reports30d > 0).length,
+    // At-risk: active but no activity in 30+ days (or never).
+    atRiskTenants: perTenant.filter(t => t.active && (t.daysSinceActivity === null || t.daysSinceActivity >= 30)).length,
+  };
+
+  res.json({ summary, perTenant, moduleEfficacy });
+});
+
 app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
   const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
   res.json(tenants.map(t => {

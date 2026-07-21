@@ -1069,6 +1069,17 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const faDesc = fa300.cases.find(c => /First aid only smoke/.test(c.description || ""));
   ok("reports: 'first aid only' is not counted as recordable and not on the 300 log", !faDesc);
 
+  // ── Operator analytics (business view, not customer safety data) ──
+  const opAn = await fetch(`${B}/api/op/analytics`, { headers: opH() }).then(j);
+  ok("op analytics: returns MRR + ARR + per-tenant + module efficacy",
+     opAn && opAn.summary && typeof opAn.summary.mrr === "number" && typeof opAn.summary.arr === "number" &&
+     Array.isArray(opAn.perTenant) && Array.isArray(opAn.moduleEfficacy));
+  ok("op analytics: MRR reflects additional-sites billing (base incl 1st site)",
+     opAn.summary.mrr > 0 && opAn.perTenant.every(t => typeof t.mrr === "number"));
+  // A regular tenant admin must NOT reach operator analytics.
+  const anForbidden = await fetch(`${B}/api/op/analytics`, { headers: H() });
+  ok("op analytics: forbidden for non-operator", anForbidden.status === 403);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

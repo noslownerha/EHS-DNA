@@ -68,6 +68,7 @@ export const api = {
   opTenantUsers: (id) => req(`/op/tenants/${id}/users`),
   opTenantModules: (id) => req(`/op/tenants/${id}/modules`),
   opTemplatePacks: () => req("/op/template-packs"),
+  opAnalytics: () => req("/op/analytics"),
   opApplyTemplatePack: (packId, tenantId) => req(`/op/template-packs/${packId}/apply`, { method: "POST", body: { tenantId } }),
   opSetTenantModule: (id, module, enabled) => req(`/op/tenants/${id}/modules/${module}`, { method: "PUT", body: { enabled } }),
   opResetUserPassword: (id) => req(`/op/users/${id}/reset`, { method: "POST" }),

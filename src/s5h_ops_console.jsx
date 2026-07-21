@@ -14,6 +14,8 @@ const fmt$ = n => n == null ? "—" : "$" + Number(n).toLocaleString("en-US", { 
 export default function S5hOpsConsole({ onHome, onOpenBilling }) {
   const [tenants, setTenants] = useState(null);
   const [error, setError] = useState(null);
+  const [opsTab, setOpsTab] = useState("overview");   // "overview" | "companies"
+  const [analytics, setAnalytics] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", industry: "", adminEmail: "", adminName: "" });
   const [created, setCreated] = useState(null);
@@ -86,6 +88,7 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
   const load = () => {
     api.opTenants().then(setTenants).catch(err => setError(err.message));
     api.opLeads().then(setLeads).catch(() => {});
+    api.opAnalytics().then(setAnalytics).catch(() => {});
   };
   useEffect(load, []);
 
@@ -113,6 +116,20 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
       } />
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "26px 20px" }}>
+        {/* Operator view tabs: business Overview vs company management */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 20, background: C.white, padding: 4, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", width: "fit-content" }}>
+          {[{ k: "overview", label: "📊 Overview" }, { k: "companies", label: "🏢 Companies" }].map(t => (
+            <button key={t.k} onClick={() => setOpsTab(t.k)} style={{
+              padding: "8px 18px", border: "none", borderRadius: 7, cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
+              background: opsTab === t.k ? C.sage : "transparent", color: opsTab === t.k ? "#fff" : C.slate,
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {opsTab === "overview" && <OperatorOverview analytics={analytics} />}
+
+        {opsTab === "companies" && (<>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 6 }}>
           <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink }}>Client companies</h1>
           <button onClick={() => { setShowAdd(s => !s); setCreated(null); }} style={{
@@ -344,6 +361,82 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
                 )}
               </div>
             )}
+          </div>
+        ))}
+      </>)}
+      </div>
+    </div>
+  );
+}
+
+// ── Operator business overview — MRR, adoption, module efficacy, at-risk tenants.
+// This is the operator's view of the BUSINESS, deliberately separate from any
+// customer safety data (which belongs to the tenants, not the operator).
+const MODULE_LABELS = {
+  incidents: "Incident Reporting", inspections: "Inspections", corrective_actions: "Corrective Actions",
+  lms: "Training / LMS", equipment: "Equipment", recognition: "Recognition", reporting: "Reporting / OSHA",
+};
+
+function OperatorOverview({ analytics }) {
+  if (!analytics) return <div style={{ padding: 40, textAlign: "center", color: C.mist }}>Loading analytics…</div>;
+  const { summary: s, perTenant, moduleEfficacy } = analytics;
+  const money = n => "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+  const kpis = [
+    { label: "Monthly recurring revenue", value: money(s.mrr), sub: `${money(s.arr)} ARR`, color: C.sage },
+    { label: "Active tenants", value: s.activeTenants, sub: s.suspendedTenants ? `${s.suspendedTenants} suspended` : "all active", color: C.pine },
+    { label: "Avg revenue / tenant", value: money(s.avgMrrPerTenant), sub: `${s.totalUsers} users · ${s.totalSites} sites`, color: C.navy },
+    { label: "Engaged (30d)", value: `${s.engagedTenants}/${s.activeTenants}`, sub: s.atRiskTenants ? `${s.atRiskTenants} at risk` : "none at risk", color: s.atRiskTenants ? C.gold : C.sage },
+  ];
+
+  return (
+    <div className="anim">
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 22 }}>
+        {kpis.map((k, i) => (
+          <div key={i} style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "16px 18px", borderTop: `3px solid ${k.color}` }}>
+            <div style={{ fontSize: "1.5rem", fontWeight: 800, color: C.ink, lineHeight: 1.1 }}>{k.value}</div>
+            <div style={{ fontSize: ".78rem", color: C.slate, fontWeight: 600, marginTop: 4 }}>{k.label}</div>
+            <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Revenue by tenant */}
+      <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 20px", marginBottom: 18 }}>
+        <h2 style={{ fontSize: ".98rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Revenue & activity by tenant</h2>
+        <p style={{ fontSize: ".72rem", color: C.mist, marginBottom: 14 }}>Monthly recurring revenue and recent engagement per account.</p>
+        {perTenant.map(t => (
+          <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #F0F4F2", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.ink, display: "flex", alignItems: "center", gap: 7 }}>
+                {t.name}
+                {!t.active && <span style={{ fontSize: ".64rem", color: C.red, background: C.redLt, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>SUSPENDED</span>}
+                {t.active && (t.daysSinceActivity === null || t.daysSinceActivity >= 30) && <span style={{ fontSize: ".64rem", color: "#8A6D00", background: "#FBF0CE", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>AT RISK</span>}
+              </div>
+              <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>
+                {t.users} users · {t.sites} sites · {t.reports30d} reports/30d
+                {t.daysSinceActivity !== null ? ` · last activity ${t.daysSinceActivity}d ago` : " · no activity yet"}
+              </div>
+            </div>
+            <div style={{ fontSize: "1rem", fontWeight: 800, color: t.active ? C.sage : C.mist, whiteSpace: "nowrap" }}>{money(t.mrr)}<span style={{ fontSize: ".64rem", color: C.mist, fontWeight: 600 }}>/mo</span></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Module efficacy */}
+      <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 20px" }}>
+        <h2 style={{ fontSize: ".98rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Module adoption</h2>
+        <p style={{ fontSize: ".72rem", color: C.mist, marginBottom: 14 }}>Of tenants with each module enabled, how many are actually using it. Low adoption = churn risk or an onboarding gap.</p>
+        {moduleEfficacy.filter(m => m.enabled > 0).map(m => (
+          <div key={m.module} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: ".8rem", marginBottom: 4 }}>
+              <span style={{ color: C.slate, fontWeight: 600 }}>{MODULE_LABELS[m.module] ?? m.module}</span>
+              <span style={{ color: C.mist }}>{m.using}/{m.enabled} using · {m.adoptionPct}%</span>
+            </div>
+            <div style={{ height: 7, background: "#EEF3F0", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${m.adoptionPct ?? 0}%`, height: "100%", background: m.adoptionPct >= 60 ? C.sage : m.adoptionPct >= 30 ? C.gold : C.red, borderRadius: 4 }} />
+            </div>
           </div>
         ))}
       </div>
