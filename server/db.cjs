@@ -38,6 +38,19 @@ CREATE TABLE IF NOT EXISTS departments (
   name TEXT NOT NULL,
   active INTEGER DEFAULT 1
 );
+-- "Manual" training groups collected during onboarding (s1b5). NOTE: this is
+-- intentionally a name/emoji/recurrence SHELL — there is no membership tracking
+-- or automatic training assignment tied to a group yet (that's a real feature
+-- to design, not implemented). Persisting here means a customer's onboarding
+-- input isn't silently discarded; it does not mean groups "do" anything yet.
+CREATE TABLE IF NOT EXISTS training_groups (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  name TEXT NOT NULL,
+  emoji TEXT,
+  recurrence TEXT,
+  active INTEGER DEFAULT 1
+);
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenants(id),

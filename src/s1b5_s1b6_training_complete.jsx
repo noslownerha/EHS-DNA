@@ -306,8 +306,8 @@ export function S1b5TrainingGroups({ departments = [], onContinue, onBack, onHom
         }}>
           <span style={{ flexShrink: 0, marginTop: 1 }}>💡</span>
           <span>
-            <strong>Auto-groups</strong> are linked to departments — staff added to a dept are automatically enrolled.{" "}
-            <strong>Manual groups</strong> let you assign specific training to individuals regardless of department.
+            <strong>Auto-groups</strong> mirror your departments, so you can see training needs by department at a glance.{" "}
+            <strong>Manual groups</strong> let you name additional groupings (like a certification or specific machine) to plan around later.
           </span>
         </div>
 

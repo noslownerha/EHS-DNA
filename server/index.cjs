@@ -488,12 +488,14 @@ app.post("/api/sites/bulk", auth, requireRole(...ADMINISH), (req, res) => {
     const location = String(r.location ?? "").trim() || null;
     if (!name) { results.push({ line, error: "Missing site name" }); continue; }
     const key = name.toLowerCase();
-    if (existing.has(key)) { results.push({ line, name, error: "Site name already exists" }); continue; }
+    if (existing.has(key)) { results.push({ line, name, skipped: true }); continue; } // already exists — idempotent re-submission (e.g. wizard back-navigation)
     ins.run(req.auth.tenant, name, location);
     existing.add(key); // guard against duplicates within the same file
     results.push({ line, name });
   }
-  res.json({ created: results.filter(r => !r.error).length, failed: results.filter(r => r.error).length, results });
+  res.json({ created: results.filter(r => !r.error && !r.skipped).length,
+             skipped: results.filter(r => r.skipped).length,
+             failed: results.filter(r => r.error).length, results });
 });
 
 app.post("/api/sites", auth, requireRole(...ADMINISH), (req, res) => {
@@ -510,10 +512,66 @@ app.post("/api/departments", auth, requireRole(...ADMINISH), (req, res) => {
   const r = db.prepare("INSERT INTO departments (tenant_id, name) VALUES (?, ?)").run(req.auth.tenant, req.body.name);
   res.json({ id: r.lastInsertRowid });
 });
+// Bulk department creation — mirrors /api/sites/bulk. This exists because the
+// onboarding wizard (s1b3) collects a department list in local wizard state and
+// previously never sent it to the server: staff bulk-create (s1b4) then failed
+// with "Unknown department" for every row, since the departments never existed.
+app.post("/api/departments/bulk", auth, requireRole(...ADMINISH), (req, res) => {
+  const rows = req.body?.rows;
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: "rows array required" });
+  if (rows.length > 200) return res.status(400).json({ error: "Max 200 rows per import" });
+  const existing = new Set(db.prepare("SELECT name FROM departments WHERE tenant_id = ?").all(req.auth.tenant)
+    .map(d => String(d.name).trim().toLowerCase()));
+  const results = [];
+  const ins = db.prepare("INSERT INTO departments (tenant_id, name) VALUES (?, ?)");
+  for (const [i, r] of rows.entries()) {
+    const line = i + 2;
+    const name = String(r.name ?? "").trim();
+    if (!name) { results.push({ line, error: "Missing department name" }); continue; }
+    const key = name.toLowerCase();
+    if (existing.has(key)) { results.push({ line, name, skipped: true }); continue; } // already exists — not an error, just idempotent
+    ins.run(req.auth.tenant, name);
+    existing.add(key);
+    results.push({ line, name });
+  }
+  res.json({ created: results.filter(r => !r.error && !r.skipped).length,
+             skipped: results.filter(r => r.skipped).length,
+             failed: results.filter(r => r.error).length, results });
+});
 app.put("/api/departments/:id", auth, requireRole(...ADMINISH), (req, res) => {
   db.prepare("UPDATE departments SET name = COALESCE(?, name), active = COALESCE(?, active) WHERE id = ? AND tenant_id = ?")
     .run(req.body.name, req.body.active, req.params.id, req.auth.tenant);
   res.json({ ok: true });
+});
+
+// "Manual" training groups from onboarding (s1b5) — see the schema comment in
+// db.cjs: this persists the name/emoji/recurrence so a customer's onboarding
+// input isn't silently discarded, but there's no membership or auto-assignment
+// behind it yet. GET exists so the data is visible/manageable, not a black hole.
+app.get("/api/training-groups", auth, requireRole(...ADMINISH), (req, res) => {
+  res.json(db.prepare("SELECT id, name, emoji, recurrence FROM training_groups WHERE tenant_id = ? AND active = 1 ORDER BY id").all(req.auth.tenant));
+});
+app.post("/api/training-groups/bulk", auth, requireRole(...ADMINISH), (req, res) => {
+  const rows = req.body?.rows;
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: "rows array required" });
+  if (rows.length > 100) return res.status(400).json({ error: "Max 100 rows per import" });
+  const existing = new Set(db.prepare("SELECT name FROM training_groups WHERE tenant_id = ?").all(req.auth.tenant)
+    .map(g => String(g.name).trim().toLowerCase()));
+  const results = [];
+  const ins = db.prepare("INSERT INTO training_groups (tenant_id, name, emoji, recurrence) VALUES (?, ?, ?, ?)");
+  for (const [i, r] of rows.entries()) {
+    const line = i + 2;
+    const name = String(r.name ?? "").trim();
+    if (!name) { results.push({ line, error: "Missing group name" }); continue; }
+    const key = name.toLowerCase();
+    if (existing.has(key)) { results.push({ line, name, skipped: true }); continue; }
+    ins.run(req.auth.tenant, name, r.emoji ?? null, r.recurrence ?? null);
+    existing.add(key);
+    results.push({ line, name });
+  }
+  res.json({ created: results.filter(r => !r.error && !r.skipped).length,
+             skipped: results.filter(r => r.skipped).length,
+             failed: results.filter(r => r.error).length, results });
 });
 
 // Users (admin manage; no password in list responses)
@@ -541,14 +599,16 @@ app.post("/api/users/bulk", auth, requireRole("admin", "safety", "site_manager")
     if (r.site && !siteId) { results.push({ line, email, error: `Unknown site "${r.site}"` }); continue; }
     const deptId = r.department ? deptByName[norm(r.department)] : null;
     if (r.department && !deptId) { results.push({ line, email, error: `Unknown department "${r.department}"` }); continue; }
-    if (db.prepare("SELECT id FROM users WHERE email = ?").get(email)) { results.push({ line, email, error: "Email already exists" }); continue; }
+    if (db.prepare("SELECT id FROM users WHERE email = ?").get(email)) { results.push({ line, email, skipped: true }); continue; } // already exists — idempotent re-submission (e.g. wizard back-navigation)
     const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
     db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, site_id, department_id, must_change_password)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1)`)
       .run(req.auth.tenant, email, bcrypt.hashSync(tempPassword, 10), name, role, siteId, deptId);
     results.push({ line, email, name, tempPassword });
   }
-  res.json({ created: results.filter(r => !r.error).length, failed: results.filter(r => r.error).length, results });
+  res.json({ created: results.filter(r => !r.error && !r.skipped).length,
+             skipped: results.filter(r => r.skipped).length,
+             failed: results.filter(r => r.error).length, results });
 });
 
 app.get("/api/users/directory", auth, (req, res) =>

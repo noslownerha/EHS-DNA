@@ -233,10 +233,10 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
       { name: "Dupe", email: "test.staff@whistlepig.com", role: "staff" },  // existing → skip
       { name: "NoEmail", email: "", role: "staff" },                        // invalid → skip
     ] }) }).then(j);
-  ok("bulk users adds + skips", ub.created === 2 && ub.failed === 2);
+  ok("bulk users adds + skips", ub.created === 2 && ub.skipped === 1 && ub.failed === 1);
   // The dupe row must not have overwritten the existing user's record.
   const dupeResult = ub.results.find(r => r.email === "test.staff@whistlepig.com");
-  ok("bulk did not overwrite existing user", dupeResult && dupeResult.error === "Email already exists");
+  ok("bulk did not overwrite existing user", dupeResult && dupeResult.skipped === true);
 
   const sb = await fetch(`${B}/api/sites/bulk`, { method: "POST", headers: H(),
     body: JSON.stringify({ rows: [
@@ -244,10 +244,35 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
       { name: "Moriah", location: "should be skipped" },  // existing → skip
       { name: "", location: "x" },                         // invalid → skip
     ] }) }).then(j);
-  ok("bulk sites adds + skips", sb.created === 1 && sb.failed === 2);
+  ok("bulk sites adds + skips", sb.created === 1 && sb.skipped === 1 && sb.failed === 1);
   const sitesNow = await fetch(`${B}/api/config`, { headers: H() }).then(j);
   const moriah = (sitesNow.sites ?? []).find(s => s.name === "Moriah");
   ok("bulk did not overwrite existing site", moriah && moriah.location === "Moriah, NY");
+
+  // Departments bulk-create — this is the fix for the onboarding bug where
+  // manually-entered departments (s1b3) never reached the server, so staff
+  // bulk-create (s1b4) failed with "Unknown department" for every row.
+  const db_ = await fetch(`${B}/api/departments/bulk`, { method: "POST", headers: H(),
+    body: JSON.stringify({ rows: [
+      { name: "Fermentation" },
+      { name: "Distillation" },  // existing (seeded) → skip
+      { name: "" },               // invalid → fail
+    ] }) }).then(j);
+  ok("bulk departments adds + skips", db_.created === 1 && db_.skipped === 1 && db_.failed === 1);
+  const deptNow = await fetch(`${B}/api/config`, { headers: H() }).then(j);
+  ok("bulk-created department is real and usable", (deptNow.departments ?? []).some(d => d.name === "Fermentation"));
+  // Staff creation against a department created via bulk (not seeded) must now work.
+  const staffViaDept = await fetch(`${B}/api/users/bulk`, { method: "POST", headers: H(),
+    body: JSON.stringify({ rows: [{ name: "Fermentation Tester", email: "ferm.test@whistlepig.com", role: "staff", department: "Fermentation" }] }) }).then(j);
+  ok("staff creation resolves a department created via bulk", staffViaDept.created === 1);
+
+  // Manual training groups (onboarding s1b5) — shell persistence only (no
+  // membership/auto-assignment), but must not be silently discarded.
+  const tgb = await fetch(`${B}/api/training-groups/bulk`, { method: "POST", headers: H(),
+    body: JSON.stringify({ rows: [{ name: "LOTO Certified", emoji: "🔑", recurrence: "Annually" }] }) }).then(j);
+  ok("training group bulk-create succeeds", tgb.created === 1);
+  const tgList = await fetch(`${B}/api/training-groups`, { headers: H() }).then(j);
+  ok("training group is retrievable after creation", tgList.some(g => g.name === "LOTO Certified"));
 
   // Operator billing pause: pausing a tenant locks its team out with the AP/billing message
   const opLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },

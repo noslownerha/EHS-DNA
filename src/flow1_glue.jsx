@@ -22,6 +22,7 @@
 
 import { createContext, useContext, useReducer, useCallback } from "react";
 import { COLORS as C } from "./constants.js";
+import { api } from "./api.js";
 
 import S1aLogin                      from "./s1a_login";
 import S1b1CompanyInfo               from "./s1b1_company_info";
@@ -241,7 +242,22 @@ export function FlowRouter({ onHome } = {}) {
           onHome={onHome}
           initialSites={sites.length > 0 ? sites : undefined}
           onBack={back}
-          onContinue={({ sites: newSites }) => {
+          onContinue={async ({ sites: newSites }) => {
+            // Persist to the server here — this is the only place manually-added
+            // sites (as opposed to CSV-imported ones) ever reach the database.
+            // Without this, onboarding silently discarded them and staff creation
+            // (s1b4) failed downstream with "Unknown site".
+            try {
+              const res = await api.bulkCreateSites(newSites.map(s => ({ name: s.name, location: s.location })));
+              const failed = (res.results || []).filter(r => r.error);
+              if (failed.length) {
+                window.alert(`Some sites couldn't be saved:\n` + failed.map(f => `• ${f.name || `row ${f.line}`}: ${f.error}`).join("\n"));
+                return; // stay on this screen — nothing is lost, user can fix and retry
+              }
+            } catch (e) {
+              window.alert(`Couldn't save sites (${e.message}). Please try again.`);
+              return;
+            }
             save("SAVE_SITES", newSites);
             navigate(SCREENS.DEPARTMENTS);
           }}
@@ -255,7 +271,21 @@ export function FlowRouter({ onHome } = {}) {
           onHome={onHome}
           industry={company.industry}
           onBack={back}
-          onContinue={({ departments: newDepts }) => {
+          onContinue={async ({ departments: newDepts }) => {
+            // Same fix as sites: departments were only ever kept in local wizard
+            // state, so staff creation (s1b4) always failed with "Unknown
+            // department" for real customers who didn't use CSV import.
+            try {
+              const res = await api.bulkCreateDepartments(newDepts.map(d => ({ name: d.name })));
+              const failed = (res.results || []).filter(r => r.error);
+              if (failed.length) {
+                window.alert(`Some departments couldn't be saved:\n` + failed.map(f => `• ${f.name || `row ${f.line}`}: ${f.error}`).join("\n"));
+                return;
+              }
+            } catch (e) {
+              window.alert(`Couldn't save departments (${e.message}). Please try again.`);
+              return;
+            }
             save("SAVE_DEPARTMENTS", newDepts);
             navigate(SCREENS.STAFF);
           }}
@@ -271,7 +301,25 @@ export function FlowRouter({ onHome } = {}) {
           departments={selectDeptNames(state)}
           initialStaff={staff.length > 0 ? staff : undefined}
           onBack={back}
-          onContinue={({ staff: newStaff }) => {
+          onContinue={async ({ staff: newStaff }) => {
+            // Same fix again: manually-added staff (AddPersonForm) never reached
+            // the server before — only CSV-imported rows did. Field names differ
+            // from the API shape (first/last/dept → name/department).
+            try {
+              const rows = newStaff.map(p => ({
+                name: `${p.first ?? ""} ${p.last ?? ""}`.trim(),
+                email: p.email, role: p.role, site: p.site, department: p.dept,
+              }));
+              const res = await api.bulkCreateUsers(rows);
+              const failed = (res.results || []).filter(r => r.error);
+              if (failed.length) {
+                window.alert(`Some staff couldn't be saved:\n` + failed.map(f => `• ${f.email || `row ${f.line}`}: ${f.error}`).join("\n"));
+                return;
+              }
+            } catch (e) {
+              window.alert(`Couldn't save staff (${e.message}). Please try again.`);
+              return;
+            }
             save("SAVE_STAFF", newStaff);
             navigate(SCREENS.TRAINING);
           }}
@@ -285,7 +333,17 @@ export function FlowRouter({ onHome } = {}) {
           onHome={onHome}
           departments={departments}
           onBack={back}
-          onContinue={({ manualGroups }) => {
+          onContinue={async ({ manualGroups }) => {
+            // Persist so onboarding input isn't silently discarded (the original
+            // bug). NOTE: this saves the group shell (name/emoji/recurrence)
+            // only — there's no member list or training-assignment automation
+            // behind these yet; that's a real feature to design, not invented
+            // here. Non-blocking: a failure here shouldn't strand a customer on
+            // the last step of onboarding over a low-stakes save.
+            if (manualGroups && manualGroups.length) {
+              try { await api.bulkCreateTrainingGroups(manualGroups.map(g => ({ name: g.name, emoji: g.emoji, recurrence: g.recurrence }))); }
+              catch (e) { console.error("Saving training groups failed:", e.message); }
+            }
             save("SAVE_MANUAL_GROUPS", manualGroups);
             navigate(SCREENS.COMPLETE);
           }}
