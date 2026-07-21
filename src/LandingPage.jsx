@@ -34,7 +34,16 @@ export default function LandingPage({ onEnter }) {
       await api.fetchConfig();
       onEnter(user);
     } catch (err) {
-      setError(err.status === 401 ? "Invalid email or password" : "Could not reach the server — try again");
+      // 401 is deliberately generic (don't reveal whether the email exists).
+      // Any OTHER server response (429 rate-limit/lockout, 403 suspended, etc.)
+      // already carries a specific, safe-to-show, actionable message — showing
+      // a blanket "could not reach the server" for those buries the real reason
+      // (e.g. "Account temporarily locked...") and sends people down the wrong
+      // troubleshooting path. Reserve the network-failure message for when the
+      // request truly never got a response (no err.status at all).
+      if (err.status === 401) setError("Invalid email or password");
+      else if (err.status) setError(err.message || "Something went wrong — try again");
+      else setError("Could not reach the server — try again");
       setBusy(false);
     }
   }

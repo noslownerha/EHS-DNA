@@ -274,6 +274,24 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const tgList = await fetch(`${B}/api/training-groups`, { headers: H() }).then(j);
   ok("training group is retrievable after creation", tgList.some(g => g.name === "LOTO Certified"));
 
+  // Login lockout: 8 failed attempts locks the account (429), and — this is the
+  // fix — resetting the password clears the lockout so a fresh temp password
+  // isn't trapped behind a stale 15-minute cooldown from earlier mistyped tries.
+  const lkUser = await fetch(`${B}/api/users`, { method: "POST", headers: H(),
+    body: JSON.stringify({ email: "locktest@whistlepig.com", name: "Lock Test", role: "staff" }) }).then(j);
+  for (let i = 0; i < 8; i++) {
+    await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "locktest@whistlepig.com", password: "wrong" }) });
+  }
+  const lockedTry = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "locktest@whistlepig.com", password: "wrong" }) });
+  ok("8 failed logins locks the account (429)", lockedTry.status === 429);
+  const lkReset = await fetch(`${B}/api/users/${lkUser.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ resetPassword: true }) }).then(j);
+  const postResetLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "locktest@whistlepig.com", password: lkReset.tempPassword }) });
+  ok("password reset clears the lockout — fresh login succeeds immediately", postResetLogin.status === 200);
+
   // Operator billing pause: pausing a tenant locks its team out with the AP/billing message
   const opLogin = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "ahrenwolson@gmail.com", password: process.env.EHS_OPERATOR_PASSWORD || "ChangeMe!2026" }) }).then(j);

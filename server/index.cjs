@@ -650,6 +650,11 @@ app.put("/api/users/:id", auth, requireRole(...ADMINISH), (req, res) => {
     tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
     db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ? AND tenant_id = ?")
       .run(bcrypt.hashSync(tempPassword, 10), req.params.id, req.auth.tenant);
+    // An admin resetting the password is a clear signal "let them in now" — a
+    // stale lockout from earlier mistyped attempts must not survive the reset,
+    // or the fresh temp password would still show "temporarily locked".
+    const target = db.prepare("SELECT email FROM users WHERE id = ?").get(req.params.id);
+    if (target) db.prepare("DELETE FROM login_failures WHERE email = ?").run(target.email);
   }
   res.json({ ok: true, tempPassword });
 });
@@ -1965,10 +1970,11 @@ app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
 
 app.post("/api/op/users/:id/reset-password", auth, requireOperator, (req, res) => {
   const bcrypt2 = require("bcryptjs");
-  const user = db.prepare("SELECT id FROM users WHERE id = ?").get(req.params.id);
+  const user = db.prepare("SELECT id, email FROM users WHERE id = ?").get(req.params.id);
   if (!user) return res.status(404).json({ error: "User not found" });
   const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
   db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?").run(bcrypt2.hashSync(tempPassword, 10), user.id);
+  db.prepare("DELETE FROM login_failures WHERE email = ?").run(user.email); // a reset must not leave a stale lockout behind
   res.json({ tempPassword });
 });
 
@@ -2042,6 +2048,7 @@ app.post("/api/op/users/:id/reset", auth, requireOperator, (req, res) => {
   if (!user) return res.status(404).json({ error: "User not found" });
   const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
   db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?").run(bcrypt.hashSync(tempPassword, 10), user.id);
+  db.prepare("DELETE FROM login_failures WHERE email = ?").run(user.email); // a reset must not leave a stale lockout behind
   res.json({ email: user.email, tempPassword });
 });
 
