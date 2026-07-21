@@ -347,6 +347,16 @@ try { db.exec("ALTER TABLE incidents ADD COLUMN recognized_user_id INTEGER REFER
 try { db.exec("ALTER TABLE tenants ADD COLUMN recognition_enabled INTEGER DEFAULT 1"); } catch {}
 // Per-enabled-module billing: JSON map { moduleKey: monthlyPrice }.
 try { db.exec("ALTER TABLE billing_config ADD COLUMN module_prices TEXT"); } catch {}
+// Move tenants still on the original placeholder pricing (250/75/8) to the
+// recommended defaults (299 base incl. 1st site / 149 per additional site / no
+// per-user / module prices). Only touches untouched configs. Idempotent.
+try {
+  const r = db.prepare(`UPDATE billing_config
+      SET base_price = 299, per_site = 149, per_user = 0,
+          module_prices = COALESCE(module_prices, '{"inspections":99,"lms":99,"corrective_actions":49,"recognition":49,"equipment":79,"reporting":79}')
+      WHERE base_price = 250 AND per_site = 75 AND per_user = 8`).run();
+  if (r.changes > 0) console.log(`Updated ${r.changes} tenant(s) to recommended default pricing`);
+} catch {}
 // Per-tenant point values (JSON) — admins can tune what each action is worth.
 try { db.exec("ALTER TABLE tenants ADD COLUMN point_values TEXT"); } catch {}
 // Custom triage decision-tree questions (JSON array of {id,text}); null → use defaults.
@@ -356,6 +366,12 @@ try { db.exec("ALTER TABLE assets ADD COLUMN photo TEXT"); } catch {}
 // Elevated-staff investigation fields on an incident (root cause + free-form notes).
 try { db.exec("ALTER TABLE incidents ADD COLUMN root_cause TEXT"); } catch {}
 try { db.exec("ALTER TABLE incidents ADD COLUMN investigation_notes TEXT"); } catch {}
+// Reclassify legacy "Recordable – First aid only" → non-recordable label, since
+// first aid alone is not OSHA-recordable (29 CFR 1904.7). Idempotent.
+try {
+  const r = db.prepare("UPDATE incidents SET osha_classification = 'First aid only (non-recordable)' WHERE osha_classification = 'Recordable – First aid only'").run();
+  if (r.changes > 0) console.log(`Reclassified ${r.changes} first-aid-only incident(s) as non-recordable`);
+} catch {}
 
 // Per-tenant module enablement. A row = an explicit on/off for that tenant;
 // absence = "use the module's default". Lets the operator sell modules piecemeal
@@ -556,8 +572,8 @@ function seed() {
       "Equipment guarding in place", "Spill or leak evidence", "Staff safety feedback collected",
     ]), "gemba", null);
 
-    db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact)
-                VALUES (1, 250, 75, 8, 0, 'ap@whistlepigrye.com')`).run();
+    db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact, module_prices)
+                VALUES (1, 299, 149, 0, 0, 'ap@whistlepigrye.com', '{"inspections":99,"lms":99,"corrective_actions":49,"recognition":49,"equipment":79,"reporting":79}')`).run();
   });
   seedTx();
   console.log("Seeded tenant: WhistlePig Whiskey (4 sites, 6 departments, 1 admin)");
@@ -570,8 +586,8 @@ function ensureDefaults() {
   if (!t1) return;
 
   if (!db.prepare("SELECT tenant_id FROM billing_config WHERE tenant_id = 1").get()) {
-    db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact)
-                VALUES (1, 250, 75, 8, 0, 'ap@whistlepigrye.com')`).run();
+    db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, billing_contact, module_prices)
+                VALUES (1, 299, 149, 0, 0, 'ap@whistlepigrye.com', '{"inspections":99,"lms":99,"corrective_actions":49,"recognition":49,"equipment":79,"reporting":79}')`).run();
     console.log("Backfilled: billing_config defaults");
   }
 

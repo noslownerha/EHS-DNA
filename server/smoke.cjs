@@ -1058,6 +1058,17 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const reopened = invCAs.find(c => c.id === invCA.id);
   ok("incident: a completed corrective action can be reopened", reopened && reopened.status === "open");
 
+  // ── First aid only is NOT recordable (29 CFR 1904.7) ──
+  const faInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "minor", siteId: 1, description: "First aid only smoke" }) }).then(j);
+  await fetch(`${B}/api/incidents/${faInc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ oshaClassification: "First aid only (non-recordable)" }) }).then(j);
+  const faSumm = await fetch(`${B}/api/reports/incident-summary`, { headers: H() }).then(j);
+  const faYear = new Date().getFullYear();
+  const fa300 = await fetch(`${B}/api/reports/osha300?year=${faYear}`, { headers: H() }).then(j);
+  const faDesc = fa300.cases.find(c => /First aid only smoke/.test(c.description || ""));
+  ok("reports: 'first aid only' is not counted as recordable and not on the 300 log", !faDesc);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

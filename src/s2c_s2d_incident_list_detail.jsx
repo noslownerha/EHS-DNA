@@ -402,7 +402,7 @@ const SEED_DETAIL = {
 const USER_ROLE = JSON.parse(sessionStorage.getItem("ehs_user") || "{}").role ?? "staff";
 
 const OSHA_OPTIONS = [
-  "Pending", "Review: likely recordable", "Non-recordable", "Recordable – First aid only",
+  "Pending", "Review: likely recordable", "Non-recordable", "First aid only (non-recordable)",
   "Recordable – Medical treatment", "Recordable – Restricted work",
   "Recordable – Days away from work", "Recordable – Fatality",
 ];

@@ -757,7 +757,8 @@ const periodOf = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() +
 // Canonical recordability test — the ONE definition used by every report, the TRIR
 // calc, the digest, and the 300 log. A case counts as recordable only when safety
 // has CONFIRMED a "Recordable – …" classification (Medical treatment, Restricted
-// work, Days away, Fatality, First aid only). It deliberately excludes:
+// work, Days away, Fatality). It deliberately excludes:
+//   • "First aid only (non-recordable)" — first aid alone isn't recordable (1904.7)
 //   • "Review: likely recordable"  — the provisional auto-flag, not yet confirmed
 //   • "Non-recordable" / "Pending" / null
 // (Prior bug: three call sites disagreed — one matched only the exact string
@@ -1850,8 +1851,8 @@ app.post("/api/op/tenants", auth, requireOperator, (req, res) => {
       db.prepare(`INSERT INTO users (tenant_id, email, password_hash, name, role, must_change_password)
                   VALUES (?, ?, ?, ?, 'admin', 1)`)
         .run(tid, String(adminEmail).toLowerCase().trim(), bcrypt2.hashSync(tempPassword, 10), adminName ?? "Admin");
-      db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve)
-                  VALUES (?, 250, 75, 8, 0)`).run(tid);
+      db.prepare(`INSERT INTO billing_config (tenant_id, base_price, per_site, per_user, auto_approve, module_prices)
+                  VALUES (?, 299, 149, 0, 0, ?)`).run(tid, JSON.stringify({ inspections: 99, lms: 99, corrective_actions: 49, recognition: 49, equipment: 79, reporting: 79 }));
       db.prepare(`INSERT INTO notification_rules (tenant_id, event, category, min_severity, recipient_roles, email)
                   VALUES (?, 'incident_injury', 'injury', 'any', '["admin","safety"]', 1)`).run(tid);
       // Safety sees engagement reports (observations, positive callouts, ideas) in
@@ -2108,7 +2109,8 @@ const OSHA_300_MAP = {
   "Recordable – Days away from work": { col: "days_away",  injuryColumn: "injury" },
   "Recordable – Restricted work":     { col: "restricted", injuryColumn: "injury" },
   "Recordable – Medical treatment":   { col: "other",      injuryColumn: "injury" },
-  "Recordable – First aid only":      { col: "other",      injuryColumn: "injury" },
+  // First aid only is NOT OSHA-recordable (29 CFR 1904.7) — intentionally excluded
+  // from the 300 log and the recordable count.
 };
 const isOsha300Recordable = (c) => Object.prototype.hasOwnProperty.call(OSHA_300_MAP, c || "");
 
