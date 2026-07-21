@@ -466,6 +466,12 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   const [checklistErr, setChecklistErr] = useState("");
   const [floorRef, setFloorRef] = useState(null); // { plan, pos:{x,y} }
   const [newCA, setNewCA] = useState("");
+  // NOTE: every hook must stay ABOVE the phase-based early returns further down —
+  // React requires a stable hook order across renders (a hook below a conditional
+  // return runs only on some renders → error #310, the white "Something went wrong").
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  const [savedFlash, setSavedFlash] = useState("");
+  useEffect(() => { api.listUsers().then(us => setAssignableUsers((us || []).filter(u => u.active !== 0 && !u.is_operator))).catch(() => {}); }, []);
 
   function handleAddCA(e) {
     e.preventDefault();
@@ -603,10 +609,6 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
     });
   }
 
-  // Real team members for CA assignment (resolved by name → id server-side).
-  const [assignableUsers, setAssignableUsers] = useState([]);
-  useEffect(() => { api.listUsers().then(us => setAssignableUsers((us || []).filter(u => u.active !== 0 && !u.is_operator))).catch(() => {}); }, []);
-
   // Explicit CA status change (no more tap-to-cycle, which closed CAs on an
   // accidental click with no way back). Closing asks for confirmation; a closed CA
   // can be reopened. Maps UI status → server status.
@@ -681,7 +683,6 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   }
 
   // Lightweight "Saved ✓" feedback for the investigation fields.
-  const [savedFlash, setSavedFlash] = useState("");
   function flashSaved(key) { setSavedFlash(key); setTimeout(() => setSavedFlash(k => k === key ? "" : k), 1800); }
 
   const caStatusSummary = {
