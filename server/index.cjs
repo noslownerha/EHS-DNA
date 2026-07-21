@@ -2004,9 +2004,9 @@ app.get("/api/reports/incident-summary", auth, requireRole(...CAN_SEE_ALL_INCIDE
              sites: perSite };
   });
   const hoursNote = anyEstimated
-    ? (anyActual ? "Some periods use actual payroll hours; others estimated from headcount × 160/mo."
-                 : "Hours estimated from active headcount × 160/mo — enter payroll hours for audit-grade TRIR.")
-    : "Hours from entered payroll data.";
+    ? (anyActual ? "Some periods use your entered payroll hours; the rest are estimated from active staff headcount × 160 hrs/mo. Enter payroll hours below for audit-grade TRIR."
+                 : "Hours are estimated from active staff headcount × 160 hrs/mo (a placeholder). Enter actual payroll hours below for audit-grade TRIR.")
+    : "TRIR is using your entered payroll hours.";
   res.json({ months: out, hoursNote });
 });
 

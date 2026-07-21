@@ -613,12 +613,18 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                     showPrevYear={showPrevYear}
                     blsRate={blsRate}
                   />
-                  {hoursNote && <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 6, fontStyle: "italic" }}>{hoursNote}</div>}
+                  {hoursNote && (
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginTop: 10, padding: "8px 11px", background: "#F3F8F5", border: "1px solid #DCEAE1", borderRadius: 7 }}>
+                      <span style={{ fontSize: ".8rem", lineHeight: 1 }}>ℹ️</span>
+                      <span style={{ fontSize: ".72rem", color: C.slate, lineHeight: 1.4 }}>{hoursNote}</span>
+                    </div>
+                  )}
 
                   <button onClick={() => { setShowHoursEntry(v => !v); setHoursErr(""); }} style={{
-                    marginTop: 10, background: "none", border: "none", color: C.sage,
-                    fontSize: ".76rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0,
-                  }}>{showHoursEntry ? "− Hide hours entry" : "+ Enter actual payroll hours"}</button>
+                    marginTop: 10, padding: "8px 14px", background: showHoursEntry ? C.white : C.sage,
+                    color: showHoursEntry ? C.sage : C.white, border: `1.5px solid ${C.sage}`, borderRadius: 7,
+                    fontSize: ".78rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  }}>{showHoursEntry ? "− Hide hours entry" : "⏱ Enter actual payroll hours"}</button>
 
                   {showHoursEntry && (
                     <div className="no-print" style={{ marginTop: 10, padding: "12px 14px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
