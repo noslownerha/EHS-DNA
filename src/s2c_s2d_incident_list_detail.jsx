@@ -57,12 +57,27 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
   const [liveIncidents, setLiveIncidents] = useState([]);
   const [liveCAs,       setLiveCAs]       = useState([]);
   const [loading,       setLoading]       = useState(true);
+  const [loadError,     setLoadError]     = useState(false);
+
+  function loadData() {
+    setLoading(true); setLoadError(false);
+    return Promise.all([api.listIncidents(), api.listCAs()])
+      .then(([incs, cas]) => { setLiveIncidents(incs ?? []); setLiveCAs(cas ?? []); setLoadError(false); })
+      .catch(err => { console.error("Failed to load incidents:", err.message); setLoadError(true); })
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
-    Promise.all([api.listIncidents(), api.listCAs()])
-      .then(([incs, cas]) => { setLiveIncidents(incs); setLiveCAs(cas); })
-      .catch(err => console.error("Failed to load incidents:", err.message))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    // Fetch on mount; if the first attempt fails (transient/token race), retry once
+    // after a short delay so the user isn't stranded on an empty-looking list.
+    loadData().then(() => {
+      if (!cancelled) setTimeout(() => {
+        // Only retry if we ended up with nothing due to an error, not a real empty list.
+        setLoadError(e => { if (e) loadData(); return e; });
+      }, 800);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Adapt server rows to the shape this screen was built around
@@ -75,7 +90,9 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
       severity: i.severity ?? "minor", status: i.status,
       reporter: i.reporter_name ?? "—",
       date: (i.occurred_at ?? i.created_at ?? "").slice(0, 10),
-      osha: "Pending",
+      osha: i.osha_classification && String(i.osha_classification).startsWith("Recordable") ? "Recordable"
+            : i.osha_classification && String(i.osha_classification).startsWith("Review") ? "Review"
+            : i.osha_classification === "Non-recordable" ? "Non-recordable" : "Pending",
       caStatus: !hasAnyCA ? "closed" : overdue ? "overdue" : "on-track",
       triageId: null,
     };
@@ -247,9 +264,18 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
             scrolling on a 360px phone — Status and CAs were off-screen and easy
             to miss entirely. Same data, scannable, one tap to open. */}
         <div className="incident-cards anim">
-          {filtered.length === 0 ? (
+          {loading ? (
             <div style={{ background: C.white, borderRadius: 10, padding: "28px", textAlign: "center", color: C.mist, fontSize: ".85rem", boxShadow: "0 2px 12px rgba(15,31,23,.07)" }}>
-              No incidents match your filters.
+              Loading incidents…
+            </div>
+          ) : loadError ? (
+            <div style={{ background: C.white, borderRadius: 10, padding: "24px", textAlign: "center", color: C.mist, fontSize: ".85rem", boxShadow: "0 2px 12px rgba(15,31,23,.07)" }}>
+              Couldn't load incidents.
+              <div><button onClick={loadData} style={{ marginTop: 10, padding: "8px 18px", background: C.sage, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".82rem", cursor: "pointer" }}>Retry</button></div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ background: C.white, borderRadius: 10, padding: "28px", textAlign: "center", color: C.mist, fontSize: ".85rem", boxShadow: "0 2px 12px rgba(15,31,23,.07)" }}>
+              {SEED_INCIDENTS.length === 0 ? "No incidents reported yet." : "No incidents match your filters."}
             </div>
           ) : filtered.map(inc => {
             const cas = CA_STATUS[inc.caStatus];
@@ -295,9 +321,15 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={9} style={{ padding: "28px", textAlign: "center", color: C.mist, fontSize: ".85rem" }}>Loading incidents…</td></tr>
+              ) : loadError ? (
+                <tr><td colSpan={9} style={{ padding: "24px", textAlign: "center", color: C.mist, fontSize: ".85rem" }}>
+                  Couldn't load incidents. <button onClick={loadData} style={{ marginLeft: 8, padding: "6px 14px", background: C.sage, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: ".8rem", cursor: "pointer" }}>Retry</button>
+                </td></tr>
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={9} style={{ padding: "28px", textAlign: "center", color: C.mist, fontSize: ".85rem" }}>
-                  No incidents match your filters.
+                  {SEED_INCIDENTS.length === 0 ? "No incidents reported yet." : "No incidents match your filters."}
                 </td></tr>
               ) : filtered.map((inc, ri) => {
                 const cas = CA_STATUS[inc.caStatus];
