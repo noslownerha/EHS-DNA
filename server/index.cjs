@@ -927,10 +927,18 @@ app.put("/api/incidents/:id", auth, requireRole(...ADMINISH, "site_manager"), (r
     return res.status(400).json({ error: "Invalid status. Must be one of: open, investigating, closed" });
   const map = { status: "status", severity: "severity", department: "department",
                 description: "description", locationDetail: "location_detail",
-                oshaClassification: "osha_classification" };
+                oshaClassification: "osha_classification",
+                rootCause: "root_cause", investigationNotes: "investigation_notes" };
   const sets = [], vals = [];
   for (const [key, col] of Object.entries(map)) {
     if (Object.prototype.hasOwnProperty.call(b, key)) { sets.push(`${col} = ?`); vals.push(b[key]); }
+  }
+  // Involved is a JSON array of names — accept an array (or a single string) and
+  // store normalized JSON so elevated staff can record multiple people.
+  if (Object.prototype.hasOwnProperty.call(b, "involved")) {
+    const arr = Array.isArray(b.involved) ? b.involved : (b.involved ? [b.involved] : []);
+    const clean = arr.map(s => String(s).trim()).filter(Boolean).slice(0, 50);
+    sets.push("involved = ?"); vals.push(JSON.stringify(clean));
   }
   if (!sets.length) return res.json({ ok: true });
 

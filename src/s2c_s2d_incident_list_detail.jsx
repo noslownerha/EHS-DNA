@@ -387,7 +387,9 @@ const SEED_DETAIL = {
   reporter: "—", date: null,
   description: "—",
   location: "—",
-  involved: "—",
+  involved: [],
+  rootCause: "",
+  investigationNotes: "",
   photos: [],
   osha: "Pending",
   oshaClassification: "",
@@ -512,7 +514,9 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
         location: row.location_detail ?? i.location,
         latitude: row.latitude ?? null, longitude: row.longitude ?? null,
         osha: row.osha_classification ?? "Pending",
-        involved: (JSON.parse(row.involved || "[]")[0]) ?? i.involved,
+        involved: JSON.parse(row.involved || "[]"),
+        rootCause: row.root_cause ?? "",
+        investigationNotes: row.investigation_notes ?? "",
         dept: row.department ?? "—",
         photos: JSON.parse(row.photos || "[]"),
         cas: rowCAs.length ? rowCAs.map(c => ({
@@ -599,18 +603,40 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
     });
   }
 
-  const CA_NEXT = { open: "in_progress", in_progress: "done" };
-  function advanceCA(ca) {
-    if (!dbId || ca.status === "closed") return;
-    const serverNow  = ca.serverStatus ?? "open";
-    const serverNext = CA_NEXT[serverNow] ?? "done";
+  // Real team members for CA assignment (resolved by name → id server-side).
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  useEffect(() => { api.listUsers().then(us => setAssignableUsers((us || []).filter(u => u.active !== 0 && !u.is_operator))).catch(() => {}); }, []);
+
+  // Explicit CA status change (no more tap-to-cycle, which closed CAs on an
+  // accidental click with no way back). Closing asks for confirmation; a closed CA
+  // can be reopened. Maps UI status → server status.
+  function setCaStatus(ca, serverNext) {
+    if (!dbId) return;
+    if (serverNext === "done" && !window.confirm("Mark this corrective action complete?")) return;
     api.updateCA(ca.id, { status: serverNext }).then(() => {
       setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id !== ca.id ? c : {
         ...c, serverStatus: serverNext,
-        status: serverNext === "done" ? "closed"
+        status: serverNext === "done" || serverNext === "verified" ? "closed"
               : (c.due && new Date(c.due) < new Date()) ? "overdue" : "on-track",
       })}));
     }).catch(err => console.error("CA update failed:", err.message));
+  }
+  function assignCA(ca) {
+    if (!dbId) return;
+    const names = (assignableUsers || []).map(u => u.name).join(", ");
+    const v = window.prompt(`Assign to which team member?${names ? `\n\nAvailable: ${names}` : ""}`, ca.assignee === "Unassigned" ? "" : ca.assignee);
+    if (v === null) return;
+    const q = v.trim().toLowerCase();
+    if (!q) {
+      api.updateCA(ca.id, { assigneeId: null }).then(() => setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id === ca.id ? { ...c, assignee: "Unassigned" } : c) }))).catch(err => console.error("CA unassign failed:", err.message));
+      return;
+    }
+    const match = (assignableUsers || []).find(u => u.name.toLowerCase() === q)
+              || (assignableUsers || []).find(u => u.name.toLowerCase().includes(q));
+    if (!match) { window.alert(`No team member matches "${v.trim()}". Try one of: ${names || "(none available)"}`); return; }
+    api.updateCA(ca.id, { assigneeId: match.id }).then(() => {
+      setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id === ca.id ? { ...c, assignee: match.name } : c) }));
+    }).catch(err => console.error("CA assign failed:", err.message));
   }
 
   const canClose = ["admin", "safety", "site_manager"].includes(USER_ROLE);
@@ -643,7 +669,20 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
     if (field === "osha" && dbId) {
       api.updateIncident(dbId, { oshaClassification: value }).catch(err => console.error("OSHA update failed:", err.message));
     }
+    if (field === "rootCause" && dbId) {
+      api.updateIncident(dbId, { rootCause: value }).then(() => flashSaved("rootCause")).catch(err => console.error("Root cause update failed:", err.message));
+    }
+    if (field === "investigationNotes" && dbId) {
+      api.updateIncident(dbId, { investigationNotes: value }).then(() => flashSaved("investigationNotes")).catch(err => console.error("Notes update failed:", err.message));
+    }
+    if (field === "involved" && dbId) {
+      api.updateIncident(dbId, { involved: value }).then(() => flashSaved("involved")).catch(err => console.error("Involved update failed:", err.message));
+    }
   }
+
+  // Lightweight "Saved ✓" feedback for the investigation fields.
+  const [savedFlash, setSavedFlash] = useState("");
+  function flashSaved(key) { setSavedFlash(key); setTimeout(() => setSavedFlash(k => k === key ? "" : k), 1800); }
 
   const caStatusSummary = {
     overdue:   incident.cas.filter(c => c.status === "overdue").length,
@@ -781,8 +820,20 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                   <div style={{ fontSize: ".9rem", color: C.ink }}>{incident.dept}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.mist, marginBottom: 4 }}>Involved</div>
-                  <div style={{ fontSize: ".9rem", color: C.ink }}>{incident.involved}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.mist }}>Involved</div>
+                    {savedFlash === "involved" && <span style={{ fontSize: ".68rem", color: C.sage, fontWeight: 700 }}>Saved ✓</span>}
+                    {canEdit && dbId && (
+                      <button onClick={() => {
+                        const current = (incident.involved || []).join(", ");
+                        const v = window.prompt("Involved people (comma-separated for multiple)", current);
+                        if (v !== null) { const arr = v.split(",").map(s => s.trim()).filter(Boolean); updateField("involved", arr); }
+                      }} style={{ background: "none", border: "none", color: C.sage, fontSize: ".72rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Edit</button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: ".9rem", color: C.ink }}>
+                    {(incident.involved && incident.involved.length) ? incident.involved.join(", ") : "—"}
+                  </div>
                 </div>
               </div>
 
@@ -852,9 +903,41 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Right: CAs + checklist */}
+            {/* Investigation — elevated-staff fields: root cause + notes. Editable by
+                admin/safety/site_manager; read-only summary for everyone else. */}
+            <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 24, marginBottom: 16 }}>
+              <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 14 }}>Investigation</h2>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <label style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.mist }}>Root cause</label>
+                  {savedFlash === "rootCause" && <span style={{ fontSize: ".68rem", color: C.sage, fontWeight: 700 }}>Saved ✓</span>}
+                </div>
+                {canEdit && dbId ? (
+                  <textarea defaultValue={incident.rootCause} onBlur={e => { if (e.target.value !== incident.rootCause) updateField("rootCause", e.target.value); }}
+                    placeholder="What was the underlying cause? (saved when you click away)"
+                    style={{ width: "100%", minHeight: 60, padding: "9px 11px", border: "1.5px solid #D7E3DD", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, resize: "vertical", boxSizing: "border-box" }} />
+                ) : (
+                  <div style={{ fontSize: ".9rem", color: incident.rootCause ? C.ink : C.mist }}>{incident.rootCause || "Not yet determined"}</div>
+                )}
+              </div>
+
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <label style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.mist }}>Investigation notes</label>
+                  {savedFlash === "investigationNotes" && <span style={{ fontSize: ".68rem", color: C.sage, fontWeight: 700 }}>Saved ✓</span>}
+                </div>
+                {canEdit && dbId ? (
+                  <textarea defaultValue={incident.investigationNotes} onBlur={e => { if (e.target.value !== incident.investigationNotes) updateField("investigationNotes", e.target.value); }}
+                    placeholder="Findings, witness statements, HR / Workers' Comp follow-up, additional context… (saved when you click away)"
+                    style={{ width: "100%", minHeight: 90, padding: "9px 11px", border: "1.5px solid #D7E3DD", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", color: C.ink, resize: "vertical", boxSizing: "border-box" }} />
+                ) : (
+                  <div style={{ fontSize: ".9rem", color: incident.investigationNotes ? C.ink : C.mist, whiteSpace: "pre-wrap" }}>{incident.investigationNotes || "No notes yet"}</div>
+                )}
+              </div>
+            </div>
+          </div>
           <div>
             {/* CAs summary */}
             <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 20, marginBottom: 16 }}>
@@ -866,18 +949,35 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               </div>
               {incident.cas.map(ca => {
                 const s = CA_STATUS[ca.status] ?? CA_STATUS["on-track"];
+                const canManageCA = ["admin", "safety", "site_manager"].includes(USER_ROLE);
+                const srv = ca.serverStatus ?? "open";
                 return (
-                  <div key={ca.id} onClick={() => advanceCA(ca)} title="Tap to advance status" style={{
-                    padding: "10px 12px", marginBottom: 8, cursor: ca.status === "closed" ? "default" : "pointer",
-                    background: C.chalk, borderRadius: 8,
-                    borderLeft: `3px solid ${s.color}`,
+                  <div key={ca.id} style={{
+                    padding: "10px 12px", marginBottom: 8,
+                    background: C.chalk, borderRadius: 8, borderLeft: `3px solid ${s.color}`,
                   }}>
-                    <div style={{ fontSize: ".85rem", color: C.ink, marginBottom: 4, lineHeight: 1.3 }}>{ca.desc}</div>
+                    <div style={{ fontSize: ".85rem", color: C.ink, marginBottom: 6, lineHeight: 1.3 }}>{ca.desc}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       {pill(s.label, s.bg, s.color)}
-                      <span style={{ fontSize: ".7rem", color: C.mist }}>Due {ca.due}</span>
+                      {ca.due && <span style={{ fontSize: ".7rem", color: C.mist }}>Due {ca.due}</span>}
                       <span style={{ fontSize: ".7rem", color: C.mist }}>→ {ca.assignee}</span>
                     </div>
+                    {canManageCA && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                        <select value={srv} onChange={e => setCaStatus(ca, e.target.value)}
+                          style={{ padding: "5px 8px", border: "1.5px solid #D0DEDB", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".76rem", color: C.ink, background: "#fff", cursor: "pointer" }}>
+                          <option value="open">Open</option>
+                          <option value="in_progress">In progress</option>
+                          <option value="done">Complete</option>
+                        </select>
+                        <button onClick={() => assignCA(ca)} style={{ background: "none", border: "none", color: C.sage, fontSize: ".74rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>
+                          {ca.assignee === "Unassigned" ? "Assign" : "Reassign"}
+                        </button>
+                        {(srv === "done" || srv === "verified") && (
+                          <button onClick={() => setCaStatus(ca, "open")} style={{ background: "none", border: "none", color: C.mist, fontSize: ".74rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Reopen</button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

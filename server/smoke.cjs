@@ -1035,6 +1035,24 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
      ft && ft.findings && typeof ft.findings.critical === "number" &&
      ft.training && ("compliancePct" in ft.training) && typeof ft.training.overdue === "number");
 
+  // ── Incident investigation fields (elevated staff) ──
+  const invInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "injury", severity: "serious", siteId: 1, description: "Investigation fields smoke" }) }).then(j);
+  await fetch(`${B}/api/incidents/${invInc.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ rootCause: "Guard missing", investigationNotes: "HR + WC notified", involved: ["Jane Smith", "Bob Lee"] }) }).then(j);
+  const invGot = await fetch(`${B}/api/incidents/${invInc.id}`, { headers: H() }).then(j);
+  ok("incident: root cause + notes + multi-name involved persist",
+     invGot.root_cause === "Guard missing" && invGot.investigation_notes === "HR + WC notified" &&
+     JSON.parse(invGot.involved).length === 2);
+  // CA can be completed then REOPENED (no more one-click dead-end).
+  const invCA = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: invInc.id, title: "Install guard", priority: "high" }) }).then(j);
+  await fetch(`${B}/api/cas/${invCA.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ status: "done" }) }).then(j);
+  await fetch(`${B}/api/cas/${invCA.id}`, { method: "PUT", headers: H(), body: JSON.stringify({ status: "open" }) }).then(j);
+  const invCAs = await fetch(`${B}/api/cas`, { headers: H() }).then(j);
+  const reopened = invCAs.find(c => c.id === invCA.id);
+  ok("incident: a completed corrective action can be reopened", reopened && reopened.status === "open");
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

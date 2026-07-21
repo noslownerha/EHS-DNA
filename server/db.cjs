@@ -353,6 +353,9 @@ try { db.exec("ALTER TABLE tenants ADD COLUMN point_values TEXT"); } catch {}
 try { db.exec("ALTER TABLE tenants ADD COLUMN triage_questions TEXT"); } catch {}
 // Optional asset photo (JSON ref {id,name}); image bytes live on disk in photo_files.
 try { db.exec("ALTER TABLE assets ADD COLUMN photo TEXT"); } catch {}
+// Elevated-staff investigation fields on an incident (root cause + free-form notes).
+try { db.exec("ALTER TABLE incidents ADD COLUMN root_cause TEXT"); } catch {}
+try { db.exec("ALTER TABLE incidents ADD COLUMN investigation_notes TEXT"); } catch {}
 
 // Per-tenant module enablement. A row = an explicit on/off for that tenant;
 // absence = "use the module's default". Lets the operator sell modules piecemeal
