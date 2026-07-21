@@ -88,17 +88,9 @@ export default function S4dGroupSessionLog({ onHome,
   const [trainerFocus, setTrainerFocus] = useState(false);
   const [notesFocused, setNotesFocused] = useState(false);
 
-  // Spec: role gate
-  if (!PERMITTED_ROLES.includes(userRole)) {
-    return (
-      <div style={{ padding: 32, textAlign: "center", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
-        <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 6 }}>Access restricted</div>
-        <div style={{ fontSize: ".85rem", color: C.mist }}>Group session logging requires Trainer, Safety Officer, Site Manager, or Company Admin role.</div>
-      </div>
-    );
-  }
-
+  // These useMemo hooks MUST stay above the role-gate early return below — a hook
+  // after a conditional return runs only on some renders and crashes the screen
+  // (React error #310). ESLint react-hooks/rules-of-hooks guards this at build time.
   const filtered = useMemo(() =>
     ALL_STAFF.filter(s => {
       if (filterSite  && s.site  !== filterSite)  return false;
@@ -118,6 +110,17 @@ export default function S4dGroupSessionLog({ onHome,
     });
     return groups;
   }, [filtered]);
+
+  // Spec: role gate
+  if (!PERMITTED_ROLES.includes(userRole)) {
+    return (
+      <div style={{ padding: 32, textAlign: "center", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
+        <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 6 }}>Access restricted</div>
+        <div style={{ fontSize: ".85rem", color: C.mist }}>Group session logging requires Trainer, Safety Officer, Site Manager, or Company Admin role.</div>
+      </div>
+    );
+  }
 
   function toggleOne(id) {
     setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });

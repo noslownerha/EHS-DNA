@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "lint": "eslint src --max-warnings 9999",
+    "prebuild": "npm run lint",
     "build": "vite build"
   },
   "dependencies": {
@@ -19,6 +21,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "vite": "^4.5.0"
   }
 }
