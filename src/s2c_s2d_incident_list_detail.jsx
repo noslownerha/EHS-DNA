@@ -658,16 +658,16 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
       api.updateIncident(dbId, { status: value }).catch(err => console.error("Status update failed:", err.message));
     }
     if (field === "dept" && dbId) {
-      api.updateIncident(dbId, { department: value }).catch(err => console.error("Department update failed:", err.message));
+      api.updateIncident(dbId, { department: value }).then(() => flashSaved("dept")).catch(err => console.error("Department update failed:", err.message));
     }
     if (field === "description" && dbId) {
-      api.updateIncident(dbId, { description: value }).catch(err => console.error("Description update failed:", err.message));
+      api.updateIncident(dbId, { description: value }).then(() => flashSaved("description")).catch(err => console.error("Description update failed:", err.message));
     }
     if (field === "location" && dbId) {
-      api.updateIncident(dbId, { locationDetail: value }).catch(err => console.error("Location update failed:", err.message));
+      api.updateIncident(dbId, { locationDetail: value }).then(() => flashSaved("location")).catch(err => console.error("Location update failed:", err.message));
     }
     if (field === "osha" && dbId) {
-      api.updateIncident(dbId, { oshaClassification: value }).catch(err => console.error("OSHA update failed:", err.message));
+      api.updateIncident(dbId, { oshaClassification: value }).then(() => flashSaved("osha")).catch(err => console.error("OSHA update failed:", err.message));
     }
     if (field === "rootCause" && dbId) {
       api.updateIncident(dbId, { rootCause: value }).then(() => flashSaved("rootCause")).catch(err => console.error("Root cause update failed:", err.message));
@@ -845,6 +845,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                   <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: canEditOsha ? C.sage : C.mist }}>
                     OSHA Classification
                   </div>
+                  {savedFlash === "osha" && <span style={{ fontSize: ".68rem", color: C.sage, fontWeight: 700 }}>Saved ✓</span>}
                   {!canEditOsha && (
                     <span style={{ fontSize: ".68rem", color: C.mist, fontStyle: "italic" }}>Safety Officer or Admin only</span>
                   )}
