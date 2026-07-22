@@ -1,5 +1,5 @@
 import { COLORS, BILLABLE_MODULES } from "./constants.js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
 import { getToken } from "./api.js";
@@ -60,12 +60,16 @@ export default function S5gBilling({ companyName, onHome, onBack, tenantId = nul
     setCfg(c => ({ ...c, module_prices: JSON.stringify(mp) })); setSaved(false);
   }
 
-  function loadAll() {
+  const loadAll = useCallback(() => {
     Promise.all([api.billingConfig(tenantId), api.billingAdjustments(tenantId), api.billingInvoices(tenantId)])
       .then(([c, a, i]) => { setCfg(c); setAdjs(a); setInvoices(i); })
       .catch(err => setError(err.message));
-  }
-  useEffect(loadAll, []);
+    // Depending on tenantId (not just running once on mount) matters if this
+    // screen is ever kept mounted while switching which tenant's billing is
+    // being viewed — without it, billing data for the PREVIOUS tenant would
+    // silently stick around under the new tenant's screen.
+  }, [tenantId]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   async function saveCfg() {
     setError(null); setSaved(false);

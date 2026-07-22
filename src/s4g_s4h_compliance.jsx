@@ -73,6 +73,10 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff, onMan
   const depts = [...new Set(SEED_STAFF.map(s => s.dept))];
 
   const filtered = useMemo(() =>
+    // SEED_STAFF starts at [] and is populated by an async fetch
+    // (api.dashboardCompliance) — without it as a dependency, this memo never
+    // recomputes once that fetch resolves, so the screen showed no staff at
+    // all until a filter happened to change (same bug as the aging tracker).
     SEED_STAFF.filter(s => {
       if (filterSite && s.site !== filterSite) return false;
       if (filterDept && s.dept !== filterDept) return false;
@@ -83,7 +87,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff, onMan
       if (cardFilter === "current"  && s.compliance !== 100)   return false;
       return true;
     }),
-    [filterSite, filterDept, search, cardFilter]
+    [SEED_STAFF, filterSite, filterDept, search, cardFilter]
   );
 
   const overdueCount      = SEED_STAFF.reduce((n, s) => n + s.overdue, 0);

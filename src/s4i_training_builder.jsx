@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -40,7 +40,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
 
-  function load(selectId) {
+  const load = useCallback((selectId) => {
     Promise.all([api.listTrainings(), api.listUsers().catch(() => [])])
       .then(([trs, us]) => {
         const active = trs.filter(t => t.active);
@@ -49,8 +49,8 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
         const pick = active.find(t => t.id === selectId) ?? active[0] ?? null;
         setSel(pick ? hydrate(pick) : null);
       }).catch(err => setError(err.message));
-  }
-  useEffect(() => load(), []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
   function hydrate(t) {
     let c = null;

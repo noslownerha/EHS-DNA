@@ -72,7 +72,7 @@ export function S2a4PhotosLocation({ onContinue, onBack, onHome, site, initialPh
     if (siteRec?.hasFloorplan) {
       api.siteFloorplan(siteRec.id).then(r => setPlan(r.floorplan)).catch(() => {});
     }
-  }, [siteRec?.id]);
+  }, [siteRec?.id, siteRec?.hasFloorplan]);
   const [photos,     setPhotos]    = useState(initialPhotos);
   const [gpsGranted, setGps]       = useState(false);
   const [floorPlan,  setFloorPlan] = useState(false);

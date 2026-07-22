@@ -73,6 +73,12 @@ function NotificationBell() {
     load();
     const iv = setInterval(load, 60000);
     return () => clearInterval(iv);
+    // Deliberately depend on the primitive id, not the account.user object —
+    // restart polling only when WHO is logged in changes (e.g. impersonation),
+    // not on every parent re-render that might recreate the context value with
+    // an unchanged user. Depending on the object would tear down/recreate the
+    // interval far more often than intended.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account?.user?.id]);
 
   if (!account?.user) return null;

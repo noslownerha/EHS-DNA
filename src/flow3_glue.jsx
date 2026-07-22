@@ -17,7 +17,7 @@
  *   </InspectionProvider>
  */
 
-import { createContext, useContext, useReducer, useCallback, useEffect } from "react";
+import { createContext, useContext, useReducer, useCallback, useEffect, useRef } from "react";
 import { BRAND, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 
@@ -151,7 +151,14 @@ export function InspectionProvider({
   initialChecklistId = null,      // when set (e.g. from an asset QR), open straight into this checklist
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
-  const stateRef = { current: state };
+  const stateRef = useRef(state);
+  // Same class of bug as the triage flow's stateRef: a plain object literal is
+  // recreated every render, so completeSession's useCallback([]) below would
+  // freeze on the FIRST render's activeChecklist (null) forever — meaning
+  // every completed inspection was silently saved with checklistId: null.
+  // A real useRef, kept in sync here every render, is stable across renders
+  // (safe for memoized callbacks to reference) while .current is always fresh.
+  stateRef.current = state;
 
   // Deep-link from an asset: fetch the asset's checklist and drop the inspector
   // straight into running it, instead of the generic Start screen. Closes the
@@ -185,7 +192,7 @@ export function InspectionProvider({
         }
       } catch (err) { console.error("Inspection save failed:", err.message); }
     })();
-  }, []);
+  }, [user?.site]);
   const submitQuick  = useCallback(finding => {
     dispatch({ type: "SUBMIT_QUICK_FINDING", finding });
     const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === (finding?.site ?? ""));

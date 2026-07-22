@@ -1,5 +1,4 @@
-import { useState, useRef } from "react";
-import { useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -179,15 +178,15 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
              frequencyDays: c.frequency_days, items: its.length, schedule, dept: c.kind === "gemba" ? "Gemba" : "Checklist", lastUsed: "", raw: its };
   }
 
-  function loadTemplates(selectId) {
+  const loadTemplates = useCallback((selectId) => {
     api.listChecklists().then(cls => {
       const rows = cls.filter(c => c.active).map(rowFromDb);
       setTemplates(rows);
       const sel = rows.find(r => r.id === selectId) ?? rows[0] ?? null;
       selectTemplate(sel);
     }).catch(err => setError(err.message));
-  }
-  useEffect(() => loadTemplates(), []);
+  }, []);
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
   function selectTemplate(t) {
     setSelectedTemplate(t);

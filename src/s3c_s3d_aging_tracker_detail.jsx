@@ -96,6 +96,10 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
   const assignees = [...new Set(SEED_FINDINGS.map(f => f.assignee))];
 
   const filtered = useMemo(() =>
+    // 'open' is derived from SEED_FINDINGS, which starts at [] and is
+    // populated by an async fetch — without 'open' as a dependency here, this
+    // memo never recomputes after that fetch resolves, so the tracker showed
+    // "No open findings" forever on load until a filter happened to change.
     open.filter(f => {
       if (filterSite     && f.site !== filterSite)         return false;
       if (filterSev      && f.severity !== filterSev)      return false;
@@ -104,7 +108,7 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
           !f.category.toLowerCase().includes(search.toLowerCase()))      return false;
       return true;
     }),
-    [filterSite, filterSev, filterAssignee, search]
+    [open, filterSite, filterSev, filterAssignee, search]
   );
 
   function toggleSelect(id) {

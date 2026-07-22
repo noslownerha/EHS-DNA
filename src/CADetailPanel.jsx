@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { COLORS as C, BRAND } from "./constants.js";
 import { api } from "./api.js";
 
@@ -53,14 +53,14 @@ export default function CADetailPanel({ caId, users = [], onClose, onChanged }) 
   const depts = BRAND.departmentRecords ?? [];
   const sites = BRAND.siteRecords ?? [];
 
-  function load() {
+  const load = useCallback(() => {
     setLoading(true);
     api.getCA(caId)
       .then(data => { setCa(data); setBlockReason(data.blocked_reason ?? ""); })
       .catch(() => setCa(null))
       .finally(() => setLoading(false));
-  }
-  useEffect(() => { if (caId) load(); }, [caId]);
+  }, [caId]);
+  useEffect(() => { if (caId) load(); }, [caId, load]);
 
   // Apply a patch, refresh the panel, and let the parent list refresh too.
   function patch(body, after) {

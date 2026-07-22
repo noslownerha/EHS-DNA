@@ -15,7 +15,7 @@
  *   the normal app when triageActive state is set. Pass onDone to dismiss.
  */
 
-import { createContext, useContext, useReducer, useCallback } from "react";
+import { createContext, useContext, useReducer, useCallback, useRef } from "react";
 
 import { api } from "./api.js";
 import { BRAND, COLORS as C } from "./constants.js";
@@ -160,7 +160,17 @@ export function TriageProvider({
     config:   config   ?? INITIAL_STATE.config,
     contacts: contacts ?? INITIAL_STATE.contacts,
   });
-  const stateRef = { current: state };
+  const stateRef = useRef(state);
+  // Keep the ref's snapshot current EVERY render (not just on mount) — a plain
+  // object literal here (the previous code) is recreated fresh each render, so
+  // a memoized (useCallback []) closure that captured it would freeze on the
+  // FIRST render's snapshot forever. That was a real bug: setOutcome below
+  // read stateRef.current.site to save the triage record's site, but site
+  // starts at null and is only set later via start() — so every triage record
+  // was silently saved with siteId: null, regardless of the site actually
+  // selected. useRef's object identity is stable across renders, so mutating
+  // .current here (not via setState) is safe and keeps it genuinely current.
+  stateRef.current = state;
 
   const navigate = useCallback((screen, { replace = false } = {}) =>
     dispatch({ type: "NAVIGATE", screen, replace }), []);
