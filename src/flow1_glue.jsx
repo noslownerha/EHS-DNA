@@ -373,6 +373,7 @@ export function FlowRouter({ onHome } = {}) {
       return (
         <S1cOrgChart
           onHome={onHome}
+          onBack={back}
           companyName={company.companyName}
           initialOrg={buildOrgFromFlowState({ sites, departments, staff })}
           onAddStaff={() => navigate(SCREENS.STAFF)}

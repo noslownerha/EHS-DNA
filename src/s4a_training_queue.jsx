@@ -120,7 +120,7 @@ export default function S4aTrainingQueue({ onHome,
         .start-btn:hover { background: ${C.purple}cc !important; }
       `}</style>
 
-      <EHSHeader onHome={onHome} rightContent={<div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name}</div>} />
+      <EHSHeader onHome={onHome} onBack={onBack} rightContent={<div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name}</div>} />
 
       <div style={{ flex: 1, padding: "16px 18px 80px", overflowY: "auto" }}>
 

@@ -24,7 +24,7 @@ function Card({ title, children }) {
   );
 }
 
-export default function S5fCompanySettings({ companyName, onHome }) {
+export default function S5fCompanySettings({ companyName, onHome, onBack }) {
   const [cfg, setCfg]       = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
@@ -149,7 +149,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
 
   if (!cfg) return (
     <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
-      <EHSHeader onHome={onHome} title={companyName} />
+      <EHSHeader onHome={onHome} onBack={onBack} title={companyName} />
       <div style={{ padding: 40, textAlign: "center", color: C.mist }}>{error ?? "Loading…"}</div>
     </div>
   );
@@ -179,7 +179,7 @@ export default function S5fCompanySettings({ companyName, onHome }) {
         .save-btn:hover { background: ${C.pine} !important; }
       `}</style>
 
-      <EHSHeader onHome={onHome} title={cfg.company} rightContent={
+      <EHSHeader onHome={onHome} onBack={onBack} title={cfg.company} rightContent={
         <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
           Company Settings
         </div>

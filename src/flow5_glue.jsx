@@ -214,6 +214,7 @@ export function DashboardRouter({
       return (
         <S5eManageStaff
           onHome={onHome ?? onDone}
+          onBack={onHome ?? onDone}
           companyName={companyName}
         />
       );
@@ -245,6 +246,7 @@ export function DashboardRouter({
       return (
         <S5gBilling
           onHome={onHome ?? onDone}
+          onBack={onHome ?? onDone}
           companyName={companyName}
           tenantId={billingTarget?.id ?? null}
           tenantName={billingTarget?.name ?? null}
@@ -265,6 +267,7 @@ export function DashboardRouter({
       return (
         <S5fCompanySettings
           onHome={onHome ?? onDone}
+          onBack={onHome ?? onDone}
           companyName={companyName}
         />
       );

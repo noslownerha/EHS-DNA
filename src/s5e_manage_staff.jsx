@@ -12,7 +12,7 @@ const ROLE_LABELS = {
 
 function DesktopNav({ companyName = BRAND.company, onHome }) {
   return (
-    <EHSHeader onHome={onHome} title={companyName} rightContent={
+    <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
         Manage Staff
       </div>
@@ -26,7 +26,7 @@ const inputStyle = {
   outline: "none", background: C.white,
 };
 
-export default function S5eManageStaff({ companyName, onHome }) {
+export default function S5eManageStaff({ companyName, onHome, onBack }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

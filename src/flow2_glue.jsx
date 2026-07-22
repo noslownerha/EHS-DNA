@@ -447,6 +447,7 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome, pickerStep = "top
       return (
         <S2eCATracker
           onHome={onHome ?? onDone}
+          onBack={onHome ?? onDone}
           companyName={companyName}
           onViewIncident={id => viewIncident(id)}
         />

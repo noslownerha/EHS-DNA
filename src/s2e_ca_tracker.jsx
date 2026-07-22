@@ -23,7 +23,7 @@ function pill(label, bg, color) {
 
 function DesktopNav({ companyName = BRAND.company, onHome }) {
   return (
-    <EHSHeader onHome={onHome} title={companyName} rightContent={
+    <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
         CA Tracker
       </div>
@@ -167,7 +167,7 @@ function CARow({ ca, onVerify, onViewIncident, onManage }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function S2eCATracker({ companyName, onViewIncident, onHome }) {
+export default function S2eCATracker({ companyName, onViewIncident, onHome, onBack }) {
   const [cas,          setCas]         = useState([]);
   const [openCaId,     setOpenCaId]    = useState(null);
   const [showNewTask,  setShowNewTask] = useState(false);

@@ -14,7 +14,7 @@ export function useRole() {
 }
 
 // ── EHS DNA header — on every screen, logo taps to role dashboard ─────────────
-export function EHSHeader({ onHome, title, rightContent, dark = false }) {
+export function EHSHeader({ onHome, onBack, title, rightContent, dark = false }) {
   const bg     = dark ? "#1A1A2E" : C.forest;
   const accent = dark ? "#00B4D8" : C.mint;
   return (
@@ -25,12 +25,24 @@ export function EHSHeader({ onHome, title, rightContent, dark = false }) {
       boxShadow: "0 2px 10px rgba(0,0,0,.2)",
       position: "sticky", top: 0, zIndex: 100, flexShrink: 0,
     }}>
-      <button onClick={onHome} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0 }}>
-        <span style={{ fontSize: "1rem" }}>🧬</span>
-        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".88rem", fontWeight: 600, letterSpacing: ".06em", color: accent }}>
-          <span style={{ color: "#fff" }}>EHS</span> DNA
-        </span>
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+        {/* A dedicated "go back one step" affordance, distinct from the home
+            logo below. Only rendered when the screen was drilled into from
+            somewhere (i.e. its router actually gave it an onBack) — a tab
+            root has nowhere to "go back" to, so it correctly gets none. */}
+        {onBack && (
+          <button onClick={onBack} aria-label="Back" style={{
+            background: "none", border: "none", cursor: "pointer", color: "#fff",
+            fontSize: "1.15rem", lineHeight: 1, padding: "4px 6px 4px 0", marginRight: 2,
+          }}>←</button>
+        )}
+        <button onClick={onHome} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, minWidth: 0 }}>
+          <span style={{ fontSize: "1rem" }}>🧬</span>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".88rem", fontWeight: 600, letterSpacing: ".06em", color: accent, whiteSpace: "nowrap" }}>
+            <span style={{ color: "#fff" }}>EHS</span> DNA
+          </span>
+        </button>
+      </div>
       {title && (
         <div style={{ flex: 1, minWidth: 0, margin: "0 10px", fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.6)", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {title}

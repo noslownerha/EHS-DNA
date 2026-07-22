@@ -31,7 +31,7 @@ const SEV_COLORS = {
 
 function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
   return (
-    <EHSHeader onHome={onHome} title={companyName} rightContent={
+    <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       active ? (
         <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{active}</div>
       ) : null

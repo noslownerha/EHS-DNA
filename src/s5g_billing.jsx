@@ -41,7 +41,7 @@ function Card({ title, right, children }) {
   );
 }
 
-export default function S5gBilling({ companyName, onHome, tenantId = null, tenantName = null }) {
+export default function S5gBilling({ companyName, onHome, onBack, tenantId = null, tenantName = null }) {
   const [cfg, setCfg]         = useState(null);
   const [adjs, setAdjs]       = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -118,7 +118,7 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
 
   if (!cfg) return (
     <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
-      <EHSHeader onHome={onHome} title={companyName} />
+      <EHSHeader onHome={onHome} onBack={onBack} title={companyName} />
       <div style={{ padding: 40, textAlign: "center", color: C.mist }}>{error ?? "Loading…"}</div>
     </div>
   );
@@ -133,7 +133,7 @@ export default function S5gBilling({ companyName, onHome, tenantId = null, tenan
         input::placeholder { color: ${C.mist}; }
       `}</style>
 
-      <EHSHeader onHome={onHome} title={companyName} rightContent={
+      <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
         <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>Billing</div>
       } />
 

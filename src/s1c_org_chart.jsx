@@ -390,6 +390,7 @@ function TransferPanel({ org, allStaff, initialPerson, onClose, onConfirm }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function S1cOrgChart({
   onHome,
+  onBack,
   companyName = BRAND.company,
   initialOrg  = [],
   onAddStaff,
@@ -467,7 +468,7 @@ export default function S1cOrgChart({
       `}</style>
 
       {/* ── Top nav ── */}
-      <EHSHeader onHome={onHome} rightContent={
+      <EHSHeader onHome={onHome} onBack={onBack} rightContent={
         <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           Organization
         </div>
