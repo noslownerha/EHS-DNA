@@ -13,6 +13,15 @@ const { sendAlert, sendPasswordReset, sendDigest, emailConfigured } = require(".
 const db = require("./db.cjs");
 const { MODULES, LIVE_MODULES, moduleForPath } = require("./modules.cjs");
 
+// A fresh random id every time the process starts — i.e. every deploy restart
+// (systemctl restart ehs-dna). The client polls /api/health and remembers the
+// bootId it first saw; if a later poll returns a DIFFERENT one, the server has
+// restarted underneath an already-open tab. That's the exact moment a stale
+// client bundle can start silently misbehaving against a changed server (the
+// "nav buttons stop responding until I refresh" reports) — see BOOT_ID usage
+// in /api/health below and the client-side version-check banner.
+const BOOT_ID = crypto.randomUUID();
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET = process.env.EHS_JWT_SECRET || "dev-secret-change-in-prod";
@@ -116,9 +125,9 @@ app.use((req, res, next) => {
 app.get("/api/health", (req, res) => {
   try {
     db.prepare("SELECT 1").get();
-    res.json({ status: "ok", time: new Date().toISOString() });
+    res.json({ status: "ok", time: new Date().toISOString(), bootId: BOOT_ID });
   } catch (e) {
-    res.status(503).json({ status: "degraded", error: "database unreachable" });
+    res.status(503).json({ status: "degraded", error: "database unreachable", bootId: BOOT_ID });
   }
 });
 

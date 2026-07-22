@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api, getToken } from "./api.js";
 import { startAutoFlush } from "./offlineQueue.js";
 import { ROLE_PERMS, COLORS as C } from "./constants.js";
@@ -294,8 +294,83 @@ function App() {
 }
 
 
+// Two failure modes this exists to fix, both reported as "nav buttons stop
+// responding until I refresh, especially right after a deploy":
+//
+// 1. STALE CLIENT vs FRESH SERVER. A tab left open across a deploy is still
+//    running the OLD JS bundle while the server underneath has changed shape
+//    (new routes, new response fields, etc.) — a version-skew mismatch. Old
+//    code hitting a changed API can throw inside a click handler, which fails
+//    completely SILENTLY: React error boundaries (CrashShield) only catch
+//    render/lifecycle errors, NOT errors thrown inside onClick handlers — so
+//    nothing crashes, nothing shows, the click just does nothing.
+//    Fix: poll /api/health's bootId (a fresh random id set once per server
+//    process start, i.e. every deploy restart). If it changes after we first
+//    saw it, the server restarted under this tab — surface an unmissable,
+//    one-tap "Refresh to get the latest version" banner instead of leaving
+//    the person to eventually guess that a refresh will help.
+//
+// 2. THE EVENT-HANDLER BLIND SPOT ITSELF, independent of cause. Any uncaught
+//    error or promise rejection outside the render phase is invisible to
+//    CrashShield. A window-level listener catches these and shows the same
+//    kind of recoverable banner, so "click does nothing with no way to tell
+//    why" can no longer happen for ANY reason, not just version skew.
+function StaleClientBanner() {
+  const [bannerMsg, setBannerMsg] = useState(null); // null | string
+  const bootIdRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkVersion() {
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json().catch(() => null);
+        if (cancelled || !data?.bootId) return;
+        if (bootIdRef.current === null) { bootIdRef.current = data.bootId; return; }
+        if (data.bootId !== bootIdRef.current) {
+          setBannerMsg("A new version is available.");
+        }
+      } catch { /* offline or a transient network hiccup — not a version signal, ignore */ }
+    }
+    checkVersion();
+    const iv = setInterval(checkVersion, 60000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, []);
+
+  useEffect(() => {
+    // Errors thrown inside event handlers (onClick, onChange, etc.) and
+    // unhandled promise rejections never reach CrashShield — this is the only
+    // safety net for them.
+    function onError() { setBannerMsg(m => m ?? "Something went wrong with that last action."); }
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onError);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onError);
+    };
+  }, []);
+
+  if (!bannerMsg) return null;
+  return (
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+      background: "#2A4435", color: "#fff", padding: "10px 16px",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+      fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem",
+      boxShadow: "0 2px 10px rgba(0,0,0,.25)",
+    }}>
+      <span>{bannerMsg} Refresh to make sure everything works.</span>
+      <button onClick={() => window.location.reload()} style={{
+        background: "#fff", color: "#2A4435", border: "none", borderRadius: 6,
+        padding: "6px 14px", fontWeight: 700, fontSize: ".8rem", cursor: "pointer",
+        fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap",
+      }}>Refresh now</button>
+    </div>
+  );
+}
+
 export default function AppWithShield() {
-  return <CrashShield><App /></CrashShield>;
+  return <CrashShield><StaleClientBanner /><App /></CrashShield>;
 }
 
 // ── Forced password change ────────────────────────────────────────────────────

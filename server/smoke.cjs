@@ -13,6 +13,14 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
 (async () => {
   await new Promise(r => setTimeout(r, 400));
 
+  // Health endpoint carries a bootId the client polls to detect a server
+  // restart (deploy) under an already-open tab — see StaleClientBanner in
+  // App.jsx. Must be present and stable across repeated calls in one process.
+  const health1 = await fetch(`${B}/api/health`).then(j);
+  const health2 = await fetch(`${B}/api/health`).then(j);
+  ok("health: returns a bootId", typeof health1.bootId === "string" && health1.bootId.length > 10);
+  ok("health: bootId is stable across calls within the same process", health1.bootId === health2.bootId);
+
   const login = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: "ahren@whistlepig.com", password: "ChangeMe!2026" }) }).then(j);
   TOKEN = login.token;
