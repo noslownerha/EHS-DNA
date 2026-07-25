@@ -19,6 +19,9 @@ const SEV_COLORS = {
 };
 const CA_STATUS = {
   overdue:  { label: "Overdue",  bg: C.redLt,   color: C.red  },
+  // "Blocked" is a roadblock the assignee can't clear alone. It keeps ageing on
+  // purpose, so it reads as an alert rather than a parked/neutral state.
+  blocked:  { label: "⚠ Blocked — needs help", bg: "#FBF0CE", color: "#8A6D00" },
   "on-track":{ label: "On track", bg: C.foam,    color: C.pine },
   closed:   { label: "Closed",   bg: "#EEF1F0", color: C.slate},
 };
@@ -107,7 +110,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
   // Spec §12.7: KPI tiles — value and label ONLY. Fixed height. No detail inside.
   const kpis = [
     { value: SEED_INCIDENTS.filter(i => i.status === "open").length,    label: "Open",        color: C.sage  },
-    { value: SEED_INCIDENTS.filter(i => i.caStatus === "overdue").length,label: "CAs Overdue", color: C.red   },
+    { value: SEED_INCIDENTS.filter(i => i.caStatus === "overdue").length,label: "Corrective actions overdue", color: C.red   },
     { value: SEED_INCIDENTS.filter(i => i.osha === "Recordable").length, label: "Recordable",  color: C.gold  },
     { value: SEED_INCIDENTS.filter(i => i.status === "closed").length,   label: "Closed",      color: C.slate },
   ];
@@ -315,7 +318,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
 <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["ID", "Type", "Site", "Severity", "Reported", "OSHA", "CAs", "Status", ""].map((h, i) => (
+                {["ID", "Type", "Site", "Severity", "Reported", "OSHA", "Corrective actions", "Status", ""].map((h, i) => (
                   <th key={i} style={thStyle}>{h}</th>
                 ))}
               </tr>
@@ -527,7 +530,11 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
         photos: JSON.parse(row.photos || "[]"),
         cas: rowCAs.length ? rowCAs.map(c => ({
           id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned", serverStatus: c.status,
+          blockedReason: c.blocked_reason ?? null,
+          // "blocked" outranks overdue in the badge: an overdue item that's ALSO
+          // blocked needs a person, not another nag — surface the actionable one.
           due: c.due_date, status: c.status === "done" || c.status === "verified" ? "closed"
+               : c.status === "blocked" ? "blocked"
                : (c.due_date && new Date(c.due_date) < new Date()) ? "overdue" : "on-track",
           priority: c.priority,
         })) : [],
@@ -615,10 +622,21 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   function setCaStatus(ca, serverNext) {
     if (!dbId) return;
     if (serverNext === "done" && !window.confirm("Mark this corrective action complete?")) return;
-    api.updateCA(ca.id, { status: serverNext }).then(() => {
+    const patch = { status: serverNext };
+    if (serverNext === "blocked") {
+      // A blocker with no explanation can't be actioned by anyone else, which
+      // defeats the point — so the reason is required, not optional.
+      const why = window.prompt("What's blocking this? (needed so someone can help unstick it)");
+      if (why === null) return;                    // cancelled — leave status alone
+      if (!why.trim()) { window.alert("Please describe what's blocking it."); return; }
+      patch.blockedReason = why.trim();
+    }
+    api.updateCA(ca.id, patch).then(() => {
       setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id !== ca.id ? c : {
         ...c, serverStatus: serverNext,
+        blockedReason: serverNext === "blocked" ? patch.blockedReason : c.blockedReason,
         status: serverNext === "done" || serverNext === "verified" ? "closed"
+              : serverNext === "blocked" ? "blocked"
               : (c.due && new Date(c.due) < new Date()) ? "overdue" : "on-track",
       })}));
     }).catch(err => console.error("CA update failed:", err.message));
@@ -964,12 +982,18 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                       {ca.due && <span style={{ fontSize: ".7rem", color: C.mist }}>Due {ca.due}</span>}
                       <span style={{ fontSize: ".7rem", color: C.mist }}>→ {ca.assignee}</span>
                     </div>
+                    {ca.serverStatus === "blocked" && ca.blockedReason && (
+                      <div style={{ fontSize: ".75rem", color: "#8A6D00", background: "#FBF0CE", borderRadius: 6, padding: "6px 9px", marginTop: 6, lineHeight: 1.35 }}>
+                        <strong>Blocked:</strong> {ca.blockedReason}
+                      </div>
+                    )}
                     {canManageCA && (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                         <select value={srv} onChange={e => setCaStatus(ca, e.target.value)}
                           style={{ padding: "5px 8px", border: "1.5px solid #D0DEDB", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".76rem", color: C.ink, background: "#fff", cursor: "pointer" }}>
                           <option value="open">Open</option>
                           <option value="in_progress">In progress</option>
+                          <option value="blocked">Blocked — needs help</option>
                           <option value="done">Complete</option>
                         </select>
                         <button onClick={() => assignCA(ca)} style={{ background: "none", border: "none", color: C.sage, fontSize: ".74rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>

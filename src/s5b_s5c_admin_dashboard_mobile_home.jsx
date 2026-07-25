@@ -66,7 +66,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
 
   const kpis = [
     { label: "Open incidents",      value: totalIncidents, color: C.red,    dest: "incidents", module: "incidents" },
-    { label: "Open CAs",            value: totalCAs,       color: C.orange, dest: "cas",       module: "corrective_actions" },
+    { label: "Open corrective actions",            value: totalCAs,       color: C.orange, dest: "cas",       module: "corrective_actions" },
     { label: "Critical findings",   value: totalCritical,  color: C.gold,   dest: "findings",  module: "inspections" },
     { label: "Sites < 80% training",value: belowThreshold, color: C.purple, dest: "training",  module: "lms" },
   ].filter(k => !k.module || moduleEnabled(k.module));
@@ -182,7 +182,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
 <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Site", "Days since recordable", "Open incidents", "Open CAs", "Critical findings", "Training compliance", ""].map((h, i) => (
+                {["Site", "Days since recordable", "Open incidents", "Open corrective actions", "Critical findings", "Training compliance", ""].map((h, i) => (
                   <th key={i} style={thStyle}>{h}</th>
                 ))}
               </tr>

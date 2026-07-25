@@ -1199,6 +1199,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const mbrNoAuth = await fetch(`${B}/api/reports/mbr/export`);
   ok("mbr: export requires auth", mbrNoAuth.status === 401);
 
+  // ── Corrective action: "blocked" (roadblock) vs "capex_blocked" (budget wait) ──
+  // The distinction matters: capex_blocked pauses the aging clock, blocked does NOT.
+  const blkInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "hazard", severity: "minor", siteId: 1, description: "Blocked CA smoke test" }) }).then(j);
+  const blkCA = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: blkInc.id, title: "Needs an electrician", priority: "high" }) }).then(j);
+  const blkRes = await fetch(`${B}/api/cas/${blkCA.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ status: "blocked", blockedReason: "Panel is live, need a qualified electrician" }) });
+  ok("CA: 'blocked' is an accepted status", blkRes.status === 200);
+  const blkList = await fetch(`${B}/api/cas`, { headers: H() }).then(j);
+  const blkRow = blkList.find(c => c.id === blkCA.id);
+  ok("CA: blocked persists with its reason",
+     blkRow && blkRow.status === "blocked" && /qualified electrician/.test(blkRow.blocked_reason || ""));
+  ok("CA: blocked still counts as open work (not closed out)", !blkRow.closed_at);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

@@ -25,7 +25,7 @@ function DesktopNav({ companyName = BRAND.company, onHome, onBack }) {
   return (
     <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
-        CA Tracker
+        Corrective Actions
       </div>
     } />
   );

@@ -1310,7 +1310,12 @@ app.get("/api/cas", auth, (req, res) => {
                        ORDER BY c.due_date ASC`).all(req.auth.tenant, site, site, site));
 });
 // Valid CA statuses. capex_blocked is "open but awaiting budget" — see reports.
-const CA_STATUSES = ["open", "in_progress", "capex_blocked", "done", "verified"];
+// "capex_blocked" = waiting on budget: legitimately pauses the aging clock.
+// "blocked"       = the assignee hit a roadblock and needs someone senior to
+//                   unstick it. It deliberately KEEPS AGING and keeps counting
+//                   as overdue — the whole point is that it stays visible and
+//                   demands attention instead of quietly rotting.
+const CA_STATUSES = ["open", "in_progress", "blocked", "capex_blocked", "done", "verified"];
 
 // Record one entry in a CA's activity log. Best-effort; never blocks the action.
 function logCA(tenantId, caId, actorId, kind, detail) {
@@ -1448,9 +1453,11 @@ app.put("/api/cas/:id", auth, (req, res) => {
   if (status && status !== cur.status) {
     sets.push("status = ?"); vals.push(status);
     if (["done", "verified"].includes(status)) { sets.push("closed_at = datetime('now')"); }
-    else if (["open", "in_progress", "capex_blocked"].includes(status) && cur.closed_at) { sets.push("closed_at = NULL"); }
+    else if (["open", "in_progress", "blocked", "capex_blocked"].includes(status) && cur.closed_at) { sets.push("closed_at = NULL"); }
     if (status === "capex_blocked")
       logs.push(["capex", `Marked CapEx-blocked${blockedReason ? `: ${blockedReason}` : ""} — stays open, not counted overdue`]);
+    else if (status === "blocked")
+      logs.push(["status", `BLOCKED — needs help${blockedReason ? `: ${blockedReason}` : ""} (still ageing and still counts as overdue)`]);
     else
       logs.push(["status", `Status → ${status.replace("_", " ")}`]);
   }
@@ -2588,7 +2595,9 @@ function computeDigestMetrics(tenantId) {
   const recordablesYTD = q(`SELECT COUNT(*) n FROM incidents WHERE tenant_id=? AND created_at >= ?
                             AND osha_classification LIKE 'Recordable%'`, yearStart);
   const openCorrectiveActions = q(`SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id=? AND status NOT IN ('done','verified')`);
-  const overdueCorrectiveActions = q(`SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id=? AND status NOT IN ('done','verified')
+  // capex_blocked is excluded here on purpose (budget wait pauses the clock);
+  // 'blocked' is NOT excluded — a roadblock must keep showing up as overdue.
+  const overdueCorrectiveActions = q(`SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id=? AND status NOT IN ('done','verified','capex_blocked')
                                       AND due_date IS NOT NULL AND due_date < date('now')`);
   // Trainings overdue: latest completion per user×training that has expired.
   const trainingsOverdue = q(`SELECT COUNT(*) n FROM training_completions tc

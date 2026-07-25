@@ -87,7 +87,7 @@ export default function S5aSiteManagerDashboard({
 
   const kpis = [
     { label: "Open incidents",   value: siteStats?.openIncidents ?? 0,       color: C.red,    dest: "incidents" },
-    { label: "Open CAs",         value: siteStats?.openCAs ?? 0,             color: C.orange, dest: "cas"       },
+    { label: "Open corrective actions",         value: siteStats?.openCAs ?? 0,             color: C.orange, dest: "cas"       },
     { label: "Open findings",    value: siteStats?.criticalFindings ?? 0,    color: C.gold,   dest: "findings"  },
     { label: "Training overdue", value: trainingOverdue ?? 0,                color: C.purple, dest: "training"  },
   ];
@@ -225,7 +225,7 @@ export default function S5aSiteManagerDashboard({
             ))}
           </SectionCard>
 
-          {/* Open CAs */}
+          {/* Open corrective actions */}
           <SectionCard
             title="Open corrective actions"
             subtitle={`${OPEN_CAS.length} total · ${overdueCACount} overdue`}

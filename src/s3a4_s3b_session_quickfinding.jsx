@@ -19,7 +19,7 @@ const CATEGORIES = [
   { id: "equipment",      label: "Equipment",        emoji: "⚙️" },
   { id: "fire",           label: "Fire Safety",      emoji: "🔥" },
   { id: "ergonomics",     label: "Ergonomics",       emoji: "💺" },
-  { id: "chemical",       label: "Chemical / MSDS",  emoji: "🧪" },
+  { id: "chemical",       label: "Chemical / SDS",  emoji: "🧪" },
   { id: "documentation",  label: "Documentation",    emoji: "📋" },
   { id: "positive",       label: "Positive Note",    emoji: "⭐" },  // Spec §13.4
   { id: "other",          label: "Other",            emoji: "📌" },
@@ -177,7 +177,6 @@ export function S3bQuickFinding({ onHome,
   const [severity, setSeverity]    = useState("minor");
   const [assignee, setAssignee]    = useState("Site Manager");
   const [dueShort, setDueShort]    = useState(1);
-  const [showCapEx,setShowCapEx]   = useState(false);
   const [capex,    setCapex]       = useState(false);
   const [capexNotes,setCapexNotes] = useState("");
   const [submitting,setSubmitting] = useState(false);
@@ -338,28 +337,24 @@ export function S3bQuickFinding({ onHome,
                 </div>
               </div>
 
-              {/* CapEx collapsed */}
-              <div>
-                <button onClick={() => setShowCapEx(v => !v)} style={{ background: "none", border: "none", padding: "5px 0", fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", color: C.mist, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ fontSize: ".7rem" }}>{showCapEx ? "▲" : "▼"}</span> Additional details
-                </button>
-                {showCapEx && (
-                  <div style={{ marginTop: 8, padding: "12px", background: C.chalk, borderRadius: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: capex ? 10 : 0 }}>
-                      <div style={{ flex: 1, marginRight: 12 }}>
-                        <div style={{ fontSize: ".83rem", fontWeight: 600, color: C.ink }}>Requires capital spend (CapEx)</div>
-                        <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>Excludes this finding from aging metrics while pending budget approval</div>
-                      </div>
-                      <div onClick={() => setCapex(v => !v)} style={{ width: 40, height: 22, borderRadius: 22, background: capex ? C.navy : "#D0DEDB", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
-                        <div style={{ position: "absolute", width: 16, height: 16, borderRadius: "50%", background: C.white, top: 3, left: capex ? 21 : 3, transition: "left .18s" }} />
-                      </div>
-                    </div>
-                    {capex && (
-                      <textarea value={capexNotes} onChange={e => setCapexNotes(e.target.value)} placeholder="CapEx notes (optional)" rows={2}
-                        style={{ width: "100%", padding: "7px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", color: C.ink, outline: "none", resize: "none", marginTop: 8 }}
-                      />
-                    )}
+              {/* Capital-spend flag — deliberately NOT collapsed. It changes how
+                  the finding is tracked (pauses aging pending budget approval),
+                  so hiding it behind "Additional details" meant people forgot it
+                  existed and fixes silently aged as if nobody had acted. */}
+              <div style={{ padding: "12px", background: C.chalk, borderRadius: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: capex ? 10 : 0 }}>
+                  <div style={{ flex: 1, marginRight: 12 }}>
+                    <div style={{ fontSize: ".83rem", fontWeight: 600, color: C.ink }}>Requires capital spend (CapEx)</div>
+                    <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>Pauses the aging clock while this waits on budget approval</div>
                   </div>
+                  <div onClick={() => setCapex(v => !v)} style={{ width: 40, height: 22, borderRadius: 22, background: capex ? C.navy : "#D0DEDB", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+                    <div style={{ position: "absolute", width: 16, height: 16, borderRadius: "50%", background: C.white, top: 3, left: capex ? 21 : 3, transition: "left .18s" }} />
+                  </div>
+                </div>
+                {capex && (
+                  <textarea value={capexNotes} onChange={e => setCapexNotes(e.target.value)} placeholder="What needs funding? (optional)" rows={2}
+                    style={{ width: "100%", padding: "7px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", color: C.ink, outline: "none", resize: "none", marginTop: 8 }}
+                  />
                 )}
               </div>
             </div>
