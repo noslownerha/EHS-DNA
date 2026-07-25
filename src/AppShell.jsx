@@ -285,6 +285,32 @@ export default function AppShell({ user, children, activeTab, onTab }) {
   // server reports modules (visibleTabs passes everything through when unset).
   const tabs  = visibleTabs(perms.tabs, BRAND.modules);
 
+  // ── Operator vs customer surfaces ──────────────────────────────────────────
+  // The operator signs in with role "admin" on their own tenant, which used to
+  // hand them the full CUSTOMER tab bar (Flag / Inspect / Training / Analyze).
+  // That's wrong: tapping Flag as the operator files an incident against a real
+  // tenant under the operator's name. The operator already has the correct way
+  // to see customer tools — impersonation — so the console itself doesn't need
+  // to duplicate them. The console has its own internal sections, so a bottom
+  // tab bar there would be redundant chrome; it's hidden entirely.
+  const inSupportMode  = Boolean(user.supportTenant);          // impersonating a tenant
+  const isOperatorConsole = Boolean(user.isOperator) && !inSupportMode;
+
+  // Restore the operator's own session. s5h stashes it before impersonating, but
+  // nothing ever restored it — so entering a tenant was a one-way trip with no
+  // indication you were in support mode at all.
+  function exitSupportMode() {
+    try {
+      const t = sessionStorage.getItem("ehs_operator_token");
+      const u = sessionStorage.getItem("ehs_operator_user");
+      if (t) localStorage.setItem("ehs_token", t);
+      if (u && u !== "null") sessionStorage.setItem("ehs_user", u);
+      sessionStorage.removeItem("ehs_operator_token");
+      sessionStorage.removeItem("ehs_operator_user");
+    } catch { /* storage unavailable — reload still returns to a sane state */ }
+    window.location.reload();
+  }
+
   // Plant floors and warehouses have dead zones. Tell people plainly when they
   // are offline, so a failed submit reads as "no signal" rather than "app broken".
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
@@ -328,7 +354,10 @@ export default function AppShell({ user, children, activeTab, onTab }) {
            nav bar (58px) + a comfortable buffer (20px) = 78px.
            Applied globally here so no individual screen needs to manage it.
            Screens that already set paddingBottom will override this with max. */
-        .ehs-content-root > * {
+        .ehs-content-root[data-no-nav="1"] > * {
+          padding-bottom: 20px !important;
+        }
+        .ehs-content-root:not([data-no-nav="1"]) > * {
           padding-bottom: max(78px, var(--screen-pb, 78px)) !important;
         }
 
@@ -396,11 +425,35 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         }
       `}</style>
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
+        {/* Support-mode banner. Deliberately loud and always on top: an operator
+            acting inside a real customer's data must never forget whose data
+            they're in — actions taken here are indistinguishable from the
+            customer's own in the audit trail. */}
+        {inSupportMode && (
+          <div style={{
+            position: "sticky", top: 0, zIndex: 300,
+            background: "#8A6D00", color: "#fff", padding: "8px 14px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", flexShrink: 0,
+          }}>
+            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              🛠️ Support mode — viewing <strong>{user.supportTenant}</strong>
+            </span>
+            <button onClick={exitSupportMode} style={{
+              background: "#fff", color: "#8A6D00", border: "none", borderRadius: 6,
+              padding: "5px 12px", fontWeight: 700, fontSize: ".76rem", cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", flexShrink: 0,
+            }}>Exit</button>
+          </div>
+        )}
         {/* Content wrapper — gives global bottom clearance */}
-        <div className="ehs-content-root" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div className="ehs-content-root" data-no-nav={isOperatorConsole ? "1" : undefined} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {children}
         </div>
-        <BottomTabBar tabs={tabs} activeTab={activeTab} onTab={onTab} />
+        {/* The operator console navigates via its own internal sections, so the
+            customer tab bar is omitted there rather than shown with the wrong
+            (customer) destinations. */}
+        {!isOperatorConsole && <BottomTabBar tabs={tabs} activeTab={activeTab} onTab={onTab} />}
       </div>
     </RoleContext.Provider>
   );

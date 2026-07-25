@@ -1214,6 +1214,21 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
      blkRow && blkRow.status === "blocked" && /qualified electrician/.test(blkRow.blocked_reason || ""));
   ok("CA: blocked still counts as open work (not closed out)", !blkRow.closed_at);
 
+  // ── Impersonation contract the support-mode banner depends on ──
+  // The client shows "Support mode — viewing X" and an Exit button based on
+  // supportTenant, so the server must actually return it (it did, but nothing
+  // consumed it — entering a tenant used to be a one-way trip with no banner).
+  const impR = await fetch(`${B}/api/op/impersonate`, { method: "POST", headers: opH(),
+    body: JSON.stringify({ tenantId: 1 }) }).then(j);
+  ok("impersonate: returns a token and names the tenant being viewed",
+     typeof impR.token === "string" && impR.user && impR.user.supportTenant === "WhistlePig Whiskey");
+  ok("impersonate: flags the session as operator-driven", impR.user.isOperator === true);
+  // The issued token must be scoped to the impersonated tenant, not the operator's.
+  const impMe = await fetch(`${B}/api/config`, { headers: { Authorization: `Bearer ${impR.token}` } });
+  ok("impersonate: issued token is accepted as that tenant", impMe.status === 200);
+  const impDenied = await fetch(`${B}/api/op/analytics`, { headers: { Authorization: `Bearer ${impR.token}` } });
+  ok("impersonate: operator-only routes still reachable while impersonating (op claim kept)", impDenied.status === 200);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
