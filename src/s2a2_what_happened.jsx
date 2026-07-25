@@ -130,6 +130,18 @@ export default function S2a2WhatHappened({
     rec.start();
   }
   const [location,    setLocation]    = useState("");
+  // ── Location capture (moved here from the old separate "Photos & location"
+  // step, which was redundant: photos are already collected on THIS screen).
+  // GPS and the floorplan pin answer different questions and are deliberately
+  // independent — GPS records where the reporter physically stood (useful in
+  // yards / tank farms / multi-building sites), while the floorplan pin is a
+  // manual tap that stays accurate indoors, where phone GPS (5-20m, worse
+  // inside steel-and-concrete buildings) would often land in the wrong room.
+  const [gpsCoords,  setGpsCoords]  = useState(null);
+  const [gpsError,   setGpsError]   = useState(null);
+  const [plan,       setPlan]       = useState(null);
+  const [floorPos,   setFloorPos]   = useState(null);   // { x, y } as % of image
+  const [mapOpen,    setMapOpen]    = useState(false);
   const [site,        setSite]        = useState(initialSite ?? SITES[0]);
   const [severity,    setSeverity]    = useState(null);
   const [injuryType,  setInjuryType]  = useState("");
@@ -143,6 +155,25 @@ export default function S2a2WhatHappened({
   const [recognizedUserId, setRecognizedUserId] = useState("");
   const [users, setUsers] = useState([]);
   const [photos, setPhotos] = useState([]);
+
+  // Only offer the floorplan pin when the selected site actually has a plan.
+  const siteRec = (BRAND.siteRecords ?? []).find(s0 => s0.name === site);
+  useEffect(() => {
+    setPlan(null); setFloorPos(null);           // switching site invalidates any pin
+    if (siteRec?.hasFloorplan) {
+      api.siteFloorplan(siteRec.id).then(r => setPlan(r.floorplan)).catch(() => {});
+    }
+  }, [siteRec?.id, siteRec?.hasFloorplan]);
+
+  function handleRequestGps() {
+    setGpsError(null);
+    if (!navigator.geolocation) { setGpsError("Location isn't supported on this device"); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => setGpsError(err.code === 1 ? "Location permission denied" : "Couldn't get your location"),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
   const photoInput = useRef(null);
   const galleryInput = useRef(null);
   const nextPhotoId = useRef(1);
@@ -359,6 +390,81 @@ export default function S2a2WhatHappened({
           />
         </div>
 
+        {/* Pinpoint location — optional, and only as precise as the reporter can
+            honestly be. Both controls are opt-in so a report filed later from a
+            desk never silently attaches the wrong place. */}
+        {(true) && (
+          <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: 16, marginBottom: 14 }}>
+            <Label>Pinpoint the location (optional)</Label>
+
+            {gpsCoords ? (
+              <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 12px", background: C.foam, borderRadius: 8 }}>
+                <span>📍</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: ".85rem", color: C.pine }}>GPS location captured</div>
+                  <div style={{ fontSize: ".72rem", color: C.mist }}>{gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}</div>
+                </div>
+                <button type="button" onClick={() => setGpsCoords(null)} style={{ background: "none", border: "none", color: C.mist, fontSize: ".75rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
+              </div>
+            ) : (
+              <>
+                <button type="button" onClick={handleRequestGps} style={{
+                  width: "100%", padding: "11px 12px", background: C.white, border: `1.5px solid ${C.mint}`,
+                  borderRadius: 8, color: C.pine, fontFamily: "'DM Sans', sans-serif",
+                  fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
+                }}>📍 Tag my current GPS location</button>
+                <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 6, lineHeight: 1.45 }}>
+                  Only use this if you're standing at the spot right now — it records where <em>you</em> are, not where the hazard is.
+                </div>
+              </>
+            )}
+            {gpsError && <div style={{ fontSize: ".75rem", color: C.red, marginTop: 6 }}>{gpsError}</div>}
+
+            {plan && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #EEF3F0" }}>
+                <button type="button" onClick={() => setMapOpen(true)} style={{
+                  width: "100%", padding: "11px 12px",
+                  background: floorPos ? C.sage : C.white,
+                  color: floorPos ? C.white : C.pine,
+                  border: `1.5px solid ${floorPos ? C.sage : C.mint}`,
+                  borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
+                  fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
+                }}>{floorPos ? "✓ Marked on site map — tap to adjust" : "🗺️ Mark the spot on the site map"}</button>
+                <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 6, lineHeight: 1.45 }}>
+                  More precise than GPS indoors — you place the pin yourself.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Floorplan pin modal */}
+        {mapOpen && plan && (
+          <div onClick={() => setMapOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,31,23,.55)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: 12, padding: 14, width: "100%", maxWidth: 560 }}>
+              <div style={{ fontSize: ".85rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>Tap where it happened</div>
+              <div style={{ position: "relative", width: "100%" }}
+                onClick={e => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setFloorPos({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+                }}>
+                <img src={plan} alt="Site floorplan" style={{ width: "100%", display: "block", borderRadius: 8 }} />
+                {floorPos && (
+                  <div style={{ position: "absolute", left: `${floorPos.x}%`, top: `${floorPos.y}%`, transform: "translate(-50%, -90%)", fontSize: "1.6rem", pointerEvents: "none" }}>📍</div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                {floorPos && (
+                  <button type="button" onClick={() => setFloorPos(null)} style={{ padding: "9px 14px", background: "none", border: "1px solid #D0DEDB", borderRadius: 7, color: C.slate, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Clear pin</button>
+                )}
+                <button type="button" onClick={() => setMapOpen(false)} style={{ flex: 1, padding: "9px 0", background: C.sage, color: "#fff", border: "none", borderRadius: 7, fontSize: ".85rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                  {floorPos ? "Done" : "Close"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Injury sub-type (shown only for injury incidents) */}
         {isInjury && (
           <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "16px", marginBottom: 14 }}>
@@ -494,7 +600,7 @@ export default function S2a2WhatHappened({
       }}>
         <button
           className="continue-btn"
-          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, site, recognizedUserId: recognizedUserId || null, photos, oshaSignals, oshaRecordableSuggested: isInjury && oshaSignals.length > 0 })}
+          onClick={() => canContinue && onContinue?.({ description, location, severity, injuryType, site, recognizedUserId: recognizedUserId || null, photos, gpsCoords, floorPos, oshaSignals, oshaRecordableSuggested: isInjury && oshaSignals.length > 0 })}
           disabled={!canContinue}
           style={{
             width: "100%", padding: "14px",

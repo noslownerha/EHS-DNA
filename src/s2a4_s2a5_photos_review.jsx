@@ -325,6 +325,8 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack, onHome }) {
     severity   = "significant",
     involved   = { type: "staff", person: { first: "Sarah", last: "Mitchell" } },
     photos     = [],
+    gpsCoords  = null,
+    floorPos   = null,
   } = flowData;
 
   const involveName = involved?.type === "staff"
@@ -351,6 +353,9 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack, onHome }) {
     { label: "Severity",    value: <span style={{ fontWeight: 700, color: SEVERITY_COLORS[severity] }}>{severity.charAt(0).toUpperCase() + severity.slice(1)}</span> },
     { label: "Involved",    value: involveName },
     { label: "Photos",      value: photos.length > 0 ? `${photos.length} attached` : "None" },
+    // Surfaced so the reporter can see what location data they're actually
+    // submitting — both are optional and set on the "what happened" screen.
+    { label: "Pinpoint",    value: [gpsCoords && "GPS tagged", floorPos && "Marked on site map"].filter(Boolean).join(" · ") || "None" },
   ];
 
   return (

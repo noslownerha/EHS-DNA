@@ -25,7 +25,7 @@ import { api } from "./api.js";
 import S2a1IncidentType                     from "./s2a1_incident_type";
 import S2a2WhatHappened                     from "./s2a2_what_happened";
 import S2a3WhoWasInvolved                   from "./s2a3_who_was_involved";
-import { S2a4PhotosLocation, S2a5ReviewSubmit } from "./s2a4_s2a5_photos_review";
+import { S2a5ReviewSubmit } from "./s2a4_s2a5_photos_review";
 import S2bConfirmationResponse              from "./s2b_confirmation_response";
 import { S2cIncidentList, S2dIncidentDetail } from "./s2c_s2d_incident_list_detail";
 import S2eCATracker                         from "./s2e_ca_tracker";
@@ -362,21 +362,6 @@ export function IncidentRouter({ onDone, onGoToTriage, onHome, pickerStep = "top
           onBack={back}
           onContinue={involved => {
             saveWho(involved);
-            navigate(INCIDENT_SCREENS.PHOTOS);
-          }}
-        />
-      );
-
-    // ── s2a4: Photos & location ─────────────────────────────────────────────
-    case INCIDENT_SCREENS.PHOTOS:
-      return (
-        <S2a4PhotosLocation
-          onHome={onHome ?? onDone}
-          site={state.draft.site}
-          initialPhotos={state.draft.photos ?? []}
-          onBack={back}
-          onContinue={data => {
-            savePhotos(data);
             navigate(INCIDENT_SCREENS.REVIEW);
           }}
         />
@@ -472,7 +457,6 @@ export function IncidentDevPanel() {
     { id: INCIDENT_SCREENS.TYPE,        label: "s2a1 · Type"      },
     { id: INCIDENT_SCREENS.WHAT,        label: "s2a2 · What"      },
     { id: INCIDENT_SCREENS.WHO,         label: "s2a3 · Who"       },
-    { id: INCIDENT_SCREENS.PHOTOS,      label: "s2a4 · Photos"    },
     { id: INCIDENT_SCREENS.REVIEW,      label: "s2a5 · Review"    },
     { id: INCIDENT_SCREENS.CONFIRMATION,label: "s2b · Confirm"    },
     { id: INCIDENT_SCREENS.LIST,        label: "s2c · List"       },
