@@ -2047,6 +2047,123 @@ app.get("/api/op/analytics", auth, requireOperator, (req, res) => {
   res.json({ summary, perTenant, moduleEfficacy });
 });
 
+// ── Operator: "what needs my attention" ──────────────────────────────────────
+// A single triaged worklist instead of making the operator infer problems by
+// scanning the tenant table. Everything here is an AGGREGATE or an account-level
+// fact — deliberately no incident descriptions or people's names, since those
+// are the tenant's data and should require impersonating (which is attributable).
+app.get("/api/op/attention", auth, requireOperator, (req, res) => {
+  const DAY = 86400000, now = Date.now();
+  const iso = ms => new Date(ms).toISOString();
+  const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
+  const items = [];
+  const push = (severity, kind, t, title, detail) =>
+    items.push({ severity, kind, tenantId: t.id, tenantName: t.name, title, detail });
+
+  for (const t of tenants) {
+    if (t.active === 0) {
+      push("high", "suspended", t, "Account suspended", "Team is locked out until it's reactivated.");
+      continue;                       // a suspended tenant's other signals are noise
+    }
+    const users = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id=? AND active=1 AND is_operator=0").get(t.id).n;
+    const lastReport = db.prepare("SELECT MAX(created_at) d FROM incidents WHERE tenant_id=?").get(t.id).d;
+    const created = t.created_at ? new Date(t.created_at).getTime() : null;
+    const ageDays = created ? Math.floor((now - created) / DAY) : null;
+
+    // Onboarding never landed — the strongest early churn signal there is.
+    if (!lastReport) {
+      if (ageDays !== null && ageDays >= 14)
+        push("high", "never_used", t, "Never used since signup",
+             `${ageDays} days old, ${users} user${users === 1 ? "" : "s"}, still zero reports filed.`);
+    } else {
+      const quietDays = Math.floor((now - new Date(lastReport).getTime()) / DAY);
+      if (quietDays >= 30)
+        push(quietDays >= 60 ? "high" : "medium", "gone_quiet", t, "Gone quiet",
+             `No activity in ${quietDays} days.`);
+    }
+
+    // Seats bought but nobody in them.
+    if (users <= 1 && ageDays !== null && ageDays >= 14)
+      push("medium", "no_team", t, "No team invited", "Only the admin account exists — nobody else can report.");
+
+    // Paying for modules nobody has touched: either an onboarding gap or a
+    // renewal argument waiting to happen. Aggregate only.
+    let modulePrices = {};
+    try { modulePrices = JSON.parse(db.prepare("SELECT module_prices FROM billing_config WHERE tenant_id=?").get(t.id)?.module_prices || "{}"); } catch {}
+    const USAGE = {
+      inspections:        "SELECT COUNT(*) n FROM inspections WHERE tenant_id = ?",
+      corrective_actions: "SELECT COUNT(*) n FROM corrective_actions WHERE tenant_id = ?",
+      lms:                "SELECT COUNT(*) n FROM training_completions WHERE tenant_id = ?",
+      equipment:          "SELECT COUNT(*) n FROM assets WHERE tenant_id = ?",
+      recognition:        "SELECT COUNT(*) n FROM points_ledger WHERE tenant_id = ?",
+    };
+    const unused = [];
+    for (const [key, sql] of Object.entries(USAGE)) {
+      if (!(modulePrices[key] > 0) || !moduleOn(t.id, key)) continue;
+      try { if (db.prepare(sql).get(t.id).n === 0) unused.push(key); } catch {}
+    }
+    if (unused.length) {
+      const MODULE_LABEL = { inspections: "Inspections", corrective_actions: "Corrective Actions",
+                             lms: "Training", equipment: "Equipment", recognition: "Recognition" };
+      push("medium", "paid_unused_modules", t, "Paying for unused modules",
+           `${unused.map(k => MODULE_LABEL[k] ?? k).join(", ")} — enabled and billed, never used.`);
+    }
+
+    // Ops-health churn signal (aggregate count only, no case detail).
+    const overdueCAs = db.prepare(`SELECT COUNT(*) n FROM corrective_actions
+        WHERE tenant_id=? AND status NOT IN ('done','verified','capex_blocked')
+          AND due_date IS NOT NULL AND due_date < date('now')`).get(t.id).n;
+    if (overdueCAs >= 10)
+      push("medium", "overdue_backlog", t, "Large overdue backlog",
+           `${overdueCAs} corrective actions past due — the programme may be stalling.`);
+
+    // Money.
+    const unpaid = db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amt FROM invoices
+        WHERE tenant_id=? AND status IN ('approved','sent')`).get(t.id);
+    if (unpaid.n > 0) {
+      const stale = db.prepare(`SELECT COUNT(*) n FROM invoices
+          WHERE tenant_id=? AND status IN ('approved','sent') AND generated_at < ?`).get(t.id, iso(now - 30 * DAY)).n;
+      push(stale > 0 ? "high" : "medium", "unpaid_invoice", t,
+           stale > 0 ? "Invoice unpaid 30+ days" : "Invoice outstanding",
+           `${unpaid.n} invoice${unpaid.n === 1 ? "" : "s"} · $${Math.round(unpaid.amt).toLocaleString("en-US")}.`);
+    }
+  }
+
+  const rank = { high: 0, medium: 1, low: 2 };
+  items.sort((a, b) => rank[a.severity] - rank[b.severity] || a.tenantName.localeCompare(b.tenantName));
+  res.json({ items, counts: {
+    high:   items.filter(i => i.severity === "high").length,
+    medium: items.filter(i => i.severity === "medium").length,
+  }});
+});
+
+// ── Operator: cross-tenant billing ───────────────────────────────────────────
+// Every account's money in one place. The per-tenant billing screen still exists
+// for editing config/adjustments; this is the portfolio view it never had.
+app.get("/api/op/billing/overview", auth, requireOperator, (req, res) => {
+  const tenants = db.prepare("SELECT * FROM tenants ORDER BY name").all();
+  const rows = tenants.map(t => {
+    const mrr = mrrFor(t.id).total;
+    const latest = db.prepare(`SELECT ref, period, status, total FROM invoices
+        WHERE tenant_id=? ORDER BY period DESC, id DESC LIMIT 1`).get(t.id) ?? null;
+    const unpaid = db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amt FROM invoices
+        WHERE tenant_id=? AND status IN ('approved','sent')`).get(t.id);
+    const paid = db.prepare(`SELECT COALESCE(SUM(total),0) amt FROM invoices
+        WHERE tenant_id=? AND status='paid'`).get(t.id).amt;
+    return { tenantId: t.id, tenantName: t.name, active: t.active !== 0,
+             mrr, latestInvoice: latest, unpaidCount: unpaid.n,
+             unpaidTotal: Math.round(unpaid.amt * 100) / 100,
+             paidToDate: Math.round(paid * 100) / 100 };
+  });
+  const activeRows = rows.filter(r => r.active);
+  res.json({ rows, totals: {
+    mrr:         Math.round(activeRows.reduce((s, r) => s + r.mrr, 0) * 100) / 100,
+    outstanding: Math.round(rows.reduce((s, r) => s + r.unpaidTotal, 0) * 100) / 100,
+    paidToDate:  Math.round(rows.reduce((s, r) => s + r.paidToDate, 0) * 100) / 100,
+    tenantsUnpaid: rows.filter(r => r.unpaidCount > 0).length,
+  }});
+});
+
 app.get("/api/op/tenants", auth, requireOperator, (req, res) => {
   const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
   res.json(tenants.map(t => {

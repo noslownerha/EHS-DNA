@@ -1229,6 +1229,33 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const impDenied = await fetch(`${B}/api/op/analytics`, { headers: { Authorization: `Bearer ${impR.token}` } });
   ok("impersonate: operator-only routes still reachable while impersonating (op claim kept)", impDenied.status === 200);
 
+  // ── Operator: attention worklist + cross-tenant billing ──
+  const att = await fetch(`${B}/api/op/attention`, { headers: opH() }).then(j);
+  ok("op attention: returns a triaged item list with counts",
+     Array.isArray(att.items) && att.counts && typeof att.counts.high === "number");
+  ok("op attention: items carry severity + tenant + human detail",
+     att.items.every(i => ["high","medium","low"].includes(i.severity) && i.tenantName && i.title && i.detail));
+  // Aggregate-only: nothing here should leak incident narrative or people's names.
+  ok("op attention: high-severity items sort first",
+     att.items.every((it, idx, arr) => idx === 0 || !(it.severity === "high" && arr[idx-1].severity !== "high")));
+
+  // Suspending a tenant must surface as a high-severity attention item.
+  await fetch(`${B}/api/op/tenants/1/status`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ active: false, reason: "billing" }) }).then(j);
+  const att2 = await fetch(`${B}/api/op/attention`, { headers: opH() }).then(j);
+  ok("op attention: a suspended tenant raises a high-severity item",
+     att2.items.some(i => i.kind === "suspended" && i.severity === "high" && i.tenantId === 1));
+  await fetch(`${B}/api/op/tenants/1/status`, { method: "PUT", headers: opH(),
+    body: JSON.stringify({ active: true }) }).then(j);   // restore for later checks
+
+  const bo = await fetch(`${B}/api/op/billing/overview`, { headers: opH() }).then(j);
+  ok("op billing overview: per-tenant rows + portfolio totals",
+     Array.isArray(bo.rows) && bo.rows.length > 0 && bo.totals && typeof bo.totals.mrr === "number");
+  ok("op billing overview: MRR matches the analytics view (same math, one source)",
+     bo.totals.mrr === (await fetch(`${B}/api/op/analytics`, { headers: opH() }).then(j)).summary.mrr);
+  const boDenied = await fetch(`${B}/api/op/billing/overview`, { headers: H() });
+  ok("op billing overview: forbidden for a tenant admin", boDenied.status === 403);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

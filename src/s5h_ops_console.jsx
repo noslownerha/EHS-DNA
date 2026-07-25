@@ -14,7 +14,11 @@ const fmt$ = n => n == null ? "—" : "$" + Number(n).toLocaleString("en-US", { 
 export default function S5hOpsConsole({ onHome, onOpenBilling }) {
   const [tenants, setTenants] = useState(null);
   const [error, setError] = useState(null);
-  const [opsTab, setOpsTab] = useState("overview");   // "overview" | "companies"
+  // Landing on "attention" rather than a raw tenant list: the operator's first
+  // question is "what needs me today", not "show me every account".
+  const [opsTab, setOpsTab] = useState("attention");  // attention | overview | companies | billing
+  const [attention, setAttention] = useState(null);
+  const [billingOverview, setBillingOverview] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", industry: "", adminEmail: "", adminName: "" });
@@ -89,6 +93,8 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
     api.opTenants().then(setTenants).catch(err => setError(err.message));
     api.opLeads().then(setLeads).catch(() => {});
     api.opAnalytics().then(setAnalytics).catch(() => {});
+    api.opAttention().then(setAttention).catch(() => setAttention({ items: [], counts: {} }));
+    api.opBillingOverview().then(setBillingOverview).catch(() => {});
   };
   useEffect(load, []);
 
@@ -118,7 +124,10 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "26px 20px" }}>
         {/* Operator view tabs: business Overview vs company management */}
         <div style={{ display: "flex", gap: 4, marginBottom: 20, background: C.white, padding: 4, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", width: "fit-content" }}>
-          {[{ k: "overview", label: "📊 Overview" }, { k: "companies", label: "🏢 Companies" }].map(t => (
+          {[{ k: "attention", label: "🔔 Attention" },
+            { k: "overview",   label: "📊 Overview" },
+            { k: "companies",  label: "🏢 Companies" },
+            { k: "billing",    label: "💳 Billing" }].map(t => (
             <button key={t.k} onClick={() => setOpsTab(t.k)} style={{
               padding: "8px 18px", border: "none", borderRadius: 7, cursor: "pointer",
               fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
@@ -127,7 +136,9 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
           ))}
         </div>
 
+        {opsTab === "attention" && <OperatorAttention data={attention} onOpenTenantBilling={onOpenBilling} />}
         {opsTab === "overview" && <OperatorOverview analytics={analytics} />}
+        {opsTab === "billing" && <OperatorBilling data={billingOverview} onOpenTenantBilling={onOpenBilling} />}
 
         {opsTab === "companies" && (<>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 6 }}>
@@ -439,6 +450,151 @@ function OperatorOverview({ analytics }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Operator: what needs my attention ────────────────────────────────────────
+// A triaged worklist so problems surface on their own instead of the operator
+// having to infer them by scanning the tenant table. Everything shown is an
+// aggregate or an account-level fact — nothing that identifies a person or
+// describes an incident, since that's tenant data and should require
+// impersonating (which is attributable in the audit trail).
+const SEV = {
+  high:   { dot: "#B3261E", bg: "#FDECEA", label: "Needs action" },
+  medium: { dot: "#8A6D00", bg: "#FBF0CE", label: "Worth a look" },
+};
+
+function OperatorAttention({ data, onOpenTenantBilling }) {
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.mist }}>Loading…</div>;
+  const { items = [], counts = {} } = data;
+
+  if (!items.length) {
+    return (
+      <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "40px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: "1.8rem", marginBottom: 8 }}>✅</div>
+        <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}>Nothing needs your attention</div>
+        <div style={{ fontSize: ".8rem", color: C.mist, marginTop: 4 }}>No suspended accounts, unpaid invoices, or tenants gone quiet.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="anim">
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        {counts.high > 0 && (
+          <span style={{ background: SEV.high.bg, color: SEV.high.dot, fontWeight: 700, fontSize: ".78rem", padding: "5px 12px", borderRadius: 20 }}>
+            {counts.high} needs action
+          </span>
+        )}
+        {counts.medium > 0 && (
+          <span style={{ background: SEV.medium.bg, color: SEV.medium.dot, fontWeight: 700, fontSize: ".78rem", padding: "5px 12px", borderRadius: 20 }}>
+            {counts.medium} worth a look
+          </span>
+        )}
+      </div>
+
+      {items.map((it, i) => {
+        const sev = SEV[it.severity] ?? SEV.medium;
+        const isMoney = it.kind === "unpaid_invoice";
+        return (
+          <div key={i} style={{
+            background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)",
+            padding: "13px 16px", marginBottom: 9, borderLeft: `4px solid ${sev.dot}`,
+            display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: ".9rem", fontWeight: 700, color: C.ink }}>{it.tenantName}</span>
+                <span style={{ background: sev.bg, color: sev.dot, fontSize: ".68rem", fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>{it.title}</span>
+              </div>
+              <div style={{ fontSize: ".78rem", color: C.slate, marginTop: 4, lineHeight: 1.4 }}>{it.detail}</div>
+            </div>
+            {isMoney && onOpenTenantBilling && (
+              <button onClick={() => onOpenTenantBilling(it.tenantId, it.tenantName)} style={{
+                background: "none", border: `1px solid ${C.mint}`, borderRadius: 6, color: C.pine,
+                padding: "5px 11px", fontSize: ".74rem", fontWeight: 700, cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", flexShrink: 0,
+              }}>Billing →</button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Operator: cross-tenant billing ───────────────────────────────────────────
+// The portfolio view the per-tenant billing screen never had: every account's
+// money in one place, with a direct link into each tenant's billing detail.
+const INV_STATUS = {
+  draft:    { label: "Draft",    bg: "#EEF1F0", color: "#5A5A5A" },
+  approved: { label: "Approved", bg: "#FBF0CE", color: "#8A6D00" },
+  sent:     { label: "Sent",     bg: "#FBF0CE", color: "#8A6D00" },
+  paid:     { label: "Paid",     bg: "#E6F4EA", color: "#2E7D32" },
+  void:     { label: "Void",     bg: "#EEF1F0", color: "#9AA5A1" },
+};
+
+function OperatorBilling({ data, onOpenTenantBilling }) {
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.mist }}>Loading…</div>;
+  const { rows = [], totals = {} } = data;
+  const money = n => "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+  const kpis = [
+    { label: "Monthly recurring revenue", value: money(totals.mrr), color: C.sage },
+    { label: "Outstanding", value: money(totals.outstanding), color: totals.outstanding > 0 ? "#8A6D00" : C.sage,
+      sub: totals.tenantsUnpaid ? `${totals.tenantsUnpaid} account${totals.tenantsUnpaid === 1 ? "" : "s"}` : "all settled" },
+    { label: "Collected to date", value: money(totals.paidToDate), color: C.navy },
+  ];
+
+  return (
+    <div className="anim">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
+        {kpis.map((k, i) => (
+          <div key={i} style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "16px 18px", borderTop: `3px solid ${k.color}` }}>
+            <div style={{ fontSize: "1.4rem", fontWeight: 800, color: C.ink, lineHeight: 1.1 }}>{k.value}</div>
+            <div style={{ fontSize: ".78rem", color: C.slate, fontWeight: 600, marginTop: 4 }}>{k.label}</div>
+            {k.sub && <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>{k.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "18px 20px" }}>
+        <h2 style={{ fontSize: ".98rem", fontWeight: 700, color: C.ink, marginBottom: 14 }}>By account</h2>
+        {rows.map(r => {
+          const inv = r.latestInvoice;
+          const st = inv ? (INV_STATUS[inv.status] ?? INV_STATUS.draft) : null;
+          return (
+            <div key={r.tenantId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "11px 0", borderBottom: "1px solid #F0F4F2", flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: ".88rem", fontWeight: 600, color: C.ink }}>{r.tenantName}</span>
+                  {!r.active && <span style={{ fontSize: ".64rem", color: "#B3261E", background: "#FDECEA", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>SUSPENDED</span>}
+                  {st && <span style={{ fontSize: ".64rem", color: st.color, background: st.bg, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{inv.period} {st.label}</span>}
+                </div>
+                <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>
+                  {r.unpaidCount > 0
+                    ? `${money(r.unpaidTotal)} outstanding across ${r.unpaidCount} invoice${r.unpaidCount === 1 ? "" : "s"}`
+                    : inv ? "Nothing outstanding" : "No invoices generated yet"}
+                  {r.paidToDate > 0 ? ` · ${money(r.paidToDate)} collected` : ""}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                <div style={{ fontSize: ".95rem", fontWeight: 800, color: r.active ? C.sage : C.mist, whiteSpace: "nowrap" }}>
+                  {money(r.mrr)}<span style={{ fontSize: ".62rem", color: C.mist, fontWeight: 600 }}>/mo</span>
+                </div>
+                {onOpenTenantBilling && (
+                  <button onClick={() => onOpenTenantBilling(r.tenantId, r.tenantName)} style={{
+                    background: "none", border: `1px solid ${C.mint}`, borderRadius: 6, color: C.pine,
+                    padding: "5px 11px", fontSize: ".74rem", fontWeight: 700, cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap",
+                  }}>Open →</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
