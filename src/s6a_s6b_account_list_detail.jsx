@@ -309,7 +309,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 18, alignItems: "start" }}>
+        <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 18, alignItems: "start" }}>
 
           {/* Left column */}
           <div>

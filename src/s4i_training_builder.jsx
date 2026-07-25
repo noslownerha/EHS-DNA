@@ -139,7 +139,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
           {/* Right: editor */}
           {sel ? (
             <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 200px", gap: 12, marginBottom: 18 }}>
+              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 160px 200px", gap: 12, marginBottom: 18 }}>
                 <div><span style={label}>Title</span>
                   <input style={input} value={sel.title} onChange={e => setSel(s => ({ ...s, title: e.target.value }))} /></div>
                 <div><span style={label}>Type</span>

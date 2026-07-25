@@ -373,6 +373,16 @@ export default function AppShell({ user, children, activeTab, onTab }) {
           }
         }
 
+        /* 3b. Same problem one level in: form rows built as fixed-px column
+               grids (e.g. "1fr 160px 200px" for Title/Type/Recurrence) exceed a
+               360px phone, so the right-hand fields were clipped and unreachable
+               even once .split-pane had collapsed. Any .form-grid stacks. */
+        @media (max-width: 760px) {
+          .ehs-content-root .form-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
         /* 4. Comfortable tap targets for checkboxes/radios — a 14px checkbox is a
               miss-tap on a phone, especially with gloves on, which is how these
               actually get used on a plant floor. (Deliberately NOT applying a
