@@ -10,7 +10,7 @@ const ROLE_LABELS = {
   trainer: "Trainer", staff: "Staff",
 };
 
-function DesktopNav({ companyName = BRAND.company, onHome }) {
+function DesktopNav({ companyName = BRAND.company, onHome, onBack }) {
   return (
     <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
@@ -191,7 +191,7 @@ export default function S5eManageStaff({ companyName, onHome, onBack }) {
         .add-btn:hover { background: ${C.pine} !important; }
       `}</style>
 
-      <DesktopNav companyName={companyName} onHome={onHome} />
+      <DesktopNav companyName={companyName} onHome={onHome} onBack={onBack} />
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>

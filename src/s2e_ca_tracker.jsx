@@ -21,7 +21,7 @@ function pill(label, bg, color) {
   );
 }
 
-function DesktopNav({ companyName = BRAND.company, onHome }) {
+function DesktopNav({ companyName = BRAND.company, onHome, onBack }) {
   return (
     <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
@@ -268,7 +268,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
         }
       `}</style>
 
-      <DesktopNav companyName={companyName} onHome={onHome} />
+      <DesktopNav companyName={companyName} onHome={onHome} onBack={onBack} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 

@@ -139,7 +139,7 @@ function Toggle({ checked, onChange, label, sublabel }) {
   );
 }
 
-function DesktopNav({ companyName = BRAND.company, onHome }) {
+function DesktopNav({ companyName = BRAND.company, onHome, onBack }) {
   return (
     <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>Reports</div>
@@ -399,7 +399,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
         select option { color: ${C.ink}; }
       `}</style>
 
-      <DesktopNav onHome={onHome} companyName={companyName} />
+      <DesktopNav onHome={onHome} onBack={onBack} companyName={companyName} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 

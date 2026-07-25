@@ -28,7 +28,7 @@ const SEV_COLORS = {
   Critical: C.red, Major: C.orange, Minor: C.gold, Noted: C.slate,
 };
 
-function DesktopNav({ companyName = BRAND.company, active = "", onHome }) {
+function DesktopNav({ companyName = BRAND.company, active = "", onHome, onBack }) {
   return (
     <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
       active ? (
@@ -314,7 +314,7 @@ export default function S3eChecklistBuilder({ onHome, companyName, onBack }) {
         select option { color: ${C.ink}; }
       `}</style>
 
-      <DesktopNav companyName={companyName} active="Checklists" onHome={onHome} />
+      <DesktopNav companyName={companyName} active="Checklists" onHome={onHome} onBack={onBack} />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>
 
