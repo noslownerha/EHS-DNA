@@ -653,7 +653,10 @@ app.get("/api/users/directory", auth, (req, res) =>
                        WHERE u.tenant_id = ? AND u.active = 1 ORDER BY u.name`).all(req.auth.tenant)));
 
 app.get("/api/users", auth, requireRole(...ADMINISH, "site_manager"), (req, res) =>
-  res.json(db.prepare(`SELECT u.id, u.email, u.name, u.role, u.active, u.site_id, u.department_id,
+  // is_operator is returned so callers can exclude EHS DNA staff accounts — the
+  // corrective-action assignee picker was silently offering "EHS DNA Admin" as a
+  // team member because the field simply wasn't in the payload to filter on.
+  res.json(db.prepare(`SELECT u.id, u.email, u.name, u.role, u.active, u.site_id, u.department_id, u.is_operator,
                        s.name AS site, d.name AS department
                        FROM users u LEFT JOIN sites s ON s.id = u.site_id
                        LEFT JOIN departments d ON d.id = u.department_id

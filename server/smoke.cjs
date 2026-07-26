@@ -1256,6 +1256,28 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const boDenied = await fetch(`${B}/api/op/billing/overview`, { headers: H() });
   ok("op billing overview: forbidden for a tenant admin", boDenied.status === 403);
 
+  // ── Corrective-action assignment round-trip ──
+  // The UI picker binds to assignee_id and displays assignee_name, so both must
+  // come back correctly — the old free-text prompt silently failed to assign at
+  // all when phone autocomplete mangled the typed name.
+  const asgUsers = await fetch(`${B}/api/users`, { headers: H() }).then(j);
+  ok("users: payload includes is_operator so operator accounts can be excluded",
+     asgUsers.every(u => "is_operator" in u) && asgUsers.some(u => u.is_operator === 1));
+  const asgTarget = asgUsers.find(u => !u.is_operator);
+  const asgInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "hazard", severity: "minor", siteId: 1, description: "Assign round-trip smoke" }) }).then(j);
+  const asgCA = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: asgInc.id, title: "Assign me", priority: "medium" }) }).then(j);
+  await fetch(`${B}/api/cas/${asgCA.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ assigneeId: asgTarget.id }) }).then(j);
+  const asgAfter = (await fetch(`${B}/api/cas`, { headers: H() }).then(j)).find(c => c.id === asgCA.id);
+  ok("CA assign: persists both the id the picker binds to and the name it shows",
+     asgAfter.assignee_id === asgTarget.id && asgAfter.assignee_name === asgTarget.name);
+  await fetch(`${B}/api/cas/${asgCA.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ assigneeId: null }) }).then(j);
+  const asgCleared = (await fetch(`${B}/api/cas`, { headers: H() }).then(j)).find(c => c.id === asgCA.id);
+  ok("CA assign: selecting Unassigned clears it", !asgCleared.assignee_id);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });

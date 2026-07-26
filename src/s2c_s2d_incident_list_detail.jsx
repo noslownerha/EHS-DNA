@@ -530,6 +530,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
         photos: JSON.parse(row.photos || "[]"),
         cas: rowCAs.length ? rowCAs.map(c => ({
           id: c.id, desc: c.title, assignee: c.assignee_name ?? "Unassigned", serverStatus: c.status,
+          assigneeId: c.assignee_id ?? null,
           blockedReason: c.blocked_reason ?? null,
           // "blocked" outranks overdue in the badge: an overdue item that's ALSO
           // blocked needs a person, not another nag — surface the actionable one.
@@ -641,22 +642,23 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
       })}));
     }).catch(err => console.error("CA update failed:", err.message));
   }
-  function assignCA(ca) {
+  // Pick from the real roster instead of typing a name. The previous version used
+  // window.prompt and fuzzy-matched the text, which failed constantly on a phone:
+  // keyboard autocomplete would rewrite "joh" into "john de", nothing matched
+  // "John Doe", and the assignment silently never happened — so a corrective
+  // action could sit unassigned while looking like it had been actioned.
+  function assignCA(ca, rawUserId) {
     if (!dbId) return;
-    const names = (assignableUsers || []).map(u => u.name).join(", ");
-    const v = window.prompt(`Assign to which team member?${names ? `\n\nAvailable: ${names}` : ""}`, ca.assignee === "Unassigned" ? "" : ca.assignee);
-    if (v === null) return;
-    const q = v.trim().toLowerCase();
-    if (!q) {
-      api.updateCA(ca.id, { assigneeId: null }).then(() => setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id === ca.id ? { ...c, assignee: "Unassigned" } : c) }))).catch(err => console.error("CA unassign failed:", err.message));
-      return;
-    }
-    const match = (assignableUsers || []).find(u => u.name.toLowerCase() === q)
-              || (assignableUsers || []).find(u => u.name.toLowerCase().includes(q));
-    if (!match) { window.alert(`No team member matches "${v.trim()}". Try one of: ${names || "(none available)"}`); return; }
-    api.updateCA(ca.id, { assigneeId: match.id }).then(() => {
-      setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id === ca.id ? { ...c, assignee: match.name } : c) }));
-    }).catch(err => console.error("CA assign failed:", err.message));
+    const userId = rawUserId === "" || rawUserId == null ? null : Number(rawUserId);
+    api.updateCA(ca.id, { assigneeId: userId }).then(() => {
+      const name = userId
+        ? ((assignableUsers || []).find(u => u.id === userId)?.name ?? "Unassigned")
+        : "Unassigned";
+      setIncident(inc => ({ ...inc, cas: inc.cas.map(c => c.id === ca.id ? { ...c, assignee: name, assigneeId: userId } : c) }));
+    }).catch(err => {
+      console.error("CA assign failed:", err.message);
+      window.alert("Couldn't save that assignment — please try again.");
+    });
   }
 
   const canClose = ["admin", "safety", "site_manager"].includes(USER_ROLE);
@@ -734,25 +736,30 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
 
         {/* Header */}
-        <div className="anim detail-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16 }}>
-          <div style={{ minWidth: 0 }}>
+        {/* flexWrap matters: the action buttons are flexShrink:0, so without it
+            they hold ~350px on a 360px phone and squeeze the title column to
+            nothing — minWidth:0 then lets the heading collapse to one character
+            per line ("M / ori / ah"). Wrapping drops the actions to their own
+            row instead, and flex-basis keeps the title readable until it does. */}
+        <div className="anim detail-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0, flex: "1 1 240px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <button onClick={onBack} style={{ background: "none", border: "none", color: C.mist, fontSize: ".82rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", flexShrink: 0, padding: 0 }}>← Incidents</button>
               <span style={{ color: "#D0DEDB" }}>/</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.sage, fontWeight: 600, whiteSpace: "nowrap" }}>{incident.id}</span>
             </div>
-            <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink }}>
+            <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink, overflowWrap: "anywhere", wordBreak: "normal" }}>
               {TYPE_EMOJI[incident.type]} {TYPE_LABELS[incident.type]} — {incident.site}
             </h1>
             <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
               {pill(incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1), SEV_COLORS[incident.severity] + "18", SEV_COLORS[incident.severity])}
               {pill(incident.status === "open" ? "Open" : "Closed", incident.status === "open" ? C.foam : "#EEF1F0", incident.status === "open" ? C.pine : C.slate)}
-              {canClose && dbId && (
+              {canClose && dbId && incident.status === "closed" && (
                 <button onClick={toggleIncidentStatus} style={{
                   padding: "5px 12px", borderRadius: 7, border: `1.5px solid ${C.mint}`,
                   background: C.white, color: C.pine, fontFamily: "'DM Sans', sans-serif",
                   fontSize: ".76rem", fontWeight: 700, cursor: "pointer",
-                }}>{incident.status === "closed" ? "Reopen" : "Close incident"}</button>
+                }}>Reopen</button>
               )}
               {incident.triageId && (
                 <span style={{ fontSize: ".75rem", color: C.sage, fontStyle: "italic" }}>
@@ -996,9 +1003,13 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                           <option value="blocked">Blocked — needs help</option>
                           <option value="done">Complete</option>
                         </select>
-                        <button onClick={() => assignCA(ca)} style={{ background: "none", border: "none", color: C.sage, fontSize: ".74rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>
-                          {ca.assignee === "Unassigned" ? "Assign" : "Reassign"}
-                        </button>
+                        <select value={ca.assigneeId ?? ""} onChange={e => assignCA(ca, e.target.value)} aria-label="Assign to"
+                          style={{ padding: "5px 8px", border: "1.5px solid #D0DEDB", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".76rem", color: C.ink, background: "#fff", cursor: "pointer", maxWidth: 160 }}>
+                          <option value="">Unassigned</option>
+                          {(assignableUsers || []).map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
                         {(srv === "done" || srv === "verified") && (
                           <button onClick={() => setCaStatus(ca, "open")} style={{ background: "none", border: "none", color: C.mist, fontSize: ".74rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Reopen</button>
                         )}
