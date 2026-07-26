@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
+import PersonPicker from "./PersonPicker.jsx";
 import AuthImg from "./AuthImg.jsx";
 
 const C = { ...COLORS };
@@ -481,14 +482,24 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
     const title = newCA.trim();
     if (!title || !dbId) return;
     api.createCA({ incidentId: dbId, title, priority: "medium" })
-      .then(() => {
+      .then(created => {
         setNewCA("");
+        // Use the id the SERVER just assigned. This previously invented a
+        // client-side placeholder (`tmp-<timestamp>`), so every later action on
+        // a freshly-added corrective action — assigning it, changing its status,
+        // blocking it — sent that fake id to PUT /api/cas/:id, which matched
+        // nothing. The failure was only console.error'd, so the card simply sat
+        // there saying "Unassigned" no matter how many times you tried, until a
+        // page reload refetched the real ids.
         setIncident(inc => ({ ...inc, cas: [...(inc.cas ?? []), {
-          id: `tmp-${Date.now()}`, desc: title, status: "on-track",
-          due: "—", assignee: "Unassigned",
+          id: created?.id, desc: title, status: "on-track", serverStatus: "open",
+          due: null, assignee: "Unassigned", assigneeId: null,
         }] }));
       })
-      .catch(err => console.error("Add CA failed:", err.message));
+      .catch(err => {
+        console.error("Add CA failed:", err.message);
+        window.alert("Couldn't add that corrective action — please try again.");
+      });
   }
   const [showClose, setShowClose] = useState(false);
 
@@ -640,7 +651,12 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               : serverNext === "blocked" ? "blocked"
               : (c.due && new Date(c.due) < new Date()) ? "overdue" : "on-track",
       })}));
-    }).catch(err => console.error("CA update failed:", err.message));
+    }).catch(err => {
+      // Was console-only, which is how the temp-id bug stayed invisible: the
+      // request failed, nothing changed on screen, and no one was told.
+      console.error("CA update failed:", err.message);
+      window.alert("Couldn't save that change — please try again.");
+    });
   }
   // Pick from the real roster instead of typing a name. The previous version used
   // window.prompt and fuzzy-matched the text, which failed constantly on a phone:
@@ -649,6 +665,10 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   // action could sit unassigned while looking like it had been actioned.
   function assignCA(ca, rawUserId) {
     if (!dbId) return;
+    if (!ca.id || String(ca.id).startsWith("tmp-")) {   // belt-and-braces
+      window.alert("Please reload before assigning this one — it hasn't finished saving.");
+      return;
+    }
     const userId = rawUserId === "" || rawUserId == null ? null : Number(rawUserId);
     api.updateCA(ca.id, { assigneeId: userId }).then(() => {
       const name = userId
@@ -1003,13 +1023,11 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                           <option value="blocked">Blocked — needs help</option>
                           <option value="done">Complete</option>
                         </select>
-                        <select value={ca.assigneeId ?? ""} onChange={e => assignCA(ca, e.target.value)} aria-label="Assign to"
-                          style={{ padding: "5px 8px", border: "1.5px solid #D0DEDB", borderRadius: 6, fontFamily: "'DM Sans', sans-serif", fontSize: ".76rem", color: C.ink, background: "#fff", cursor: "pointer", maxWidth: 160 }}>
-                          <option value="">Unassigned</option>
-                          {(assignableUsers || []).map(u => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                          ))}
-                        </select>
+                        <PersonPicker
+                          value={ca.assigneeId ?? null}
+                          options={assignableUsers}
+                          onChange={id => assignCA(ca, id)}
+                        />
                         {(srv === "done" || srv === "verified") && (
                           <button onClick={() => setCaStatus(ca, "open")} style={{ background: "none", border: "none", color: C.mist, fontSize: ".74rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", padding: 0 }}>Reopen</button>
                         )}

@@ -1278,6 +1278,24 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   const asgCleared = (await fetch(`${B}/api/cas`, { headers: H() }).then(j)).find(c => c.id === asgCA.id);
   ok("CA assign: selecting Unassigned clears it", !asgCleared.assignee_id);
 
+  // ── A newly-created CA must be immediately actionable ──
+  // Regression guard: the incident detail used to insert a client-invented
+  // `tmp-<timestamp>` id for a just-added corrective action, so assigning or
+  // changing its status sent a fake id the server couldn't match — silently
+  // doing nothing until a page reload. createCA must return a real, usable id.
+  const freshInc = await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
+    body: JSON.stringify({ type: "hazard", severity: "minor", siteId: 1, description: "Fresh CA id smoke" }) }).then(j);
+  const freshCA = await fetch(`${B}/api/cas`, { method: "POST", headers: H(),
+    body: JSON.stringify({ incidentId: freshInc.id, title: "Act on me immediately", priority: "medium" }) }).then(j);
+  ok("createCA: returns a real numeric id (not a client placeholder)",
+     typeof freshCA.id === "number" && freshCA.id > 0);
+  const freshUser = (await fetch(`${B}/api/users`, { headers: H() }).then(j)).find(u => !u.is_operator);
+  const freshAssign = await fetch(`${B}/api/cas/${freshCA.id}`, { method: "PUT", headers: H(),
+    body: JSON.stringify({ assigneeId: freshUser.id }) });
+  ok("createCA: the returned id is immediately usable for assignment", freshAssign.status === 200);
+  const freshBack = (await fetch(`${B}/api/cas`, { headers: H() }).then(j)).find(c => c.id === freshCA.id);
+  ok("createCA: that assignment actually stuck", freshBack.assignee_id === freshUser.id);
+
   console.log("SMOKE COMPLETE");
   process.exit(0);
 })().catch(e => { console.error("SMOKE ERROR", e); process.exit(1); });
