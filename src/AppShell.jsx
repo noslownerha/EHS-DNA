@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { BRAND, ROLE_PERMS, TAB_CONFIG, visibleTabs, COLORS as C } from "./constants.js";
+import { BRAND, ROLE_PERMS, TAB_CONFIG, OPERATOR_TABS, visibleTabs, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 import { onQueueChange, queueCount } from "./offlineQueue.js";
 
@@ -354,10 +354,7 @@ export default function AppShell({ user, children, activeTab, onTab }) {
            nav bar (58px) + a comfortable buffer (20px) = 78px.
            Applied globally here so no individual screen needs to manage it.
            Screens that already set paddingBottom will override this with max. */
-        .ehs-content-root[data-no-nav="1"] > * {
-          padding-bottom: 20px !important;
-        }
-        .ehs-content-root:not([data-no-nav="1"]) > * {
+        .ehs-content-root > * {
           padding-bottom: max(78px, var(--screen-pb, 78px)) !important;
         }
 
@@ -447,13 +444,13 @@ export default function AppShell({ user, children, activeTab, onTab }) {
           </div>
         )}
         {/* Content wrapper — gives global bottom clearance */}
-        <div className="ehs-content-root" data-no-nav={isOperatorConsole ? "1" : undefined} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div className="ehs-content-root" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {children}
         </div>
         {/* The operator console navigates via its own internal sections, so the
             customer tab bar is omitted there rather than shown with the wrong
             (customer) destinations. */}
-        {!isOperatorConsole && <BottomTabBar tabs={tabs} activeTab={activeTab} onTab={onTab} />}
+        <BottomTabBar tabs={isOperatorConsole ? OPERATOR_TABS : tabs} activeTab={activeTab} onTab={onTab} />
       </div>
     </RoleContext.Provider>
   );

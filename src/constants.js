@@ -130,6 +130,15 @@ export const INCIDENT_TYPES = [
 
 // ── Bottom nav tab definitions ─────────────────────────────────────────────────
 export const TAB_CONFIG = {
+  // Operator (EHS DNA staff) destinations. These sit in the same map so the
+  // shared BottomTabBar renders them without special-casing, but they are NEVER
+  // mixed with customer tabs — an operator gets these INSTEAD of Flag/Inspect/
+  // etc., because acting on customer safety data must go through impersonation.
+  attention:{ icon: "🔔", label: "Attention" },
+  overview: { icon: "📊", label: "Overview"  },
+  companies:{ icon: "🏢", label: "Companies" },
+  billing:  { icon: "💳", label: "Billing"   },
+
   home:     { icon: "🏠", label: "Home"     },
   flag:     { icon: "🚩", label: "Flag" },
   triage:   { icon: "⛑️", label: "Triage"   },
@@ -184,6 +193,10 @@ export function moduleEnabled(moduleKey) {
   if (!Array.isArray(BRAND.modules)) return true;
   return BRAND.modules.includes(moduleKey);
 }
+
+// The operator console's sections, surfaced as real nav rather than an in-page
+// tab strip so operators navigate the same way customers do.
+export const OPERATOR_TABS = ["attention", "overview", "companies", "billing"];
 
 // ── Role permissions & tab access ──────────────────────────────────────────────
 // Reports restricted to Site Manager and above (Round 1 decision).

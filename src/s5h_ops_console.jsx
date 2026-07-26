@@ -11,12 +11,12 @@ const input = {
 };
 const fmt$ = n => n == null ? "—" : "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
 
-export default function S5hOpsConsole({ onHome, onOpenBilling }) {
+export default function S5hOpsConsole({ section = "attention", onHome, onOpenBilling }) {
   const [tenants, setTenants] = useState(null);
   const [error, setError] = useState(null);
-  // Landing on "attention" rather than a raw tenant list: the operator's first
-  // question is "what needs me today", not "show me every account".
-  const [opsTab, setOpsTab] = useState("attention");  // attention | overview | companies | billing
+  // Section is driven by the operator's nav tab (see OPERATOR_TABS) rather than
+  // local state, so the console navigates like the rest of the app.
+  const opsTab = section;
   const [attention, setAttention] = useState(null);
   const [billingOverview, setBillingOverview] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -122,20 +122,6 @@ export default function S5hOpsConsole({ onHome, onOpenBilling }) {
       } />
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "26px 20px" }}>
-        {/* Operator view tabs: business Overview vs company management */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 20, background: C.white, padding: 4, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", width: "fit-content" }}>
-          {[{ k: "attention", label: "🔔 Attention" },
-            { k: "overview",   label: "📊 Overview" },
-            { k: "companies",  label: "🏢 Companies" },
-            { k: "billing",    label: "💳 Billing" }].map(t => (
-            <button key={t.k} onClick={() => setOpsTab(t.k)} style={{
-              padding: "8px 18px", border: "none", borderRadius: 7, cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
-              background: opsTab === t.k ? C.sage : "transparent", color: opsTab === t.k ? "#fff" : C.slate,
-            }}>{t.label}</button>
-          ))}
-        </div>
-
         {opsTab === "attention" && <OperatorAttention data={attention} onOpenTenantBilling={onOpenBilling} />}
         {opsTab === "overview" && <OperatorOverview analytics={analytics} />}
         {opsTab === "billing" && <OperatorBilling data={billingOverview} onOpenTenantBilling={onOpenBilling} />}

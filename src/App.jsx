@@ -75,6 +75,14 @@ class CrashShield extends Component {
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
+  // An operator's nav has no "home" tab, so the default would highlight nothing.
+  // Send them to the worklist instead — "what needs me today" is the first
+  // question, and it's the console's landing section.
+  useEffect(() => {
+    if (currentUser?.isOperator && !currentUser?.supportTenant) {
+      setActiveTab(t => (t === "home" ? "attention" : t));
+    }
+  }, [currentUser?.isOperator, currentUser?.supportTenant]);
   const [assetIdView, setAssetIdView] = useState(null);
   const [pendingChecklistId, setPendingChecklistId] = useState(null);
   const [booting,     setBooting]     = useState(!!getToken());
@@ -168,6 +176,22 @@ function App() {
 
   function renderContent() {
     switch (activeTab) {
+
+      // ── OPERATOR (EHS DNA staff) ─────────────────────────────────────────
+      // All four render the same console; the tab selects which section. Keyed
+      // on activeTab so switching tabs returns from a drill-in (e.g. a single
+      // tenant's billing detail) rather than stranding the user there.
+      case "attention":
+      case "overview":
+      case "companies":
+      case "billing":
+        return (
+          <MobileFrame>
+            <DashboardProvider key={activeTab} user={userObj} companyName={COMPANY} initialScreen={DASHBOARD_SCREENS.OPS}>
+              <DashboardRouter opsSection={activeTab} onDone={handleHome} />
+            </DashboardProvider>
+          </MobileFrame>
+        );
 
       // ── HOME ─────────────────────────────────────────────────────────────
       case "home": {

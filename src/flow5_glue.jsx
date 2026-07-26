@@ -130,6 +130,10 @@ export function useDashboard() {
 // DashboardRouter
 // ─────────────────────────────────────────────────────────────────────────────
 export function DashboardRouter({
+  // Which operator-console section to show. Driven by the operator's nav tab
+  // (attention | overview | companies | billing) so the console navigates the
+  // same way the rest of the app does, instead of via its own in-page strip.
+  opsSection,
   // Cross-flow navigation callbacks — wired by the app shell
   onTriage,         // () => void  — launches Flow 0
   onReportIncident, // () => void  — launches Flow 2
@@ -257,6 +261,7 @@ export function DashboardRouter({
     case DASHBOARD_SCREENS.OPS:
       return (
         <S5hOpsConsole
+          section={opsSection}
           onHome={onHome ?? onDone}
           onOpenBilling={(id, name) => { setBillingTarget({ id, name }); navigate(DASHBOARD_SCREENS.BILLING); }}
         />
