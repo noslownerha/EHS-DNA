@@ -1328,6 +1328,14 @@ function logCA(tenantId, caId, actorId, kind, detail) {
   } catch (e) { console.error("logCA failed:", e.message); }
 }
 
+// Same contract as logCA: best-effort, never blocks the action it describes.
+function logFinding(tenantId, findingId, actorId, kind, detail) {
+  try {
+    db.prepare(`INSERT INTO finding_activity (tenant_id, finding_id, actor_id, kind, detail) VALUES (?, ?, ?, ?, ?)`)
+      .run(tenantId, findingId, actorId ?? null, kind, detail ?? null);
+  } catch (e) { console.error("logFinding failed:", e.message); }
+}
+
 const userName = (id, tenantId) =>
   id ? (db.prepare("SELECT name FROM users WHERE id = ? AND tenant_id = ?").get(id, tenantId)?.name ?? "someone") : null;
 
@@ -1570,6 +1578,8 @@ app.get("/api/findings", auth, (req, res) => {
   const cols = `f.id, f.tenant_id, f.inspection_id, f.site_id,
                 f.description, f.severity, f.status, f.reported_by,
                 f.resolution_action, f.resolution_notes,
+                f.category, f.assignee, f.due_date,
+                f.capex, f.capex_notes, f.safety_relevant,
                 f.created_at, f.resolved_at,
                 json_array_length(COALESCE(f.photos, '[]')) AS photo_count,
                 u.name AS reporter_name, s.name AS site_name`;
@@ -1595,16 +1605,38 @@ app.get("/api/findings/:id", auth, (req, res) => {
   const fSite = siteScope(req);
   if (fSite !== null && row.site_id !== fSite)
     return res.status(403).json({ error: "Insufficient permissions" });
-  res.json(row);
+  const activity = db.prepare(`SELECT a.*, u.name AS actor_name FROM finding_activity a
+                               LEFT JOIN users u ON u.id = a.actor_id
+                               WHERE a.tenant_id = ? AND a.finding_id = ?
+                               ORDER BY a.created_at ASC, a.id ASC`).all(req.auth.tenant, row.id);
+  res.json({ ...row, activity });
 });
+// The capture screen speaks critical|major|minor|noted; storage and the report
+// queries speak critical|high|medium|low. Normalising here (rather than at every
+// read) means "Major" findings actually land in the high-severity metric instead
+// of vanishing into a bucket nothing queries.
+const SEVERITY_ALIASES = { major: "high", minor: "medium", noted: "low", observation: "low" };
+const normalizeSeverity = s => SEVERITY_ALIASES[String(s ?? "").toLowerCase()] ?? (s ?? "low");
+
 app.post("/api/findings", auth, (req, res) => {
-  const { inspectionId, siteId, severity, description, photos } = req.body || {};
+  const { inspectionId, siteId, description, photos,
+          category, assignee, dueDate, capex, capexNotes, safetyRelevant } = req.body || {};
   if (!description) return res.status(400).json({ error: "description required" });
-  const r = db.prepare(`INSERT INTO findings (tenant_id, inspection_id, site_id, severity, description, photos, reported_by)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(req.auth.tenant, inspectionId ?? null, siteId ?? null, severity ?? "low", description,
-         JSON.stringify(photos ?? []), req.auth.uid);
-  if (severity === "high" || severity === "critical") {
+  const severity = normalizeSeverity(req.body?.severity);
+  // Default to safety-relevant: an omitted flag must never quietly drop a finding
+  // out of the safety numbers. Only an explicit false opts out.
+  const isSafety = safetyRelevant === false || safetyRelevant === 0 ? 0 : 1;
+  const r = db.prepare(`INSERT INTO findings (tenant_id, inspection_id, site_id, severity, description, photos, reported_by,
+                                              category, assignee, due_date, capex, capex_notes, safety_relevant)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(req.auth.tenant, inspectionId ?? null, siteId ?? null, severity, description,
+         JSON.stringify(photos ?? []), req.auth.uid,
+         category ?? null, assignee ?? null, dueDate ?? null,
+         capex ? 1 : 0, capexNotes ?? null, isSafety);
+  logFinding(req.auth.tenant, r.lastInsertRowid, req.auth.uid, "created",
+    `Logged as ${severity}${isSafety ? "" : " · excluded from safety metrics at capture"}${capex ? " · CapEx" : ""}`);
+  // A non-safety finding never pages anyone, whatever its severity.
+  if (isSafety && (severity === "high" || severity === "critical")) {
     const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
     notify(req.auth.tenant, ["finding_high"], {
       title: `High-severity finding logged`,
@@ -1615,18 +1647,59 @@ app.post("/api/findings", auth, (req, res) => {
   res.json({ id: r.lastInsertRowid });
 });
 app.put("/api/findings/:id", auth, (req, res) => {
-  const { status, resolutionAction, resolutionNotes, escalateToCA, caDueDate } = req.body || {};
+  const { status, resolutionAction, resolutionNotes, escalateToCA, caDueDate,
+          assignee, dueDate, capex, capexNotes, safetyRelevant, severity } = req.body || {};
   const finding = db.prepare("SELECT * FROM findings WHERE id = ? AND tenant_id = ?").get(req.params.id, req.auth.tenant);
   if (!finding) return res.status(404).json({ error: "Finding not found" });
   const { photos } = req.body || {};
+  // Reclassifying a finding in or out of the safety numbers is a metrics-affecting
+  // edit, so it is restricted rather than open to whoever logged it.
+  if (safetyRelevant !== undefined && !CAN_SEE_ALL_INCIDENTS.includes(req.auth.role))
+    return res.status(403).json({ error: "Only safety or admin can reclassify a finding" });
   db.prepare(`UPDATE findings SET status = COALESCE(?, status),
               resolution_action = COALESCE(?, resolution_action),
               resolution_notes = COALESCE(?, resolution_notes),
               photos = COALESCE(?, photos),
+              assignee = COALESCE(?, assignee),
+              due_date = COALESCE(?, due_date),
+              capex = COALESCE(?, capex),
+              capex_notes = COALESCE(?, capex_notes),
+              safety_relevant = COALESCE(?, safety_relevant),
+              severity = COALESCE(?, severity),
               resolved_at = CASE WHEN ? = 'resolved' THEN datetime('now') ELSE resolved_at END
               WHERE id = ? AND tenant_id = ?`)
     .run(status, resolutionAction, resolutionNotes,
-         photos ? JSON.stringify(photos) : null, status, req.params.id, req.auth.tenant);
+         photos ? JSON.stringify(photos) : null,
+         assignee ?? null, dueDate ?? null,
+         capex === undefined ? null : (capex ? 1 : 0), capexNotes ?? null,
+         safetyRelevant === undefined ? null : (safetyRelevant ? 1 : 0),
+         severity === undefined ? null : normalizeSeverity(severity),
+         status, req.params.id, req.auth.tenant);
+
+  // Activity trail. Compare against the pre-update row so a no-op PUT (the client
+  // re-sending unchanged values) doesn't spam the log with phantom changes.
+  const t = req.auth.tenant, fid = req.params.id, uid = req.auth.uid;
+  if (safetyRelevant !== undefined) {
+    const was = finding.safety_relevant === 0 ? 0 : 1;
+    const now = safetyRelevant ? 1 : 0;
+    if (was !== now) logFinding(t, fid, uid, "reclassify", now
+      ? "Reclassified as a safety finding — now counted in safety metrics"
+      : `Excluded from safety metrics (severity: ${finding.severity ?? "unset"})`);
+  }
+  if (status !== undefined && status !== finding.status)
+    logFinding(t, fid, uid, "status", `Status changed to ${status}`);
+  if (assignee !== undefined && assignee && assignee !== finding.assignee)
+    logFinding(t, fid, uid, "assign", `Reassigned to ${assignee}`);
+  if (dueDate !== undefined && dueDate && dueDate !== finding.due_date)
+    logFinding(t, fid, uid, "due", `Due date set to ${dueDate}`);
+  if (capex !== undefined && (capex ? 1 : 0) !== (finding.capex ? 1 : 0))
+    logFinding(t, fid, uid, "capex", capex
+      ? "Marked CapEx — aging clock paused pending budget approval"
+      : "CapEx cleared — aging resumes");
+  if (severity !== undefined && normalizeSeverity(severity) !== finding.severity)
+    logFinding(t, fid, uid, "severity", `Severity changed to ${normalizeSeverity(severity)}`);
+  if (resolutionAction && resolutionAction !== finding.resolution_action)
+    logFinding(t, fid, uid, "resolution", `Resolution: ${resolutionAction}`);
   let caId = null;
   if (escalateToCA) {
     const r = db.prepare(`INSERT INTO corrective_actions (tenant_id, finding_id, title, priority, due_date)
@@ -1786,7 +1859,7 @@ app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (
     const openCAs = db.prepare(`SELECT COUNT(*) n FROM corrective_actions c
                                 JOIN incidents i ON i.id = c.incident_id
                                 WHERE c.tenant_id = ? AND i.site_id = ? AND c.status NOT IN ('done','verified','capex_blocked')`).get(t, site.id).n;
-    const criticalFindings = db.prepare("SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? AND status = 'open' AND severity IN ('high','critical')").get(t, site.id).n;
+    const criticalFindings = db.prepare("SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? AND status = 'open' AND severity IN ('high','critical') AND COALESCE(safety_relevant, 1) = 1").get(t, site.id).n;
     // CapEx-blocked CAs are legitimately open (awaiting budget) but must NOT read
     // as overdue/lingering — surface them separately so the number is honest.
     const capexBlocked = db.prepare(`SELECT COUNT(*) n FROM corrective_actions c
@@ -2515,13 +2588,28 @@ app.get("/api/reports/findings-training", auth, requireRole(...CAN_SEE_ALL_INCID
   const pArgs = period ? [period] : [];
 
   // Findings — severity is one of low|medium|high|critical; status open|resolved.
-  const fNew = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? ${monthClause}`).get(t, ...pArgs).n;
-  const fCritical = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND severity='critical' ${monthClause}`).get(t, ...pArgs).n;
-  const fHigh = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND severity='high' ${monthClause}`).get(t, ...pArgs).n;
-  const fOpen = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='open'`).get(t).n;
+  // SAFETY = COALESCE(safety_relevant, 1) = 1. Everything in the `findings` block
+  // below is a SAFETY number and excludes non-safety items (a dusty baseboard is
+  // tracked and assigned, but must not move a safety metric). Non-safety items are
+  // reported separately in `nonSafety` so the excluded pile stays visible — an
+  // exclusion nobody can see is an invitation to reclassify a bad month away.
+  const SAFETY = "AND COALESCE(safety_relevant, 1) = 1";
+  const fNew = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? ${SAFETY} ${monthClause}`).get(t, ...pArgs).n;
+  const fCritical = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND severity='critical' ${SAFETY} ${monthClause}`).get(t, ...pArgs).n;
+  const fHigh = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND severity='high' ${SAFETY} ${monthClause}`).get(t, ...pArgs).n;
+  const fOpen = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='open' ${SAFETY}`).get(t).n;
   const fResolved = period
-    ? db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='resolved' AND strftime('%Y-%m', resolved_at)=?`).get(t, period).n
-    : db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='resolved'`).get(t).n;
+    ? db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='resolved' ${SAFETY} AND strftime('%Y-%m', resolved_at)=?`).get(t, period).n
+    : db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='resolved' ${SAFETY}`).get(t).n;
+
+  // Non-safety (tracked, assigned and aged — just not counted as safety).
+  const NONSAFETY = "AND COALESCE(safety_relevant, 1) = 0";
+  const nsNew = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? ${NONSAFETY} ${monthClause}`).get(t, ...pArgs).n;
+  const nsOpen = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='open' ${NONSAFETY}`).get(t).n;
+  const nsOverdue = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id=? AND status='open' ${NONSAFETY}
+      AND due_date IS NOT NULL AND due_date < date('now') AND COALESCE(capex, 0) = 0`).get(t).n;
+  const nsAvgAge = db.prepare(`SELECT ROUND(AVG(julianday('now') - julianday(created_at))) n
+      FROM findings WHERE tenant_id=? AND status='open' ${NONSAFETY}`).get(t).n;
 
   // Training compliance — for each active staff user × each active training that
   // applies, the latest completion; overall compliance = current (not expired) ÷ required.
@@ -2546,6 +2634,7 @@ app.get("/api/reports/findings-training", auth, requireRole(...CAN_SEE_ALL_INCID
 
   res.json({
     findings: { new: fNew, critical: fCritical, high: fHigh, open: fOpen, resolvedInPeriod: fResolved },
+    nonSafety: { new: nsNew, open: nsOpen, overdue: nsOverdue, avgAgeDays: nsAvgAge ?? 0 },
     training: { compliancePct, overdue, completionsThisPeriod, expiringSoon },
   });
 });

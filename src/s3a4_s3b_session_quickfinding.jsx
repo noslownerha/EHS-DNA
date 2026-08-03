@@ -179,6 +179,10 @@ export function S3bQuickFinding({ onHome,
   const [dueShort, setDueShort]    = useState(1);
   const [capex,    setCapex]       = useState(false);
   const [capexNotes,setCapexNotes] = useState("");
+  // Separate axis from severity: severity says how urgent, this says whether it is
+  // a safety item at all. Default true — you opt OUT, never in, so nothing drops
+  // out of the safety numbers by accident or by forgetting.
+  const [safetyRelevant, setSafetyRelevant] = useState(true);
   const [submitting,setSubmitting] = useState(false);
   const [descFocused,setDescF]     = useState(false);
   const fileRef = useRef(null);
@@ -187,7 +191,7 @@ export function S3bQuickFinding({ onHome,
     setSubmitting(true);
     setTimeout(() => {
       setSubmitting(false);
-      onSubmit?.({ category, photo, desc, severity, assignee, dueDate: dueDateFromShortcut(dueShort), capex, capexNotes });
+      onSubmit?.({ category, photo, desc, severity, assignee, dueDate: dueDateFromShortcut(dueShort), capex, capexNotes, safetyRelevant });
     }, 700);
   }
 
@@ -335,6 +339,33 @@ export function S3bQuickFinding({ onHome,
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Safety-relevance switch. Sits directly above CapEx because both
+                  answer "how should this be tracked" rather than "what is it".
+                  Wording is deliberately "track it, don't count it" rather than
+                  "non-safety" — the latter reads as an invitation to keep your
+                  numbers clean, and an exclusion flag people reach for during a
+                  bad month is worse than no flag at all. */}
+              <div style={{ padding: "12px", background: safetyRelevant ? C.chalk : "#FFF6E8", borderRadius: 8, marginBottom: 10, border: safetyRelevant ? "1px solid transparent" : "1px solid #F0D9AE" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ flex: 1, marginRight: 12 }}>
+                    <div style={{ fontSize: ".83rem", fontWeight: 600, color: C.ink }}>Counts toward safety metrics</div>
+                    <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>
+                      {safetyRelevant
+                        ? "On — this is a safety item. Turn off for upkeep with no safety implication."
+                        : "Off — still assigned, still tracked, still ages. Just not a safety number."}
+                    </div>
+                  </div>
+                  <div onClick={() => setSafetyRelevant(v => !v)} style={{ width: 40, height: 22, borderRadius: 22, background: safetyRelevant ? C.navy : "#D0DEDB", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+                    <div style={{ position: "absolute", width: 16, height: 16, borderRadius: "50%", background: C.white, top: 3, left: safetyRelevant ? 21 : 3, transition: "left .18s" }} />
+                  </div>
+                </div>
+                {!safetyRelevant && (severity === "critical" || severity === "major") && (
+                  <div style={{ marginTop: 9, padding: "8px 10px", background: "#FDF0D5", borderRadius: 6, fontSize: ".72rem", color: "#8A6212", fontWeight: 600 }}>
+                    ⚠ This is marked {severity === "critical" ? "Critical" : "Major"} but excluded from safety metrics. If it can hurt someone, leave it counted.
+                  </div>
+                )}
               </div>
 
               {/* Capital-spend flag — deliberately NOT collapsed. It changes how

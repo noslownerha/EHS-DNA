@@ -60,11 +60,15 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
   useEffect(() => {
     api.listFindings().then(rows => {
       const bySite = Object.fromEntries((BRAND.siteRecords ?? []).map(s => [s.id, s.name]));
+      // These fields were hardcoded placeholders because the API never returned
+      // them. It does now — so the tracker shows the real assignee, due date and
+      // CapEx state instead of "Unassigned / General / no due date" for every row.
       setFindings(rows.map(f => ({
         id: f.id, site: bySite[f.site_id] ?? "—", dept: "—",
-        category: "General", severity: f.severity ?? "minor",
-        desc: f.description, assignee: "Unassigned",
-        due: null, status: f.status, capex: false,
+        category: f.category ?? "General", severity: f.severity ?? "minor",
+        desc: f.description, assignee: f.assignee ?? "Unassigned",
+        due: f.due_date ?? null, status: f.status, capex: !!f.capex,
+        safetyRelevant: f.safety_relevant === 0 ? false : true,
         ageDays: Math.max(0, Math.floor((Date.now() - new Date(f.created_at).getTime()) / 86400000)),
       })));
     }).catch(err => console.error("Findings load failed:", err.message));
@@ -72,11 +76,18 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
   const [filterSite,    setFilterSite]    = useState("");
   const [filterSev,     setFilterSev]     = useState("");
   const [filterAssignee,setFilterAssignee]= useState("");
+  // "safety" (default) | "nonsafety" | "all". Defaults to safety-only so the tiles
+  // read as safety numbers; the non-safety pile stays one tap away rather than
+  // hidden, so an exclusion can never quietly disappear from view.
+  const [scope,         setScope]         = useState("safety");
   const [selected,      setSelected]      = useState(new Set());
   const [sfocused,      setSfocused]      = useState(false);
   const [search,        setSearch]        = useState("");
 
-  const open = SEED_FINDINGS.filter(f => f.status !== "resolved");
+  const allOpen = SEED_FINDINGS.filter(f => f.status !== "resolved");
+  const open = allOpen.filter(f =>
+    scope === "all" ? true : scope === "nonsafety" ? !f.safetyRelevant : f.safetyRelevant);
+  const nonSafetyOpenCount = allOpen.filter(f => !f.safetyRelevant).length;
 
   // Spec §13.2: CapEx findings remain visible but excluded from avg age
   const nonCapExOpen = open.filter(f => !f.capex);
@@ -108,7 +119,7 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
           !f.category.toLowerCase().includes(search.toLowerCase()))      return false;
       return true;
     }),
-    [open, filterSite, filterSev, filterAssignee, search]
+    [open, filterSite, filterSev, filterAssignee, search, scope]
   );
 
   function toggleSelect(id) {
@@ -167,6 +178,33 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
         <div className="anim" style={{ fontSize: ".78rem", color: C.mist, marginBottom: 22, paddingLeft: 4 }}>
           Avg age of open findings: {avgAge} days · CapEx-flagged findings excluded from aging
         </div>
+
+        {/* Scope switch. The tiles above are SAFETY numbers, so this sits directly
+            under them and defaults to Safety — but the non-safety count is always
+            printed on the tab, so an excluded pile can never sit unnoticed. */}
+        <div className="anim" style={{ display: "flex", gap: 6, marginBottom: 12, background: C.chalk, padding: 4, borderRadius: 9, width: "fit-content" }}>
+          {[
+            { id: "safety",    label: "Safety" },
+            { id: "nonsafety", label: `Non-safety${nonSafetyOpenCount ? ` (${nonSafetyOpenCount})` : ""}` },
+            { id: "all",       label: "All" },
+          ].map(t => (
+            <button key={t.id} onClick={() => setScope(t.id)} style={{
+              padding: "6px 13px", border: "none", borderRadius: 7,
+              background: scope === t.id ? C.white : "transparent",
+              boxShadow: scope === t.id ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem",
+              fontWeight: scope === t.id ? 700 : 500,
+              color: scope === t.id ? C.ink : C.slate, cursor: "pointer", transition: "all .15s",
+            }}>{t.label}</button>
+          ))}
+        </div>
+        {scope !== "safety" && (
+          <div style={{ marginBottom: 12, fontSize: ".74rem", color: C.mist }}>
+            {scope === "nonsafety"
+              ? "Tracked and assigned, but excluded from safety metrics."
+              : "Showing safety and non-safety together — tiles no longer read as safety numbers."}
+          </div>
+        )}
 
         {/* Filters + bulk actions */}
         <div className="anim" style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
@@ -295,7 +333,11 @@ const ACTION_STATUS = {
 };
 const ESCALATING = ["Work order raised", "Deferred — awaiting parts", "Deferred — CapEx approval required"];
 
-export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
+// Reclassifying moves a finding in or out of the safety numbers, so it mirrors
+// the server rule (PUT /api/findings rejects safetyRelevant from anyone else).
+const CAN_RECLASSIFY = ["admin", "safety", "site_manager"];
+
+export function S3dFindingDetail({ onHome, findingId, companyName, user, onBack }) {
   const [finding,   setFinding]   = useState({ ...SEED_DETAIL, id: findingId ?? SEED_DETAIL.id, photoList: [] });
   const [dbId, setDbId] = useState(null);
 
@@ -307,20 +349,30 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
       setDbId(row.id);
       setFinding({
         id: `FND-${String(row.id).padStart(4, "0")}`,
-        site: row.site_name ?? "—", dept: "—", category: "General",
+        site: row.site_name ?? "—", dept: "—", category: row.category ?? "General",
         severity: row.severity ?? "low",
         desc: row.description, location: row.location ?? "—",
-        assignee: "Unassigned", due: null,
+        assignee: row.assignee ?? "Unassigned", due: row.due_date ?? null,
+        safetyRelevant: row.safety_relevant === 0 ? false : true,
         status: row.status,
         resolutionAction: row.resolution_action, resolutionNotes: row.resolution_notes,
         ageDays: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86400000)),
-        capex: false, capexNotes: "",
+        capex: !!row.capex, capexNotes: row.capex_notes ?? "",
         photoList: JSON.parse(row.photos || "[]"), gps: false,
         loggedBy: row.reporter_name ?? "—", loggedAt: row.created_at,
-        escalationTimeline: [
-          { date: (row.created_at ?? "").slice(5, 10), event: `Finding logged by ${row.reporter_name ?? "staff"}` },
-          ...(row.resolution_action ? [{ date: (row.resolved_at ?? "").slice(5, 10) || "—", event: `${row.resolution_action}${row.status === "resolved" ? " — resolved" : " — still open"}` }] : []),
-        ],
+        // Real activity trail when the record has one (every finding logged after
+        // the activity table shipped will). Falls back to the derived two-line
+        // version for older findings that predate it.
+        escalationTimeline: (row.activity?.length
+          ? row.activity.map(a => ({
+              date: String(a.created_at ?? "").slice(5, 10),
+              event: `${a.detail ?? a.kind}${a.actor_name ? ` — ${a.actor_name}` : ""}`,
+              kind: a.kind,
+            }))
+          : [
+              { date: (row.created_at ?? "").slice(5, 10), event: `Finding logged by ${row.reporter_name ?? "staff"}` },
+              ...(row.resolution_action ? [{ date: (row.resolved_at ?? "").slice(5, 10) || "—", event: `${row.resolution_action}${row.status === "resolved" ? " — resolved" : " — still open"}` }] : []),
+            ]),
         linkedIncidentId: null,
       });
     }).catch(err => console.error("Finding load failed:", err.message));
@@ -368,6 +420,34 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
         escalateToCA: ESCALATING.includes(resAction),
       }).catch(err => console.error("Resolution save failed:", err.message));
     }
+  }
+
+  const [reclassifying, setReclassifying] = useState(false);
+  const [reclassifyErr,  setReclassifyErr]  = useState("");
+  const canReclassify = CAN_RECLASSIFY.includes(user?.role);
+
+  function toggleSafetyRelevant() {
+    if (!dbId || reclassifying) return;
+    const next = !finding.safetyRelevant;
+    setReclassifying(true);
+    setReclassifyErr("");
+    api.updateFinding(dbId, { safetyRelevant: next })
+      // Re-fetch so the activity trail below picks up the entry this just wrote —
+      // a reclassification that doesn't visibly land in the log defeats the point.
+      .then(() => api.getFinding(dbId).catch(() => null))
+      .then(row => setFinding(f => ({
+        ...f,
+        safetyRelevant: next,
+        escalationTimeline: row?.activity?.length
+          ? row.activity.map(a => ({
+              date: String(a.created_at ?? "").slice(5, 10),
+              event: `${a.detail ?? a.kind}${a.actor_name ? ` — ${a.actor_name}` : ""}`,
+              kind: a.kind,
+            }))
+          : f.escalationTimeline,
+      })))
+      .catch(err => setReclassifyErr(err.message || "Could not reclassify this finding."))
+      .finally(() => setReclassifying(false));
   }
 
   function startEdit(field, val) { setEditing(field); setDraft(val); }
@@ -460,7 +540,9 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
                   { label: "Department", value: finding.dept     },
                   { label: "Category",   value: finding.category },
                   { label: "Assignee",   value: finding.assignee },
-                  { label: "Due date",   value: new Date(finding.due).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) },
+                  { label: "Due date",   value: finding.due
+                      ? new Date(finding.due).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
+                      : "No due date" },
                   { label: "Logged by",  value: `${finding.loggedBy} · ${new Date(finding.loggedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` },
                 ].map((row, i) => (
                   <div key={i}>
@@ -468,6 +550,38 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
                     <div style={{ fontSize: ".88rem", color: C.ink }}>{row.value}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* Safety-metric classification. Read-only for everyone except
+                  admin/safety/site_manager — the person who logged a finding must
+                  not be able to move it out of the safety numbers themselves. */}
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #E8EFec" }}>
+                <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.mist, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Safety metrics</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ fontSize: ".88rem", color: finding.safetyRelevant ? C.ink : "#8A6212" }}>
+                    {finding.safetyRelevant ? "Counted as a safety finding" : "Excluded — tracked and aged, not counted"}
+                  </div>
+                  {canReclassify ? (
+                    <button onClick={toggleSafetyRelevant} disabled={reclassifying} style={{
+                      padding: "6px 13px", background: "none", color: reclassifying ? C.mist : C.pine,
+                      border: `1px solid ${reclassifying ? "#D0DEDB" : C.sage}`, borderRadius: 6,
+                      fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 600,
+                      cursor: reclassifying ? "default" : "pointer",
+                    }}>
+                      {reclassifying ? "Saving…" : finding.safetyRelevant ? "Exclude from safety metrics" : "Count as safety finding"}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: ".72rem", color: C.mist, fontStyle: "italic" }}>Safety or admin only</span>
+                  )}
+                </div>
+                {!finding.safetyRelevant && (finding.severity === "critical" || finding.severity === "high" || finding.severity === "major") && (
+                  <div style={{ marginTop: 9, padding: "8px 10px", background: "#FDF0D5", borderRadius: 6, fontSize: ".72rem", color: "#8A6212", fontWeight: 600 }}>
+                    ⚠ High-severity but excluded from safety metrics. If it can hurt someone, count it.
+                  </div>
+                )}
+                {reclassifyErr && (
+                  <div style={{ marginTop: 8, fontSize: ".75rem", color: C.red }}>{reclassifyErr}</div>
+                )}
               </div>
 
               {/* Spec §13.2: CapEx field in metadata grid */}
@@ -551,7 +665,7 @@ export function S3dFindingDetail({ onHome, findingId, companyName, onBack }) {
                 {finding.escalationTimeline.map((ev, i) => (
                   <div key={i} style={{ display: "flex", gap: 12, marginBottom: i < finding.escalationTimeline.length - 1 ? 14 : 0 }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: i === 0 ? C.sage : "#D0DEDB", flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: ev.kind === "reclassify" ? "#E0B96A" : i === 0 ? C.sage : "#D0DEDB", flexShrink: 0 }} />
                       {i < finding.escalationTimeline.length - 1 && (
                         <div style={{ width: 1, flex: 1, background: "#E2EBE6", margin: "3px 0" }} />
                       )}

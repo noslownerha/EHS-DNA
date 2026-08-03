@@ -186,8 +186,16 @@ export function InspectionProvider({
         for (const f of (findings ?? [])) {
           await api.createFinding({
             inspectionId,
+            siteId: siteRec?.id ?? null,
             severity: f?.severity ?? "low",
             description: f?.description ?? f?.notes ?? f?.label ?? "Inspection finding",
+            category:   f?.category ?? null,
+            assignee:   f?.assignee ?? null,
+            dueDate:    f?.dueDate ?? null,
+            capex:      f?.capex ? 1 : 0,
+            capexNotes: f?.capexNotes ?? null,
+            safetyRelevant: f?.safetyRelevant === false ? false : true,
+            photos:     f?.photo ? [f.photo] : [],
           });
         }
       } catch (err) { console.error("Inspection save failed:", err.message); }
@@ -199,7 +207,17 @@ export function InspectionProvider({
     api.createFinding({
       siteId: siteRec?.id ?? null,
       severity: finding?.severity ?? "low",
-      description: finding?.description ?? finding?.notes ?? "Quick finding",
+      description: finding?.description ?? finding?.notes ?? finding?.desc ?? "Quick finding",
+      // These four were collected by the capture screen and dropped on the floor
+      // before they ever reached the API. Passing them through is what makes the
+      // CapEx and safety-relevance switches mean anything.
+      category:   finding?.category ?? null,
+      assignee:   finding?.assignee ?? null,
+      dueDate:    finding?.dueDate ?? null,
+      capex:      finding?.capex ? 1 : 0,
+      capexNotes: finding?.capexNotes ?? null,
+      safetyRelevant: finding?.safetyRelevant === false ? false : true,
+      photos:     finding?.photo ? [finding.photo] : [],
     }).catch(err => console.error("Finding save failed:", err.message));
   }, []);
   const viewFinding  = useCallback(id => dispatch({ type: "VIEW_FINDING", id }), []);
@@ -340,6 +358,7 @@ export function InspectionRouter({ onDone, onHome }) {
           onHome={onHome ?? onDone}
           findingId={viewingFindingId}
           companyName={companyName}
+          user={user}
           onBack={back}
         />
       );

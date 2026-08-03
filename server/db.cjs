@@ -287,6 +287,26 @@ try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'
 ["resolution_action TEXT", "resolution_notes TEXT"].forEach(col => {
   try { db.exec(`ALTER TABLE findings ADD COLUMN ${col}`); } catch {}
 });
+// ── Finding fields the capture screen has always collected but never stored ────
+// The quick-finding UI gathers category/assignee/due date/CapEx and the API
+// dropped them on the floor. These columns make the capture screen honest.
+//
+// safety_relevant: the "counts toward safety metrics" switch. Default 1 so every
+// pre-existing finding keeps its current meaning. A dusty baseboard and a blocked
+// eyewash can both be Minor; only one belongs in a safety number. This is a
+// SEPARATE axis from severity (how urgent) — do not conflate them. Non-safety
+// findings still age, still get assigned, still show in Open Findings; they are
+// only excluded from safety metrics.
+//
+// capex: mirrors the corrective-action behaviour — a budget-blocked fix can sit
+// for a year awaiting approval and shouldn't read as a lingering safety failure.
+["category TEXT", "assignee TEXT", "due_date TEXT",
+ "capex INTEGER DEFAULT 0", "capex_notes TEXT",
+ "safety_relevant INTEGER DEFAULT 1"].forEach(col => {
+  try { db.exec(`ALTER TABLE findings ADD COLUMN ${col}`); } catch {}
+});
+// Backfill: any row predating the column is a safety finding by definition.
+try { db.exec("UPDATE findings SET safety_relevant = 1 WHERE safety_relevant IS NULL"); } catch {}
 try { db.exec("ALTER TABLE users ADD COLUMN is_operator INTEGER DEFAULT 0"); } catch {}
 // Force a password change on any account still using a seeded/temp password.
 try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"); } catch {}
@@ -420,6 +440,22 @@ db.exec(`CREATE TABLE IF NOT EXISTS ca_activity (
   created_at TEXT DEFAULT (datetime('now'))
 )`);
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_ca_activity ON ca_activity(tenant_id, ca_id, created_at)"); } catch {}
+
+// Findings get the same treatment as corrective actions. The reason is narrower
+// but sharper: safety_relevant decides whether a finding counts toward a safety
+// metric, so moving one in or out is a metrics-affecting edit. Restricting it to
+// safety/admin stops the wrong people doing it; this log is what makes it
+// auditable when the right people do. Append-only — corrections are new rows.
+db.exec(`CREATE TABLE IF NOT EXISTS finding_activity (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  finding_id INTEGER NOT NULL REFERENCES findings(id),
+  actor_id INTEGER REFERENCES users(id),
+  kind TEXT NOT NULL,               -- created | reclassify | status | assign | due | capex | severity | resolution
+  detail TEXT,                      -- human-readable summary of what changed
+  created_at TEXT DEFAULT (datetime('now'))
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_finding_activity ON finding_activity(tenant_id, finding_id, created_at)"); } catch {}
 
 // ── Photo storage ────────────────────────────────────────────────────────────
 // Photos used to be stored as base64 INSIDE the incidents/findings rows. A single

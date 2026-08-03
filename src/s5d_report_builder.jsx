@@ -744,7 +744,13 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                   {!ftData ? (
                     <div style={{ padding: 20, textAlign: "center", color: C.mist, fontSize: ".85rem" }}>Loading…</div>
                   ) : (() => {
-                    const all = findingsList || [];
+                    // The counts come from the server already excluding non-safety
+                    // items; the drill-in list must apply the SAME filter or the
+                    // rows won't add up to the number above them.
+                    const isSafety = f => f.safety_relevant !== 0;
+                    const all = (findingsList || []).filter(isSafety);
+                    const nonSafetyRows = (findingsList || []).filter(f => !isSafety(f));
+                    const ns = ftData.nonSafety ?? {};
                     const buckets = [
                       { key: "new",      label: "New findings logged", value: ftData.findings.new,             color: C.ink,    filter: () => all },
                       { key: "critical", label: "Critical",            value: ftData.findings.critical,        color: C.red,    filter: () => all.filter(f => f.severity === "critical") },
@@ -752,7 +758,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                       { key: "resolved", label: "Resolved in period",  value: ftData.findings.resolvedInPeriod, color: C.sage,  filter: () => all.filter(f => f.status === "resolved") },
                       { key: "open",     label: "Currently open",      value: ftData.findings.open,            color: C.navy,   filter: () => all.filter(f => f.status === "open") },
                     ];
-                    return buckets.map((b, i) => {
+                    const bucketRows = buckets.map((b, i) => {
                       const isOpen = openBucket === b.key;
                       const rows = isOpen ? b.filter() : [];
                       const clickable = b.value > 0;
@@ -784,6 +790,59 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                         </div>
                       );
                     });
+
+                    return (
+                      <>
+                        {bucketRows}
+                        {/* Non-safety items are excluded from every number above.
+                            They are reported here rather than hidden — an exclusion
+                            nobody can see is an invitation to reclassify a bad month
+                            away. Deliberately visually quiet: present, not alarming. */}
+                        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #E8EFec" }}>
+                          <div style={{ fontSize: ".7rem", fontWeight: 600, color: C.mist, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
+                            Excluded from safety metrics
+                          </div>
+                          {(ns.open ?? 0) === 0 && (ns.new ?? 0) === 0 ? (
+                            <div style={{ fontSize: ".78rem", color: C.mist }}>None — every finding on record counts toward safety metrics.</div>
+                          ) : (
+                            <>
+                              <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 8 }}>
+                                {[
+                                  { label: "Logged this period", value: ns.new ?? 0 },
+                                  { label: "Currently open",     value: ns.open ?? 0 },
+                                  { label: "Overdue",            value: ns.overdue ?? 0 },
+                                  { label: "Avg age (days)",     value: ns.avgAgeDays ?? 0 },
+                                ].map((m, i) => (
+                                  <div key={i}>
+                                    <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.slate }}>{m.value}</div>
+                                    <div style={{ fontSize: ".68rem", color: C.mist }}>{m.label}</div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div onClick={() => setOpenBucket(openBucket === "nonsafety" ? null : "nonsafety")}
+                                style={{ fontSize: ".76rem", color: C.pine, cursor: "pointer", fontWeight: 600 }}>
+                                {openBucket === "nonsafety" ? "Hide" : "Show"} excluded findings ▾
+                              </div>
+                              {openBucket === "nonsafety" && (
+                                <div style={{ marginTop: 8 }}>
+                                  {nonSafetyRows.length === 0 ? (
+                                    <div style={{ fontSize: ".78rem", color: C.mist, paddingLeft: 18 }}>No excluded findings on record.</div>
+                                  ) : nonSafetyRows.slice(0, 25).map(f => (
+                                    <div key={f.id} style={{ padding: "8px 10px 8px 18px", marginBottom: 6, background: "#FFF6E8", borderRadius: 7, borderLeft: "3px solid #E0B96A" }}>
+                                      <div style={{ fontSize: ".82rem", color: C.ink, lineHeight: 1.35 }}>{f.description}</div>
+                                      <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 3 }}>
+                                        {f.site_name ?? "—"} · {f.severity} · {f.status}{f.created_at ? ` · ${String(f.created_at).slice(0, 10)}` : ""}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {nonSafetyRows.length > 25 && <div style={{ fontSize: ".72rem", color: C.mist, paddingLeft: 18 }}>+{nonSafetyRows.length - 25} more…</div>}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </>
+                    );
                   })()}
                 </div>
               )}
