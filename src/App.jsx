@@ -87,6 +87,7 @@ function App() {
   const [pendingChecklistId, setPendingChecklistId] = useState(null);
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
+  const [inspectScreen, setInspectScreen] = useState(INSPECTION_SCREENS.START);
   const [pickerStep,  setPickerStep]  = useState("top");
   // Why triage was entered. "Report an injury" routes through triage first; when
   // triage hands back to "file a report", the report must still BE an injury.
@@ -130,9 +131,9 @@ function App() {
   useEffect(() => {
     function onDeepLink(e) {
       const { kind } = e.detail ?? {};
-      if (kind === "incident") { setFlagScreen(INCIDENT_SCREENS.LIST); handleTab("flag"); }
+      if (kind === "incident") openFlag(INCIDENT_SCREENS.LIST);
       else if (kind === "training") handleTab("training");
-      else if (kind === "finding") handleTab("inspect");
+      else if (kind === "finding") openInspect(INSPECTION_SCREENS.AGING);
       else if (kind === "asset") { setAssetIdView(e.detail.ref); setActiveTab("asset"); }
       else handleTab("home");
     }
@@ -159,12 +160,23 @@ function App() {
     } catch { /* malformed param — ignore */ }
   }, [currentUser]);
 
+  // A tap on a bottom tab ALWAYS starts that tab fresh. Deep links (dashboard
+  // tiles, notifications) go through openFlag/openInspect instead. The old code
+  // "kept" whatever screen the last deep link set, so after tapping the
+  // corrective-actions tile, a later tap on Flag — to report something — opened
+  // the CA tracker instead of the report screen.
   function handleTab(tabId) {
-    if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
-    else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);
-    if (tabId === "flag") { setPickerStep("top"); setAfterTriage(false); setFlagPreset(null); } // normal Flag entry starts at top
-    if (tabId === "inspect") setPendingChecklistId(null); // manual Inspect entry: fresh Start screen
+    if (tabId === "flag") { setFlagScreen(INCIDENT_SCREENS.TYPE); setPickerStep("top"); setAfterTriage(false); setFlagPreset(null); }
+    if (tabId === "inspect") { setPendingChecklistId(null); setInspectScreen(INSPECTION_SCREENS.START); }
     setActiveTab(tabId);
+  }
+  function openFlag(screen) {
+    setFlagScreen(screen); setPickerStep("top"); setAfterTriage(false); setFlagPreset(null);
+    setActiveTab("flag");
+  }
+  function openInspect(screen) {
+    setPendingChecklistId(null); setInspectScreen(screen);
+    setActiveTab("inspect");
   }
   function handleNavigate(dest) {
     if (dest === "triage") setTriageFromInjury(false); // general "something happened" entry
@@ -226,9 +238,9 @@ function App() {
                 onTriage={()        => handleTab("triage")}
                 onReportIncident={() => handleTab("flag")}
                 onTraining={()      => handleTab("training")}
-                onIncidents={()     => { setFlagScreen(INCIDENT_SCREENS.LIST); handleTab("flag"); }}
-                onFindings={()      => handleTab("inspect")}
-                onCAs={()           => { setFlagScreen(INCIDENT_SCREENS.CA_TRACKER); handleTab("flag"); }}
+                onIncidents={()     => openFlag(INCIDENT_SCREENS.LIST)}
+                onFindings={()      => openInspect(INSPECTION_SCREENS.AGING)}
+                onCAs={()           => openFlag(INCIDENT_SCREENS.CA_TRACKER)}
                 onRecognition={()   => handleTab("recognition")}
               />
             </DashboardProvider>
@@ -296,8 +308,8 @@ function App() {
       case "inspect":
         return (
           <MobileFrame>
-            <InspectionProvider user={userObj} companyName={COMPANY} initialScreen={INSPECTION_SCREENS.START}
-              initialChecklistId={pendingChecklistId} key={pendingChecklistId ?? "inspect"}>
+            <InspectionProvider user={userObj} companyName={COMPANY} initialScreen={inspectScreen}
+              initialChecklistId={pendingChecklistId} key={pendingChecklistId ?? `inspect-${inspectScreen}`}>
               <InspectionRouter onDone={() => { setPendingChecklistId(null); handleHome(); }} />
             </InspectionProvider>
           </MobileFrame>
