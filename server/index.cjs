@@ -190,8 +190,11 @@ function auth(req, res, next) {
     req.auth.siteId = meRow.site_id ?? null;
 
     // Accounts on a seeded/temporary password must change it before doing anything else.
-    // Only the change-password endpoint itself stays reachable.
-    if (req.path !== "/api/auth/change-password") {
+    // Only the change-password endpoint — and /api/config (tenant branding,
+    // no records) — stay reachable. Sign-in loads /api/config before showing
+    // anything; blocking it made sign-in itself fail, bouncing every new user
+    // back to the login page with no way to reach the change-password screen.
+    if (req.path !== "/api/auth/change-password" && req.path !== "/api/config") {
       const pwRow = db.prepare("SELECT must_change_password FROM users WHERE id = ?").get(req.auth.uid);
       if (pwRow && pwRow.must_change_password === 1)
         return res.status(403).json({ error: "You must set a new password before continuing.", mustChangePassword: true });
@@ -648,6 +651,8 @@ app.post("/api/users/bulk", auth, requireRole("admin", "safety", "site_manager")
     if (role === "site manager") role = "site_manager";
     if (!name || !email || !email.includes("@")) { results.push({ line, email, error: "Missing/invalid name or email" }); continue; }
     if (!VALID_ROLES.includes(role)) { results.push({ line, email, error: `Unknown role "${r.role}" — use staff, trainer, site_manager, safety, or admin` }); continue; }
+    // Bulk import is open to safety and site managers; only admins may create admins.
+    if (role === "admin" && req.auth.role !== "admin") { results.push({ line, email, error: "Only an admin can create admin accounts" }); continue; }
     const siteId = r.site ? siteByName[norm(r.site)] : null;
     if (r.site && !siteId) { results.push({ line, email, error: `Unknown site "${r.site}"` }); continue; }
     const deptId = r.department ? deptByName[norm(r.department)] : null;
@@ -682,6 +687,12 @@ app.get("/api/users", auth, requireRole(...ADMINISH, "site_manager"), (req, res)
 app.post("/api/users", auth, requireRole(...ADMINISH), (req, res) => {
   const { email, name, role, siteId, departmentId, password } = req.body || {};
   if (!email || !name || !role) return res.status(400).json({ error: "email, name, role required" });
+  if (!["admin", "safety", "site_manager", "trainer", "staff"].includes(role))
+    return res.status(400).json({ error: `Unknown role "${role}".` });
+  // Privilege escalation guard: user management is open to safety too, so
+  // without this a Safety Officer could mint a new admin account.
+  if (role === "admin" && req.auth.role !== "admin")
+    return res.status(403).json({ error: "Only an admin can create admin accounts." });
   const pw = password || Math.random().toString(36).slice(2, 10) + "!A1";
   // Auto-generated temp password → force a change on first login.
   // An admin-chosen password is treated as intentional and is not forced.
@@ -696,7 +707,30 @@ app.post("/api/users", auth, requireRole(...ADMINISH), (req, res) => {
   }
 });
 app.put("/api/users/:id", auth, requireRole(...ADMINISH), (req, res) => {
-  const { name, role, siteId, departmentId, active, resetPassword } = req.body || {};
+  const { name, role, siteId, departmentId, resetPassword } = req.body || {};
+  // Booleans can't be bound by the SQLite driver — `active: false` used to 500.
+  const active = req.body?.active === undefined || req.body?.active === null ? null : (req.body.active ? 1 : 0);
+  const USER_ROLES = ["admin", "safety", "site_manager", "trainer", "staff"];
+  if (role != null && !USER_ROLES.includes(role))
+    return res.status(400).json({ error: `Unknown role "${role}".` });
+  const target = db.prepare("SELECT id, role, active FROM users WHERE id = ? AND tenant_id = ?").get(req.params.id, req.auth.tenant);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  // Foot-guns: an admin removing their own admin access, or the company losing
+  // its last active admin, leaves nobody able to manage the account.
+  // Only admins may grant the admin role or modify an admin's account.
+  if (req.auth.role !== "admin" && (role === "admin" || target.role === "admin"))
+    return res.status(403).json({ error: "Only an admin can change an admin account or grant admin." });
+  const isSelf = Number(req.params.id) === Number(req.auth.uid);
+  if (isSelf && role != null && role !== target.role)
+    return res.status(400).json({ error: "You can't change your own role. Ask another admin." });
+  if (isSelf && active === 0)
+    return res.status(400).json({ error: "You can't deactivate your own account." });
+  const losingAdmin = target.role === "admin" && target.active === 1
+    && ((role != null && role !== "admin") || active === 0);
+  if (losingAdmin) {
+    const admins = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND is_operator = 0").get(req.auth.tenant).n;
+    if (admins <= 1) return res.status(400).json({ error: "This is the company's only active admin. Make someone else an admin first." });
+  }
   db.prepare(`UPDATE users SET name = COALESCE(?, name), role = COALESCE(?, role),
               site_id = COALESCE(?, site_id), department_id = COALESCE(?, department_id),
               active = COALESCE(?, active) WHERE id = ? AND tenant_id = ?`)
