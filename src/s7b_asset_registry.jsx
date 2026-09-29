@@ -298,18 +298,29 @@ function ProcedureManager({ assetId, procs, onChange }) {
   function startAdd(kind) { setAdding(kind); setEditingId(null); setTitle(""); setText(""); }
   function cancel() { setAdding(null); setEditingId(null); setTitle(""); setText(""); }
 
+  // A failed save used to throw with nothing on screen — the form just sat
+  // there. For a LOTO procedure, "did that save?" must never be ambiguous.
+  const [procError, setProcError] = useState("");
   async function save() {
     if (!title.trim()) return;
     const steps = adding === "loto" ? text.split("\n").map(s => s.trim()).filter(Boolean) : [];
     const body = adding === "sop" ? text : null;
-    if (editingId) await api.updateProcedure(editingId, { title, steps, body });
-    else await api.addProcedure(assetId, { kind: adding, title, steps, body });
-    cancel(); refresh();
+    setProcError("");
+    try {
+      if (editingId) await api.updateProcedure(editingId, { title, steps, body });
+      else await api.addProcedure(assetId, { kind: adding, title, steps, body });
+      cancel(); refresh();
+    } catch (err) { setProcError(`Not saved — ${err.message}`); }
   }
-  async function remove(id) { await api.deleteProcedure(id); refresh(); }
+  async function remove(id) {
+    setProcError("");
+    try { await api.deleteProcedure(id); refresh(); }
+    catch (err) { setProcError(`Not removed — ${err.message}`); }
+  }
 
   return (
     <div style={{ borderTop: "1px solid #E2EBE6", paddingTop: 14, marginTop: 4 }}>
+      {procError && <div role="alert" style={{ color: "#B42318", fontSize: ".8rem", fontWeight: 600, marginBottom: 8 }}>⚠ {procError}</div>}
       {["loto", "sop"].map(kind => {
         const list = kind === "loto" ? procs.loto : procs.sops;
         const heading = kind === "loto" ? "🔒 Lockout / Tagout" : "📋 SOPs";
