@@ -1807,6 +1807,21 @@ app.get("/api/completions", auth, (req, res) => {
     : db.prepare("SELECT * FROM training_completions WHERE tenant_id = ? ORDER BY completed_at DESC").all(req.auth.tenant);
   res.json(rows);
 });
+// ── PowerPoint import → course slides ───────────────────────────────────────
+// Raw file upload (not base64-in-JSON) so real decks fit. Slide pictures are
+// stored like any other photo (owner "training"), readable by the whole company.
+const { parsePptx } = require("./pptx.cjs");
+app.post("/api/trainings/import-pptx", auth, requireRole(...ADMINISH, "trainer"),
+  express.raw({ type: () => true, limit: "60mb" }), async (req, res) => {
+    if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: "No file received." });
+    try {
+      const out = await parsePptx(req.body, {
+        storeImage: photo => storePhoto(req.auth.tenant, "training", null, photo)?.id ?? null,
+      });
+      res.json(out);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
 // ── In-person training: acknowledge → confirm ───────────────────────────────
 const CONFIRMER_ROLES = ["admin", "safety", "trainer", "site_manager"];
 function ackRow(t, id) {

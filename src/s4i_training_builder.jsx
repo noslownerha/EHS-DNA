@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
+import AuthImg from "./AuthImg.jsx";
 import { api } from "./api.js";
 
 const C = { ...COLORS };
@@ -70,6 +71,29 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
       questions: c?.questions ?? [],
       passThreshold: c?.passThreshold ?? 80,
     };
+  }
+
+  // PowerPoint → slides. Appends to the course being edited (fills the title
+  // if it's still the placeholder); nothing is saved until the user taps Save.
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState(null);
+  async function importDeck(e) {
+    const file = e.target.files?.[0]; e.target.value = "";
+    if (!file || !sel) return;
+    setImporting(true); setImportMsg(null);
+    try {
+      const r = await api.importPptx(file);
+      setSel(x => ({
+        ...x,
+        title: !x.title || x.title === "New course" ? r.title : x.title,
+        slides: [...x.slides, ...r.slides],
+      }));
+      const extra = [r.skippedImages ? `${r.skippedImages} picture${r.skippedImages === 1 ? "" : "s"} couldn't be imported (unsupported format)` : "",
+                     r.notesUsed ? `speaker notes used on ${r.notesUsed} slide${r.notesUsed === 1 ? "" : "s"}` : "",
+                     r.truncated ? "only the first 200 slides were imported" : ""].filter(Boolean).join("; ");
+      setImportMsg({ text: `✓ Imported ${r.slides.length} slide${r.slides.length === 1 ? "" : "s"} from ${file.name}${extra ? ` — ${extra}` : ""}. Review them, add quiz questions, then Save.` });
+    } catch (err) { setImportMsg({ error: true, text: `⚠ ${err.message}` }); }
+    setImporting(false);
   }
 
   async function createNew() {
@@ -190,7 +214,18 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
 
               {sel.kind === "cbt" && (
                 <div style={{ borderTop: "1px solid #F0F4F2", paddingTop: 16, marginBottom: 16 }}>
-                  <span style={label}>Course content — slides shown in order</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                    <span style={{ ...label, marginBottom: 0 }}>Course content — slides shown in order</span>
+                    <label style={{ ...btn(C.white, C.pine), border: `1.5px solid ${C.mint}`, display: "inline-block", cursor: importing ? "default" : "pointer", opacity: importing ? .6 : 1 }}>
+                      {importing ? "Importing…" : "📥 Import PowerPoint"}
+                      <input type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                        disabled={importing} onChange={importDeck} style={{ display: "none" }} aria-label="Import PowerPoint" />
+                    </label>
+                  </div>
+                  {importMsg && (
+                    <div role="status" style={{ background: importMsg.error ? C.redLt : C.foam, color: importMsg.error ? C.red : C.pine,
+                      borderRadius: 8, padding: "9px 12px", fontSize: ".82rem", fontWeight: 600, marginBottom: 10 }}>{importMsg.text}</div>
+                  )}
                   {sel.slides.map((s, i) => (
                     <div key={i} style={{ background: C.chalk, borderRadius: 10, padding: 12, marginBottom: 10 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
@@ -199,6 +234,13 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
                         <button onClick={() => setSel(x => ({ ...x, slides: x.slides.filter((_, j) => j !== i) }))}
                           style={{ ...btn(C.redLt, C.red), padding: "6px 12px" }}>✕</button>
                       </div>
+                      {s.imageId && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                          <AuthImg photo={{ id: s.imageId }} alt="" style={{ height: 64, borderRadius: 6, objectFit: "contain", background: "#fff" }} />
+                          <button onClick={() => setSel(x => ({ ...x, slides: x.slides.map((v, j) => j === i ? { ...v, imageId: null } : v) }))}
+                            style={{ ...btn(C.white, C.slate), border: "1px solid #D0DEDB", padding: "5px 10px", fontSize: ".75rem" }}>Remove picture</button>
+                        </div>
+                      )}
                       <input style={{ ...input, marginBottom: 8 }} placeholder="Video URL (YouTube, Vimeo, or direct .mp4 — optional)" value={s.videoUrl ?? ""}
                         onChange={e => setSel(x => ({ ...x, slides: x.slides.map((v, j) => j === i ? { ...v, videoUrl: e.target.value } : v) }))} />
                       <textarea rows={3} style={{ ...input, resize: "vertical" }} placeholder="Written content (optional if video provided)" value={s.body ?? ""}

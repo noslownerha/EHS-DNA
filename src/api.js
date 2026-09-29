@@ -197,6 +197,16 @@ export const api = {
   remindTraining: () => req("/trainings/remind", { method: "POST" }),
   updateTraining: (id, patch) => req(`/trainings/${id}`, { method: "PUT", body: patch }),
   listCompletions: () => req("/completions"),
+  // Raw file upload: a real deck is too big for base64-in-JSON.
+  importPptx: async (file) => {
+    const res = await fetch("/api/trainings/import-pptx", {
+      method: "POST", body: file,
+      headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/octet-stream" },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Import failed (HTTP ${res.status})`);
+    return data;
+  },
   // in-person: trainee acknowledges, trainer/manager confirms
   acknowledgeTraining: (id, note) => req(`/trainings/${id}/acknowledge`, { method: "POST", body: { note } }),
   myTrainingAcks: () => req("/training-acks/mine"),

@@ -2,6 +2,7 @@ import { COLORS } from "./constants.js";
 import { useState, useRef, useEffect } from "react";
 import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
+import AuthImg from "./AuthImg.jsx";
 
 const C = { ...COLORS };
 
@@ -175,6 +176,10 @@ export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onPassed, o
         {slide.type === "content" && (
           <>
             {slide.videoUrl && <SlideVideo url={slide.videoUrl} />}
+            {slide.imageId && (
+              <AuthImg photo={{ id: slide.imageId }} alt={slide.heading}
+                style={{ display: "block", maxWidth: "100%", maxHeight: 340, margin: "0 auto 16px", borderRadius: 10, objectFit: "contain" }} />
+            )}
             {slide.body && <p style={{ fontSize: ".92rem", color: C.ink, lineHeight: 1.7, marginBottom: 16, whiteSpace: "pre-wrap" }}>{slide.body}</p>}
 
             {/* Spec: company-specific example callout on every CBT slide */}

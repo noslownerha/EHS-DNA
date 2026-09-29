@@ -145,6 +145,7 @@ export function TrainingProvider({
       const contentSlides = (parsed?.slides ?? []).map((s, i) => ({
         id: `c${i}`, type: "content", heading: s.heading || item.title,
         body: s.body || "", videoUrl: s.videoUrl || null, example: s.example || null, image: null,
+        imageId: s.imageId || null,
       }));
       const quizSlides = (parsed?.questions ?? []).map((q, i) => ({
         id: `q${i}`, type: "knowledge_check", heading: `Question ${i + 1}`,
