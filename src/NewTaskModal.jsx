@@ -18,6 +18,9 @@ export default function NewTaskModal({ users = [], onClose, onCreated }) {
   const [deptId, setDeptId] = useState("");
   const [siteId, setSiteId] = useState("");
   const [saving, setSaving] = useState(false);
+  // A failed create used to be console-only: the button quietly reset and the
+  // user had no idea nothing was saved. Show the real reason instead.
+  const [error, setError] = useState("");
 
   const depts = BRAND.departmentRecords ?? [];
   const sites = BRAND.siteRecords ?? [];
@@ -27,7 +30,7 @@ export default function NewTaskModal({ users = [], onClose, onCreated }) {
 
   function submit() {
     if (!title.trim()) return;
-    setSaving(true);
+    setSaving(true); setError("");
     const body = {
       title: title.trim(),
       priority,
@@ -37,8 +40,8 @@ export default function NewTaskModal({ users = [], onClose, onCreated }) {
         : { assigneeId: assigneeId ? Number(assigneeId) : null }),
     };
     api.createCA(body)
-      .then(() => { onCreated?.(); onClose?.(); })
-      .catch(err => { console.error("Create task failed:", err.message); setSaving(false); });
+      .then(created => { onCreated?.(created); onClose?.(); })
+      .catch(err => { setError(err.message || "Could not create the task — nothing was saved."); setSaving(false); });
   }
 
   return (
@@ -112,6 +115,7 @@ export default function NewTaskModal({ users = [], onClose, onCreated }) {
             background: title.trim() ? C.sage : "#C9D6CE", color: "#fff",
             fontSize: ".9rem", fontWeight: 700, cursor: title.trim() ? "pointer" : "default",
           }}>{saving ? "Creating…" : "Create task"}</button>
+        {error && <div role="alert" style={{ marginTop: 10, fontSize: ".8rem", color: "#B42318", fontWeight: 600 }}>⚠ {error}</div>}
         </div>
       </div>
     </div>

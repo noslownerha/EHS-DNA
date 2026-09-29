@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -54,6 +54,11 @@ function CACard({ ca, onVerify, onViewIncident, onManage }) {
       <div style={{ fontSize: ".9rem", color: C.ink, lineHeight: 1.4, fontWeight: 600, marginBottom: 8 }}>
         {ca.desc}
       </div>
+      {ca.roadblocked && (
+        <div style={{ fontSize: ".74rem", fontWeight: 700, color: "#8A5A00", background: "#FDF0D5", padding: "5px 9px", borderRadius: 6, marginBottom: 8 }}>
+          ⚠ Blocked — needs help{ca.blockedReason ? `: ${ca.blockedReason}` : ""}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
         <span style={{ fontSize: ".72rem", fontWeight: 700, color: pri.color, background: pri.bg, padding: "3px 9px", borderRadius: 20 }}>
@@ -64,7 +69,7 @@ function CACard({ ca, onVerify, onViewIncident, onManage }) {
           color: ca.status === "overdue" ? C.red : C.slate,
           background: ca.status === "overdue" ? "#FBECEC" : "#EEF1F0",
         }}>
-          Due {ca.due}
+          {ca.due ? `Due ${ca.due}` : "No due date"}
         </span>
       </div>
 
@@ -178,7 +183,14 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
 
   useEffect(() => { api.listUsers().then(setUsers).catch(() => {}); }, []);
 
-  function reload() {
+  // The tracker used to open on "Overdue" unconditionally, so with nothing overdue
+  // it looked empty while open work sat in other tabs — and a newly created task
+  // (always "on track") vanished from view right after the header counted it.
+  // Until the user picks a tab themselves, open on the first non-empty bucket.
+  const userPickedTab = useRef(false);
+  const [loadError, setLoadError] = useState("");
+
+  function reload(focusId) {
     Promise.all([api.listCAs(), api.listIncidents()]).then(([rawCAs, incs]) => {
       const bySite = Object.fromEntries((BRAND.siteRecords ?? []).map(s => [s.id, s.name]));
       const incById = Object.fromEntries(incs.map(i => [i.id, i]));
@@ -198,11 +210,29 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
             : c.status === "capex_blocked" ? "blocked"
             : overdue ? "overdue" : "on-track",
           priority: c.priority, site,
+          // Keep the server's own status: a roadblocked CA ("blocked", needs help)
+          // deliberately keeps aging in Overdue/On track, but must still be badged
+          // as blocked — mapping it away made the badge impossible to render.
+          roadblocked: c.status === "blocked", blockedReason: c.blocked_reason ?? null,
           escalated: overdue && c.priority === "high",
         };
       }));
-    }).catch(err => console.error("Failed to load corrective actions:", err.message));
+      setLoadError("");
+      if (focusId != null) {
+        const created = rawCAs.find(c => c.id === focusId);
+        if (created) {
+          const od = created.due_date && new Date(created.due_date) < new Date();
+          setActiveTab(created.status === "capex_blocked" ? "blocked" : od ? "overdue" : "on-track");
+          userPickedTab.current = true;
+        }
+      }
+    }).catch(err => setLoadError(err.message || "Couldn't load corrective actions."));
   }
+  useEffect(() => {
+    if (userPickedTab.current || cas.length === 0) return;
+    const first = ["overdue", "on-track", "blocked"].find(t => cas.some(c => c.status === t));
+    if (first) setActiveTab(first);
+  }, [cas]);
   useEffect(() => { reload(); }, []);
 
   const sites     = [...new Set(cas.map(c => c.site))];
@@ -210,14 +240,17 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
 
   function handleVerify(id) {
     setCas(cs => cs.map(c => c.id === id ? { ...c, status: "closed" } : c));
-    api.updateCA(id, { status: "done", verified: true }).catch(err => console.error("Verify failed:", err.message));
+    api.updateCA(id, { status: "done", verified: true })
+      .catch(err => { setLoadError(`Verify failed — ${err.message}. Nothing was changed.`); reload(); });
   }
 
   // Spec §12.9: split overdue / on-track / closed
   const tabs = [
     { id: "overdue",  label: "Overdue",  color: C.red  },
     { id: "on-track", label: "On track", color: C.pine },
-    { id: "blocked",  label: "Blocked",  color: "#8A5A00" },
+    // This tab holds CapEx-paused items only. Roadblocked items ("needs help")
+    // stay in Overdue/On track so they keep aging, and carry their own badge.
+    { id: "blocked",  label: "CapEx hold", color: "#8A5A00" },
     { id: "closed",   label: "Closed",   color: C.slate},
   ];
 
@@ -300,7 +333,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { userPickedTab.current = true; setActiveTab(tab.id); }}
               style={{
                 flex: 1, padding: "14px 16px",
                 background: activeTab === tab.id ? tab.color + "14" : C.white,
@@ -354,6 +387,11 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
           )}
         </div>
 
+        {loadError && (
+          <div role="alert" style={{ background: "#FEF3F2", color: "#B42318", borderRadius: 8, padding: "10px 12px", marginBottom: 10, fontSize: ".8rem", fontWeight: 600 }}>
+            ⚠ {loadError} <button onClick={() => reload()} style={{ marginLeft: 8, background: "none", border: "none", color: "#B42318", textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}>Retry</button>
+          </div>
+        )}
         {/* Mobile: card list (the table needed horizontal scrolling on a phone) */}
         <div className="ca-cards anim">
           {filtered.length === 0 ? (
@@ -421,7 +459,7 @@ export default function S2eCATracker({ companyName, onViewIncident, onHome, onBa
         <NewTaskModal
           users={users}
           onClose={() => setShowNewTask(false)}
-          onCreated={reload}
+          onCreated={created => reload(created?.id)}
         />
       )}
     </div>

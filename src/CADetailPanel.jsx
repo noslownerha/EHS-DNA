@@ -48,6 +48,12 @@ export default function CADetailPanel({ caId, users = [], onClose, onChanged }) 
   const [note, setNote] = useState("");
   const [blockReason, setBlockReason] = useState("");
   const [showBlock, setShowBlock] = useState(false);
+  // Roadblock ("blocked — needs help") is a different thing from CapEx: it KEEPS
+  // aging and counting overdue so it stays loud. It used to be settable only from
+  // an incident's detail page, so standalone tasks and finding-born actions could
+  // never be flagged as stuck — from the very screen an assignee works in.
+  const [showStuck, setShowStuck] = useState(false);
+  const [stuckReason, setStuckReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [assignMode, setAssignMode] = useState(null); // null = infer from CA; "person" | "team"
   const depts = BRAND.departmentRecords ?? [];
@@ -125,6 +131,41 @@ export default function CADetailPanel({ caId, users = [], onClose, onChanged }) 
                 })}
               </div>
             </div>
+
+            {/* Roadblock — needs help (keeps aging; distinct from CapEx below) */}
+            {ca.status !== "capex_blocked" && !["done", "verified"].includes(ca.status) && (
+              <div>
+                <div style={label}>Stuck?</div>
+                {ca.status === "blocked" ? (
+                  <div style={{ background: "#FDF0D5", borderRadius: 8, padding: "12px 14px" }}>
+                    <div style={{ fontSize: ".82rem", color: "#8A6212", fontWeight: 700, marginBottom: 4 }}>⚠ Blocked — needs help (still aging)</div>
+                    {ca.blocked_reason && <div style={{ fontSize: ".82rem", color: "#7A5A00" }}>{ca.blocked_reason}</div>}
+                    <button disabled={saving} onClick={() => patch({ status: "in_progress", blockedReason: null })}
+                      style={{ marginTop: 10, padding: "7px 12px", borderRadius: 8, border: "none", background: C.sage, color: "#fff", fontSize: ".8rem", fontWeight: 700, cursor: "pointer" }}>
+                      Unblocked — back in progress
+                    </button>
+                  </div>
+                ) : showStuck ? (
+                  <div style={{ background: "#FDF0D5", borderRadius: 8, padding: "12px 14px" }}>
+                    <textarea value={stuckReason} onChange={e => setStuckReason(e.target.value)} rows={2}
+                      placeholder="What's blocking you, and who can unblock it? (required)"
+                      style={{ ...field, resize: "vertical", marginBottom: 8 }} />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button disabled={saving || !stuckReason.trim()}
+                        onClick={() => patch({ status: "blocked", blockedReason: stuckReason.trim() }, () => { setShowStuck(false); setStuckReason(""); })}
+                        style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: stuckReason.trim() ? "#8A6212" : "#D8C9A6", color: "#fff", fontSize: ".8rem", fontWeight: 700, cursor: stuckReason.trim() ? "pointer" : "default" }}>
+                        Flag as blocked — needs help
+                      </button>
+                      <button onClick={() => setShowStuck(false)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${C.line ?? "#E2EBE6"}`, background: "#fff", color: C.slate, fontSize: ".8rem", cursor: "pointer" }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowStuck(true)} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.line ?? "#E2EBE6"}`, background: "#fff", color: C.slate, fontSize: ".82rem", cursor: "pointer" }}>
+                    Blocked — needs help
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* CapEx block */}
             <div>
