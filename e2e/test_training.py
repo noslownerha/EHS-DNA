@@ -103,6 +103,16 @@ def main():
         api("/api/op/run-reminders", "POST", {}, op)
         n2 = q("""SELECT COUNT(*) k FROM notifications n JOIN users u ON u.id=n.user_id WHERE u.email=? AND n.link_kind='training'""", staff_email)[0]["k"]
         check("reminders: not repeated on the next run (7-day dedupe)", n2 == len(n), n2)
+        # Not-started digest: trainer is assigned the seeded all-staff courses and has never started any.
+        tr_email = acc["trainer"][0]
+        dig = q("""SELECT n.title, n.body FROM notifications n JOIN users u ON u.id=n.user_id
+                   WHERE u.email=? AND n.link_ref='todo-digest'""", tr_email)
+        check("not-started: one digest for someone who never started", len(dig) == 1 and "to complete" in dig[0]["title"], [dict(r) for r in dig])
+        dig_staff = q("""SELECT n.body FROM notifications n JOIN users u ON u.id=n.user_id
+                         WHERE u.email=? AND n.link_ref='todo-digest'""", staff_email)
+        check("not-started: passed course is not listed in the digest", all(TITLE not in r["body"] for r in dig_staff), [dict(r) for r in dig_staff])
+        opn = q("SELECT COUNT(*) k FROM notifications n JOIN users u ON u.id=n.user_id WHERE u.is_operator=1 AND n.link_kind='training'")[0]["k"]
+        check("not-started: operator accounts never nudged", opn == 0, opn)
     finally:
         proc.terminate()
     fails = [r for r in RESULTS if not r[1]]

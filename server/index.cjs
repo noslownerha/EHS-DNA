@@ -2771,7 +2771,46 @@ function runTrainingReminders() {
       sent++;
     }
     if (sent) console.log(`Training reminders sent: ${sent}`);
+    const nudged = nudgeNotStarted();
+    if (nudged) console.log(`Not-started training nudges sent: ${nudged}`);
   } catch (e) { console.error("Reminder run failed:", e.message); }
+}
+
+// Assigned but never passed (not started, or only failed attempts). The expiry
+// reminders above only ever reached people who had ALREADY completed a course —
+// someone who never started got no nudge at all. One digest per person per week,
+// not one per course: a new hire can be assigned ten at once, and ten separate
+// alerts every week is how people learn to ignore the bell.
+function requiredFor(u, tr) {
+  const roles = JSON.parse(tr.required_roles || "[]");
+  const depts = JSON.parse(tr.required_departments || "[]");
+  const usrs  = JSON.parse(tr.required_users || "[]");
+  return (roles.length === 0 && depts.length === 0 && usrs.length === 0)
+    || roles.includes(u.role) || depts.includes(u.department_id) || usrs.includes(u.id);
+}
+function nudgeNotStarted() {
+  let sent = 0;
+  const recent = db.prepare(`SELECT 1 FROM notifications WHERE user_id = ? AND link_kind = 'training'
+                             AND link_ref = 'todo-digest' AND created_at > datetime('now', '-7 days') LIMIT 1`);
+  const ins = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
+                          VALUES (?, ?, ?, ?, 'training', 'todo-digest')`);
+  for (const { id: t } of db.prepare("SELECT id FROM tenants").all()) {
+    const users = db.prepare(`SELECT id, role, department_id FROM users
+                              WHERE tenant_id = ? AND active = 1 AND is_operator = 0`).all(t);
+    const trainings = db.prepare("SELECT * FROM trainings WHERE tenant_id = ? AND active = 1").all(t);
+    const passed = new Set(db.prepare(`SELECT user_id || ':' || training_id AS k FROM training_completions
+                                       WHERE tenant_id = ? AND COALESCE(passed, 1) = 1`).all(t).map(r => r.k));
+    for (const u of users) {
+      const todo = trainings.filter(tr => requiredFor(u, tr) && !passed.has(`${u.id}:${tr.id}`));
+      if (!todo.length || recent.get(u.id)) continue;
+      const names = todo.slice(0, 3).map(tr => tr.title).join(", ") + (todo.length > 3 ? `, +${todo.length - 3} more` : "");
+      ins.run(t, u.id,
+        `📋 ${todo.length} training${todo.length === 1 ? "" : "s"} to complete`,
+        `Assigned to you and not yet completed: ${names}. Start from your Training queue.`);
+      sent++;
+    }
+  }
+  return sent;
 }
 setTimeout(runTrainingReminders, 30000);
 setInterval(runTrainingReminders, 12 * 3600 * 1000);
