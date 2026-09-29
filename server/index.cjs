@@ -1807,6 +1807,87 @@ app.get("/api/completions", auth, (req, res) => {
     : db.prepare("SELECT * FROM training_completions WHERE tenant_id = ? ORDER BY completed_at DESC").all(req.auth.tenant);
   res.json(rows);
 });
+// ── In-person training: acknowledge → confirm ───────────────────────────────
+const CONFIRMER_ROLES = ["admin", "safety", "trainer", "site_manager"];
+function ackRow(t, id) {
+  return db.prepare(`SELECT a.*, u.name AS user_name, u.site_id AS user_site_id, tr.title AS training_title,
+                            tr.frequency_months, d.name AS decided_by_name
+                     FROM training_acknowledgements a
+                     JOIN users u ON u.id = a.user_id JOIN trainings tr ON tr.id = a.training_id
+                     LEFT JOIN users d ON d.id = a.decided_by
+                     WHERE a.tenant_id = ? AND a.id = ?`).get(t, id);
+}
+app.post("/api/trainings/:id/acknowledge", auth, (req, res) => {
+  const t = req.auth.tenant;
+  const tr = db.prepare("SELECT id, title, kind FROM trainings WHERE tenant_id = ? AND id = ? AND active = 1").get(t, req.params.id);
+  if (!tr) return res.status(404).json({ error: "Training not found" });
+  if (tr.kind !== "in_person") return res.status(400).json({ error: "Only in-person training is acknowledged — take this one in the app." });
+  // One open acknowledgement per person per course: re-acknowledging refreshes it.
+  db.prepare("DELETE FROM training_acknowledgements WHERE tenant_id = ? AND training_id = ? AND user_id = ? AND status = 'pending'")
+    .run(t, tr.id, req.auth.uid);
+  const r = db.prepare("INSERT INTO training_acknowledgements (tenant_id, training_id, user_id, note) VALUES (?, ?, ?, ?)")
+    .run(t, tr.id, req.auth.uid, (req.body?.note || "").slice(0, 500) || null);
+  // Tell the people who can confirm it: trainers/safety/admins, plus the
+  // trainee's own site manager. Never the trainee, never operators.
+  const me = db.prepare("SELECT name, site_id FROM users WHERE id = ?").get(req.auth.uid);
+  const confirmers = db.prepare(`SELECT id FROM users WHERE tenant_id = ? AND active = 1 AND is_operator = 0 AND id != ?
+                                 AND (role IN ('admin','safety','trainer') OR (role = 'site_manager' AND site_id IS ?))`)
+    .all(t, req.auth.uid, me?.site_id ?? null);
+  const ins = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
+                          VALUES (?, ?, ?, ?, 'training', 'confirm')`);
+  confirmers.forEach(c => ins.run(t, c.id, `✋ Confirm in-person training: ${tr.title}`,
+    `${me?.name ?? "A team member"} says they received this training. Confirm it from the Training tab.`));
+  res.json(ackRow(t, r.lastInsertRowid));
+});
+app.get("/api/training-acks/mine", auth, (req, res) => {
+  res.json(db.prepare(`SELECT a.id, a.training_id, a.status, a.acknowledged_at, a.decision_note, a.decided_at
+                       FROM training_acknowledgements a WHERE a.tenant_id = ? AND a.user_id = ?
+                       AND a.id IN (SELECT MAX(id) FROM training_acknowledgements WHERE tenant_id = ? AND user_id = ? GROUP BY training_id)`)
+    .all(req.auth.tenant, req.auth.uid, req.auth.tenant, req.auth.uid));
+});
+app.get("/api/training-acks", auth, requireRole(...CONFIRMER_ROLES), (req, res) => {
+  const t = req.auth.tenant;
+  const rows = db.prepare(`SELECT a.*, u.name AS user_name, u.site_id AS user_site_id, tr.title AS training_title, s.name AS site_name
+                           FROM training_acknowledgements a
+                           JOIN users u ON u.id = a.user_id JOIN trainings tr ON tr.id = a.training_id
+                           LEFT JOIN sites s ON s.id = u.site_id
+                           WHERE a.tenant_id = ? AND a.status = 'pending' AND a.user_id != ?
+                           ORDER BY a.acknowledged_at`).all(t, req.auth.uid);
+  // Site managers confirm for their own site only.
+  const mySite = req.auth.role === "site_manager" ? db.prepare("SELECT site_id FROM users WHERE id = ?").get(req.auth.uid)?.site_id : null;
+  res.json(req.auth.role === "site_manager" ? rows.filter(r => r.user_site_id === mySite) : rows);
+});
+function decideAck(req, res, confirm) {
+  const t = req.auth.tenant;
+  const a = ackRow(t, req.params.id);
+  if (!a) return res.status(404).json({ error: "Not found" });
+  if (a.status !== "pending") return res.status(409).json({ error: `Already ${a.status}${a.decided_by_name ? ` by ${a.decided_by_name}` : ""}.` });
+  if (a.user_id === req.auth.uid) return res.status(403).json({ error: "Someone else must confirm your own in-person training." });
+  if (req.auth.role === "site_manager") {
+    const mySite = db.prepare("SELECT site_id FROM users WHERE id = ?").get(req.auth.uid)?.site_id;
+    if (a.user_site_id !== mySite) return res.status(403).json({ error: "Site managers confirm training for their own site." });
+  }
+  const note = (req.body?.note || "").slice(0, 500) || null;
+  if (!confirm && !note) return res.status(400).json({ error: "Say why, so they know what to do next." });
+  db.transaction(() => {
+    if (confirm) {
+      db.prepare(`INSERT INTO training_completions (tenant_id, training_id, user_id, session_id, method, score, passed, expires_at)
+                  VALUES (?, ?, ?, ?, 'inperson', NULL, 1, CASE WHEN ? IS NOT NULL THEN datetime('now', '+' || ? || ' months') ELSE NULL END)`)
+        .run(t, a.training_id, a.user_id, `ACK-${a.id}`, a.frequency_months, a.frequency_months);
+    }
+    db.prepare(`UPDATE training_acknowledgements SET status = ?, decided_by = ?, decided_at = datetime('now'), decision_note = ? WHERE id = ?`)
+      .run(confirm ? "confirmed" : "declined", req.auth.uid, note, a.id);
+    db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref) VALUES (?, ?, ?, ?, 'training', 'ack')`)
+      .run(t, a.user_id, confirm ? `✅ Training confirmed: ${a.training_title}` : `Training not confirmed yet: ${a.training_title}`,
+           confirm ? "Your trainer confirmed it. It now counts as complete." : `Your trainer said: ${note}`);
+  })();
+  if (confirm && moduleOn(t, "recognition"))
+    awardPoints(t, a.user_id, pointsFor(t).training, "training", { sourceType: "training", sourceId: a.training_id });
+  res.json(ackRow(t, a.id));
+}
+app.post("/api/training-acks/:id/confirm", auth, requireRole(...CONFIRMER_ROLES), (req, res) => decideAck(req, res, true));
+app.post("/api/training-acks/:id/decline", auth, requireRole(...CONFIRMER_ROLES), (req, res) => decideAck(req, res, false));
+
 app.post("/api/completions", auth, (req, res) => {
   const { trainingId, userIds, method, score, sessionId, passed } = req.body || {};
   const didPass = passed === undefined ? 1 : (passed ? 1 : 0);
@@ -1822,8 +1903,18 @@ app.post("/api/completions", auth, (req, res) => {
   // for oneself. (CBT/self-serve completion stays open to all.)
   if ((method === "inperson" || method === "signoff") && !trainerRoles.includes(req.auth.role))
     return res.status(403).json({ error: "In-person sign-off must be recorded by a trainer or manager" });
-  const training = db.prepare("SELECT frequency_months FROM trainings WHERE id = ? AND tenant_id = ?").get(trainingId, req.auth.tenant);
+  const training = db.prepare("SELECT frequency_months, kind FROM trainings WHERE id = ? AND tenant_id = ?").get(trainingId, req.auth.tenant);
   if (!training) return res.status(404).json({ error: "Training not found" });
+  // Enforced by what the course IS, not by the method the client claims: the
+  // check above trusted `method`, so a trainee could mark an in-person course
+  // done by sending "cbt". In-person completions are attestations — only a
+  // trainer/manager may record them, and never for themselves.
+  if (training.kind === "in_person") {
+    if (!trainerRoles.includes(req.auth.role))
+      return res.status(403).json({ error: "In-person training is confirmed by your trainer or manager. Tap \"I received this training\" instead." });
+    if (targets.includes(req.auth.uid))
+      return res.status(403).json({ error: "Someone else must confirm your own in-person training." });
+  }
   const sid = sessionId ?? `SES-${Date.now()}`;
   // Failed attempts are logged for the audit trail but never carry an expiry (they do not satisfy the requirement)
   const stmt = db.prepare(`INSERT INTO training_completions (tenant_id, training_id, user_id, session_id, method, score, passed, expires_at)

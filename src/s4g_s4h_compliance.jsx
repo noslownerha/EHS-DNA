@@ -138,19 +138,15 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff, onMan
           </div>
           {(onManageCourses || onCreateTraining) && (
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {/* One clear entry point. "Manage courses" and "+ New course" side by
+                  side read as two different places; the course list now has a
+                  "+ New course" button and an Edit button on every course. */}
               {onManageCourses && (
                 <button onClick={onManageCourses} style={{
-                  padding: "8px 14px", background: C.white, color: C.pine,
-                  border: `1.5px solid ${C.mint}`, borderRadius: 8, cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700,
-                }}>📚 Manage courses</button>
-              )}
-              {onCreateTraining && (
-                <button onClick={onCreateTraining} style={{
                   padding: "8px 14px", background: C.sage, color: C.white,
                   border: "none", borderRadius: 8, cursor: "pointer",
                   fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700,
-                }}>+ New course</button>
+                }}>📚 Add / edit courses</button>
               )}
             </div>
           )}

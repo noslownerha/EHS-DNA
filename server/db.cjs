@@ -464,6 +464,17 @@ db.exec(`CREATE TABLE IF NOT EXISTS finding_activity (
   detail TEXT,                      -- human-readable summary of what changed
   created_at TEXT DEFAULT (datetime('now'))
 )`);
+// In-person training: the trainee ACKNOWLEDGES receiving it; a trainer/manager
+// CONFIRMS it, which is what creates the completion. Before this, a trainee
+// opening an in-person course got a one-slide "Finish" that recorded it done.
+db.exec(`CREATE TABLE IF NOT EXISTS training_acknowledgements (
+  id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  training_id INTEGER NOT NULL REFERENCES trainings(id), user_id INTEGER NOT NULL REFERENCES users(id),
+  note TEXT, acknowledged_at TEXT DEFAULT (datetime('now')),
+  status TEXT NOT NULL DEFAULT 'pending',          -- pending | confirmed | declined
+  decided_by INTEGER REFERENCES users(id), decided_at TEXT, decision_note TEXT)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_training_ack ON training_acknowledgements(tenant_id, status)"); } catch {}
+
 // QR-driven features (server/qr.cjs): inspection points and asset maintenance.
 db.exec(`CREATE TABLE IF NOT EXISTS inspection_points (
   id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL REFERENCES tenants(id),

@@ -35,7 +35,7 @@ function pill(label, bg, color) {
 // S4e — Training Library (desktop)
 // Spec §14.2: "Log Group Session" as top-level secondary action alongside "Create Training"
 // ════════════════════════════════════════════════════════════════════════════
-export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining, onBack }) {
+export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", onViewTraining, onLogGroupSession, onCreateTraining, onEditTraining, onBack }) {
   const [SEED_LIBRARY, setLibrary] = useState([]);
   const [filterType, setFilterType] = useState("");
   const [search,     setSearch]     = useState("");
@@ -116,7 +116,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
               border: "none", borderRadius: 7,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", fontWeight: 600,
               cursor: "pointer", transition: "all .15s",
-            }}>+ Create training</button>
+            }}>+ New course</button>
           </div>
         </div>
 
@@ -182,7 +182,13 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
                       : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
                     }
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>→</td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", whiteSpace: "nowrap" }}>
+                    {onEditTraining ? (
+                      <button aria-label={`Edit ${t.title}`} onClick={e => { e.stopPropagation(); onEditTraining(t.id); }} style={{
+                        padding: "6px 12px", borderRadius: 7, border: `1.5px solid ${C.mint}`, background: C.white, color: C.pine,
+                        fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>✏️ Edit</button>
+                    ) : <span style={{ color: C.mist, fontSize: ".8rem" }}>→</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>

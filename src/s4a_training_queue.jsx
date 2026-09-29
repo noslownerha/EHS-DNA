@@ -15,6 +15,8 @@ const STATUS = {
   expired:       { label: "Expired",       bg: "#EEF1F0",  color: C.slate,  icon: "×" },
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple, icon: "→" },
   needs_retake:  { label: "Needs retake",   bg: C.redLt,    color: C.red,    icon: "↻" },
+  awaiting_confirmation: { label: "Awaiting confirmation", bg: "#FDF0D5", color: "#8A6212", icon: "⏳" },
+  not_confirmed: { label: "Not confirmed", bg: C.redLt, color: C.red, icon: "!" },
 };
 
 const TYPE = {
@@ -52,7 +54,7 @@ export default function S4aTrainingQueue({ onHome,
 }) {
   const [SEED_QUEUE, setQueue] = useState([]);
   useEffect(() => {
-    Promise.all([api.listTrainings(), api.listCompletions()]).then(([trs, comps]) => {
+    Promise.all([api.listTrainings(), api.listCompletions(), api.myTrainingAcks().catch(() => [])]).then(([trs, comps, acks]) => {
       const me = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
       const now = Date.now(), soon = now + 30 * 86400000;
       const fmt = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
@@ -78,7 +80,16 @@ export default function S4aTrainingQueue({ onHome,
         else if (comp.expires_at && new Date(comp.expires_at).getTime() < now) status = "expired";
         else if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) status = "expiring_soon";
         else status = "current";
+        // In-person: a trainee's acknowledgement is not a completion — it waits
+        // for a trainer/manager. Show where it stands instead of "Not started".
+        const ack = acks.find(a => a.training_id === tr.id) ?? null;
+        if (tr.kind === "in_person" && !["current", "expiring_soon"].includes(status) && ack) {
+          const ackNewer = !comp || new Date(ack.acknowledged_at) > new Date(comp.completed_at);
+          if (ackNewer && ack.status === "pending") status = "awaiting_confirmation";
+          else if (ackNewer && ack.status === "declined") status = "not_confirmed";
+        }
         return {
+          ack,
           id: tr.id, title: tr.title, type: tr.kind ?? "cbt", status, content: tr.content,
           lastScore: lastAttempt?.score ?? null, lastCompletedAt: comp?.completed_at ? comp.completed_at.slice(0, 10) : null,
           passed: !!passedComp,

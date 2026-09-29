@@ -27,6 +27,7 @@ import { api } from "./api.js";
 
 import S4aTrainingQueue                    from "./s4a_training_queue";
 import { S4bCBTPlayer, S4cInPersonSignOff } from "./s4b_s4c_cbt_signoff";
+import { TrainingAcknowledge, PendingConfirmations } from "./TrainingAck.jsx";
 import S4dGroupSessionLog                   from "./s4d_group_session_log";
 import { S4eTrainingLibrary, S4fTrainingDetail } from "./s4e_s4f_library_detail";
 import { S4gComplianceDashboard, S4hStaffComplianceDetail } from "./s4g_s4h_compliance";
@@ -44,6 +45,7 @@ export const TRAINING_SCREENS = {
   COMPLIANCE:  "s4g",
   STAFF_DETAIL:"s4h",
   BUILDER:     "s4i",
+  ACK:         "s4ack",   // trainee acknowledges an in-person course (trainer confirms)
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,18 +174,10 @@ export function TrainingProvider({
     } else if (isTrainer) {
       targetScreen = TRAINING_SCREENS.SIGN_OFF;
     } else {
-      // Staff self-serve on a non-CBT training: present it as a CBT with a single
-      // acknowledge slide so they can record their own completion.
-      targetScreen = TRAINING_SCREENS.CBT;
-      training = {
-        ...training,
-        passThreshold: 0,
-        slides: [{
-          id: "ack", type: "content", heading: training.title,
-          body: "Review this training's material with your supervisor or trainer, then tap Finish to record your completion.",
-          example: null, image: null,
-        }],
-      };
+      // Staff on an in-person course: they ACKNOWLEDGE it; a trainer/manager
+      // confirms it. (This used to be a one-slide "Finish" that recorded the
+      // course as complete with no trainer involved.)
+      targetScreen = TRAINING_SCREENS.ACK;
     }
     dispatch({ type: "OPEN_TRAINING", training, targetScreen });
   }, [user.role]);
@@ -225,6 +219,9 @@ export function TrainingRouter({ onDone, onHome }) {
   // only reached the console) — someone could "pass" and have no record at all.
   // Now the save must succeed before leaving; otherwise they're told plainly.
   const [saveError, setSaveError] = useState("");
+  const isConfirmer = ["admin", "safety", "trainer", "site_manager"].includes(user?.role);
+  // Which course the builder should open on: { id } from an Edit button, { new: true } from "+ New course".
+  const [builderTarget, setBuilderTarget] = useState(null);
   const passSave = useRef(null);   // null | "saving" | "saved" | "failed"
   function savePass(score, leaveAfter) {
     if (!activeTraining?.id || passSave.current === "saving") return;
@@ -274,10 +271,14 @@ export function TrainingRouter({ onDone, onHome }) {
   switch (screen) {
 
     // ── s4a: Training queue (mobile) ─────────────────────────────────────────
+    case TRAINING_SCREENS.ACK:
+      return <TrainingAcknowledge training={activeTraining} onBack={back} />;
+
     case TRAINING_SCREENS.QUEUE:
       return (
         <>
           {GroupSessionModal}
+          {isConfirmer && <PendingConfirmations />}
           <S4aTrainingQueue
           onHome={onHome ?? onDone}
             user={user}
@@ -321,6 +322,13 @@ export function TrainingRouter({ onDone, onHome }) {
     // ── s4c: In-person sign-off (mobile) ─────────────────────────────────────
     case TRAINING_SCREENS.SIGN_OFF:
       return (
+        <>
+        {saveError && (
+          <div role="alert" style={{ position: "fixed", top: 70, left: 12, right: 12, zIndex: 50, background: "#FEF3F2", color: "#B42318",
+                                     border: "1px solid #F3C4BF", borderRadius: 10, padding: "12px 14px", fontSize: ".85rem", fontWeight: 600 }}>
+            ⚠ {saveError}
+          </div>
+        )}
         <S4cInPersonSignOff
           onHome={onHome ?? onDone}
           trainerRole={user.role}
@@ -329,12 +337,16 @@ export function TrainingRouter({ onDone, onHome }) {
           onComplete={({ training, staff, notes }) => {
             // Record the in-person completion for the signed-off staff member.
             if (training?.id && staff?.id) {
+              // Used to be console-only: a refused/failed sign-off looked like it worked.
               api.logCompletion({ trainingId: training.id, userIds: [staff.id], method: "inperson", passed: true, notes })
-                .catch(err => console.error("Sign-off log failed:", err.message));
+                .then(() => { setSaveError(""); back(); })
+                .catch(err => setSaveError(`Sign-off NOT recorded — ${err.message}`));
+              return;
             }
             back();
           }}
         />
+        </>
       );
 
     // ── s4d: Group session log (standalone) ──────────────────────────────────
@@ -361,7 +373,8 @@ export function TrainingRouter({ onDone, onHome }) {
             onBack={back}
             onViewTraining={viewTraining}
             onLogGroupSession={openGroupLog}
-            onCreateTraining={() => navigate(TRAINING_SCREENS.BUILDER)}
+            onCreateTraining={() => { setBuilderTarget({ new: true }); navigate(TRAINING_SCREENS.BUILDER); }}
+            onEditTraining={id => { setBuilderTarget({ id }); navigate(TRAINING_SCREENS.BUILDER); }}
           />
         </>
       );
@@ -370,9 +383,12 @@ export function TrainingRouter({ onDone, onHome }) {
     case TRAINING_SCREENS.BUILDER:
       return (
         <S4iTrainingBuilder
+          key={builderTarget?.id ?? (builderTarget?.new ? "new" : "builder")}
+          initialTrainingId={builderTarget?.id ?? null}
+          startNew={!!builderTarget?.new}
           onHome={onHome ?? onDone}
           companyName={companyName}
-          onBack={back}
+          onBack={() => { setBuilderTarget(null); back(); }}
         />
       );
 
@@ -397,6 +413,7 @@ export function TrainingRouter({ onDone, onHome }) {
       return (
         <>
           {GroupSessionModal}
+          {isConfirmer && <PendingConfirmations />}
           <S4gComplianceDashboard
           onHome={onHome ?? onDone}
             companyName={companyName}

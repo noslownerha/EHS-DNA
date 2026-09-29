@@ -61,7 +61,7 @@ const MODULES = {
   lms: {
     label: "Training & LMS",
     blurb: "Assign training, run CBTs and sign-offs, track compliance.",
-    paths: ["trainings", "completions"],
+    paths: ["trainings", "completions", "training-acks"],
     tabs: ["training"],
     default: true,
   },

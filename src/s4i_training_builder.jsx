@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -33,7 +33,7 @@ function Chip({ text, active, onClick }) {
   );
 }
 
-export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
+export default function S4iTrainingBuilder({ onHome, companyName, onBack, initialTrainingId = null, startNew = false }) {
   const [trainings, setTrainings] = useState([]);
   const [users, setUsers] = useState([]);
   const [sel, setSel] = useState(null);   // working copy of selected training
@@ -50,7 +50,13 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
         setSel(pick ? hydrate(pick) : null);
       }).catch(err => setError(err.message));
   }, []);
-  useEffect(() => { load(); }, [load]);
+  // Opened from a course's Edit button → select that course; from "+ New
+  // course" → start a blank one. (It always opened on the first course.)
+  useEffect(() => { load(initialTrainingId); }, [load, initialTrainingId]);
+  const startedNew = useRef(false);
+  useEffect(() => {
+    if (startNew && !startedNew.current) { startedNew.current = true; createNew(); }
+  }, [startNew]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function hydrate(t) {
     let c = null;
@@ -68,7 +74,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
 
   async function createNew() {
     try {
-      const { id } = await api.createTraining({ title: "New Training", kind: "cbt" });
+      const { id } = await api.createTraining({ title: "New course", kind: "cbt" });
       load(id);
     } catch (err) { setError(err.message); }
   }
@@ -119,7 +125,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack }) {
           {/* Left: course list */}
           <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
             <div style={{ padding: "10px 12px", borderBottom: "1px solid #F0F4F2" }}>
-              <button onClick={createNew} style={{ ...btn(C.foam, C.pine), width: "100%" }}>+ New training</button>
+              <button onClick={createNew} style={{ ...btn(C.foam, C.pine), width: "100%" }}>+ New course</button>
             </div>
             {trainings.map((t, i) => (
               <div key={t.id} className="tpl-row" onClick={() => setSel(hydrate(t))} style={{

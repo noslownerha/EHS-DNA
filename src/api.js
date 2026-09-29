@@ -197,6 +197,12 @@ export const api = {
   remindTraining: () => req("/trainings/remind", { method: "POST" }),
   updateTraining: (id, patch) => req(`/trainings/${id}`, { method: "PUT", body: patch }),
   listCompletions: () => req("/completions"),
+  // in-person: trainee acknowledges, trainer/manager confirms
+  acknowledgeTraining: (id, note) => req(`/trainings/${id}/acknowledge`, { method: "POST", body: { note } }),
+  myTrainingAcks: () => req("/training-acks/mine"),
+  pendingTrainingAcks: () => req("/training-acks"),
+  confirmTrainingAck: (id, note) => req(`/training-acks/${id}/confirm`, { method: "POST", body: { note } }),
+  declineTrainingAck: (id, note) => req(`/training-acks/${id}/decline`, { method: "POST", body: { note } }),
   logCompletion: (c) => req("/completions", { method: "POST", body: c }),
 
   // notifications
