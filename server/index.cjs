@@ -496,6 +496,9 @@ app.get("/api/config", auth, (req, res) => {
     // Enabled feature modules — the frontend intersects these with role tabs so a
     // tenant only sees nav for what they've bought.
     modules: [...enabledModules(req.auth.tenant)],
+    // Optional features that depend on server setup. aiDraft is only true when
+    // an Anthropic API key is configured — the button stays hidden otherwise.
+    features: { aiDraft: !!process.env.ANTHROPIC_API_KEY },
   });
 });
 app.put("/api/config", auth, requireRole(...ADMINISH), (req, res) => {
@@ -1821,6 +1824,64 @@ app.post("/api/trainings/import-pptx", auth, requireRole(...ADMINISH, "trainer")
       res.json(out);
     } catch (e) { res.status(400).json({ error: e.message }); }
   });
+
+// ── Draft a course from a pasted document (Claude API) ──────────────────────
+// Off unless ANTHROPIC_API_KEY is set (billed per use to that account). The
+// model only gets what the user pasted and is told to use nothing else; the
+// result lands in the course editor as a draft a person must review and save.
+const AI_URL = process.env.EHS_AI_URL || "https://api.anthropic.com/v1/messages";
+const AI_MODEL = process.env.EHS_AI_MODEL || "claude-sonnet-5-5";
+const DRAFT_SYSTEM = `You turn a company's safety document into a short workplace training course.
+Use ONLY facts stated in the document. Do not add regulations, numbers, procedures or claims that are not in it.
+If the document is too thin for a question, write fewer questions.
+Write plainly for frontline workers: short sentences, no jargon the document doesn't use.
+Respond with ONLY a JSON object, no prose and no code fences, in exactly this shape:
+{"title": string, "slides": [{"heading": string, "body": string}], "questions": [{"q": string, "choices": [string], "correctIndex": number, "explanation": string}]}
+Rules: 4 to 10 slides; each body under 120 words, using "• " bullets where helpful; 3 to 6 questions, each with 2 to 4 choices,
+exactly one correct, answerable from the slides.`;
+
+function cleanDraft(raw) {
+  const txt = String(raw || "").replace(/^\s*```(?:json)?/i, "").replace(/```\s*$/, "").trim();
+  let d; try { d = JSON.parse(txt); } catch { return null; }
+  const str = (v, n) => String(v ?? "").trim().slice(0, n);
+  const slides = (Array.isArray(d.slides) ? d.slides : []).slice(0, 12)
+    .map(s => ({ heading: str(s.heading, 140), body: str(s.body, 2500), videoUrl: "" }))
+    .filter(s => s.heading || s.body);
+  const questions = (Array.isArray(d.questions) ? d.questions : []).slice(0, 8).map(q => {
+    const choices = (Array.isArray(q.choices) ? q.choices : []).map(c => str(c, 200)).filter(Boolean).slice(0, 5);
+    const ci = Number(q.correctIndex);
+    return { q: str(q.q, 300), choices, correctIndex: ci, explanation: str(q.explanation, 400) };
+  }).filter(q => q.q && q.choices.length >= 2 && Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.choices.length);
+  if (!slides.length) return null;
+  return { title: str(d.title, 140) || slides[0].heading, slides, questions };
+}
+
+app.post("/api/trainings/draft", auth, requireRole(...ADMINISH, "trainer"), async (req, res) => {
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(404).json({ error: "Course drafting isn't enabled on this server." });
+  const text = String(req.body?.text || "").trim();
+  if (text.length < 200) return res.status(400).json({ error: "Paste a bit more — at least a few paragraphs." });
+  if (text.length > 60000) return res.status(400).json({ error: "That's too long to draft in one go — paste one section (under ~60,000 characters)." });
+  try {
+    const r = await fetch(AI_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: AI_MODEL, max_tokens: 4000, system: DRAFT_SYSTEM,
+                             messages: [{ role: "user", content: `Document:\n\n${text}` }] }),
+      signal: AbortSignal.timeout(90000),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error("Course draft API error:", r.status, data?.error?.message);
+      return res.status(502).json({ error: "The drafting service didn't respond properly. Try again in a minute." });
+    }
+    const draft = cleanDraft((data.content || []).filter(b => b.type === "text").map(b => b.text).join(""));
+    if (!draft) return res.status(502).json({ error: "Couldn't turn that into a course. Try again, or paste a cleaner section." });
+    res.json(draft);
+  } catch (e) {
+    console.error("Course draft failed:", e.message);
+    res.status(502).json({ error: e.name === "TimeoutError" ? "Drafting took too long — try a shorter section." : "Couldn't reach the drafting service." });
+  }
+});
 
 // ── In-person training: acknowledge → confirm ───────────────────────────────
 const CONFIRMER_ROLES = ["admin", "safety", "trainer", "site_manager"];

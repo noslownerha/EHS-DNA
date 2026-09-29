@@ -96,6 +96,29 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
     setImporting(false);
   }
 
+  // Draft slides + quiz from a pasted document (server calls Claude; only shown
+  // when the server has an API key). Appended as a DRAFT — never auto-saved.
+  const [drafting, setDrafting] = useState(false);
+  const [draftText, setDraftText] = useState("");
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftMsg, setDraftMsg] = useState(null);
+  async function draftFromText() {
+    if (!sel) return;
+    setDraftBusy(true); setDraftMsg(null);
+    try {
+      const d = await api.draftCourse(draftText);
+      setSel(x => ({
+        ...x,
+        title: !x.title || x.title === "New course" ? d.title : x.title,
+        slides: [...x.slides, ...d.slides],
+        questions: [...(x.questions ?? []), ...d.questions],
+      }));
+      setDrafting(false); setDraftText("");
+      setDraftMsg({ text: `✨ Drafted ${d.slides.length} slides and ${d.questions.length} quiz questions. This is a first draft — check every slide and answer against your document before you Save.` });
+    } catch (err) { setDraftMsg({ error: true, text: `⚠ ${err.message}` }); }
+    setDraftBusy(false);
+  }
+
   async function createNew() {
     try {
       const { id } = await api.createTraining({ title: "New course", kind: "cbt" });
@@ -216,12 +239,40 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
                 <div style={{ borderTop: "1px solid #F0F4F2", paddingTop: 16, marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
                     <span style={{ ...label, marginBottom: 0 }}>Course content — slides shown in order</span>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {BRAND.features?.aiDraft && (
+                      <button onClick={() => { setDrafting(d => !d); setDraftMsg(null); }} style={{ ...btn(C.white, C.pine), border: `1.5px solid ${C.mint}` }}>
+                        ✨ Draft from a document
+                      </button>
+                    )}
                     <label style={{ ...btn(C.white, C.pine), border: `1.5px solid ${C.mint}`, display: "inline-block", cursor: importing ? "default" : "pointer", opacity: importing ? .6 : 1 }}>
                       {importing ? "Importing…" : "📥 Import PowerPoint"}
                       <input type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                         disabled={importing} onChange={importDeck} style={{ display: "none" }} aria-label="Import PowerPoint" />
                     </label>
+                    </div>
                   </div>
+                  {drafting && (
+                    <div style={{ background: C.chalk, borderRadius: 10, padding: 12, marginBottom: 10 }}>
+                      <div style={{ fontSize: ".8rem", color: C.slate, marginBottom: 8 }}>
+                        Paste a procedure, policy or safety document. A first draft of slides and quiz questions is written
+                        from <strong>only what you paste</strong> — you review and edit everything before saving.
+                      </div>
+                      <textarea rows={8} value={draftText} onChange={e => setDraftText(e.target.value)} aria-label="Document to draft from"
+                        placeholder="Paste the document text here…" style={{ ...input, resize: "vertical", marginBottom: 8 }} />
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <button disabled={draftBusy || draftText.trim().length < 200} onClick={draftFromText}
+                          style={btn(draftBusy || draftText.trim().length < 200 ? "#B0C8BA" : C.sage)}>
+                          {draftBusy ? "Drafting… (up to a minute)" : "✨ Draft course"}
+                        </button>
+                        <span style={{ fontSize: ".72rem", color: C.mist }}>{draftText.trim().length < 200 ? "Paste at least a few paragraphs" : `${draftText.length.toLocaleString()} characters`}</span>
+                      </div>
+                    </div>
+                  )}
+                  {draftMsg && (
+                    <div role="status" aria-label="Draft result" style={{ background: draftMsg.error ? C.redLt : "#FDF6E3", color: draftMsg.error ? C.red : "#7A5A00",
+                      borderRadius: 8, padding: "9px 12px", fontSize: ".82rem", fontWeight: 600, marginBottom: 10 }}>{draftMsg.text}</div>
+                  )}
                   {importMsg && (
                     <div role="status" style={{ background: importMsg.error ? C.redLt : C.foam, color: importMsg.error ? C.red : C.pine,
                       borderRadius: 8, padding: "9px 12px", fontSize: ".82rem", fontWeight: 600, marginBottom: 10 }}>{importMsg.text}</div>

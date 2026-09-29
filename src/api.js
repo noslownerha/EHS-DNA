@@ -53,6 +53,7 @@ export function applyServerConfig(cfg) {
   }
   if (Array.isArray(cfg.modules)) {
     BRAND.modules = cfg.modules;   // enabled module keys, e.g. ["core","incidents",…]
+    BRAND.features = cfg.features ?? {};
   }
 }
 
@@ -197,6 +198,7 @@ export const api = {
   remindTraining: () => req("/trainings/remind", { method: "POST" }),
   updateTraining: (id, patch) => req(`/trainings/${id}`, { method: "PUT", body: patch }),
   listCompletions: () => req("/completions"),
+  draftCourse: (text) => req("/trainings/draft", { method: "POST", body: { text } }),
   // Raw file upload: a real deck is too big for base64-in-JSON.
   importPptx: async (file) => {
     const res = await fetch("/api/trainings/import-pptx", {
