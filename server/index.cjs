@@ -2167,7 +2167,7 @@ function mrrFor(tenantId) {
 }
 
 app.get("/api/op/analytics", auth, requireOperator, (req, res) => {
-  const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
+  const tenants = db.prepare("SELECT * FROM tenants WHERE COALESCE(is_demo, 0) = 0 ORDER BY id").all();
   const now = Date.now();
   const DAY = 86400000;
   const activeTenants = tenants.filter(t => t.active !== 0);
@@ -2234,7 +2234,7 @@ app.get("/api/op/analytics", auth, requireOperator, (req, res) => {
 app.get("/api/op/attention", auth, requireOperator, (req, res) => {
   const DAY = 86400000, now = Date.now();
   const iso = ms => new Date(ms).toISOString();
-  const tenants = db.prepare("SELECT * FROM tenants ORDER BY id").all();
+  const tenants = db.prepare("SELECT * FROM tenants WHERE COALESCE(is_demo, 0) = 0 ORDER BY id").all();
   const items = [];
   const push = (severity, kind, t, title, detail) =>
     items.push({ severity, kind, tenantId: t.id, tenantName: t.name, title, detail });
@@ -2320,7 +2320,7 @@ app.get("/api/op/attention", auth, requireOperator, (req, res) => {
 // Every account's money in one place. The per-tenant billing screen still exists
 // for editing config/adjustments; this is the portfolio view it never had.
 app.get("/api/op/billing/overview", auth, requireOperator, (req, res) => {
-  const tenants = db.prepare("SELECT * FROM tenants ORDER BY name").all();
+  const tenants = db.prepare("SELECT * FROM tenants WHERE COALESCE(is_demo, 0) = 0 ORDER BY name").all();
   const rows = tenants.map(t => {
     const mrr = mrrFor(t.id).total;
     const latest = db.prepare(`SELECT ref, period, status, total FROM invoices
@@ -2439,6 +2439,23 @@ app.post("/api/op/users/:id/reset", auth, requireOperator, (req, res) => {
   db.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?").run(bcrypt.hashSync(tempPassword, 10), user.id);
   db.prepare("DELETE FROM login_failures WHERE email = ?").run(user.email); // a reset must not leave a stale lockout behind
   res.json({ email: user.email, tempPassword });
+});
+
+// ── Demo account (pitching) ──────────────────────────────────────────────────
+// A fictional manufacturer with a year of history, rebuilt from scratch on
+// demand. resetDemo() refuses to touch any tenant not flagged is_demo.
+const demo = require("./demo.cjs");
+app.get("/api/op/demo", auth, requireOperator, (req, res) => {
+  const t = db.prepare("SELECT id, name, created_at FROM tenants WHERE is_demo = 1").get();
+  if (!t) return res.json({ exists: false });
+  const n = sql => db.prepare(sql).get(t.id).n;
+  res.json({ exists: true, tenantId: t.id, name: t.name,
+             users: n("SELECT COUNT(*) n FROM users WHERE tenant_id = ?"),
+             incidents: n("SELECT COUNT(*) n FROM incidents WHERE tenant_id = ?") });
+});
+app.post("/api/op/demo/reset", auth, requireOperator, (req, res) => {
+  try { res.json(demo.resetDemo(db)); }
+  catch (e) { console.error("Demo reset failed:", e); res.status(500).json({ error: `Demo reset failed — ${e.message}` }); }
 });
 
 app.post("/api/op/impersonate", auth, requireOperator, (req, res) => {
@@ -2979,7 +2996,7 @@ function computeDigestMetrics(tenantId) {
 async function runWeeklyDigest() {
   if (!emailConfigured()) return;
   try {
-    const tenants = db.prepare("SELECT id, name FROM tenants WHERE active = 1").all();
+    const tenants = db.prepare("SELECT id, name FROM tenants WHERE active = 1 AND COALESCE(is_demo, 0) = 0").all();
     const dedup = db.prepare(`SELECT 1 FROM notifications WHERE tenant_id=? AND link_kind='digest'
                               AND created_at > datetime('now','-6 days') LIMIT 1`);
     const markSent = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)

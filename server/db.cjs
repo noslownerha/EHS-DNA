@@ -464,6 +464,9 @@ db.exec(`CREATE TABLE IF NOT EXISTS finding_activity (
   detail TEXT,                      -- human-readable summary of what changed
   created_at TEXT DEFAULT (datetime('now'))
 )`);
+// Demo tenant flag (server/demo.cjs). Reset only ever touches is_demo = 1, and
+// demo tenants are excluded from operator revenue, attention and analytics.
+try { db.exec("ALTER TABLE tenants ADD COLUMN is_demo INTEGER DEFAULT 0"); } catch {}
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_finding_activity ON finding_activity(tenant_id, finding_id, created_at)"); } catch {}
 
 // ── Photo storage ────────────────────────────────────────────────────────────

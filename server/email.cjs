@@ -84,8 +84,13 @@ function fromAddress() {
  * @param {string}   text      plain-text body
  * @param {string}  [html]     optional HTML body
  */
+// The demo tenant's people have fake addresses (*.invalid) or shared demo
+// logins; scheduled jobs (digests, overdue alerts) must never mail them —
+// bounces damage the sending domain's reputation for real customers.
+const NEVER_EMAIL = /(\.invalid$)|(^demo(-worker)?@ehsdna\.com$)/i;
 async function sendEmail(to, subject, text, html) {
-  const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
+  const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean)
+    .filter(r => !NEVER_EMAIL.test(String(r).trim()));
   if (!recipients.length) return { sent: false, reason: "no recipients" };
 
   // 1. Webhook middleware (n8n etc.) takes precedence when configured.

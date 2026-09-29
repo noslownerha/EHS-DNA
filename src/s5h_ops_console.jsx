@@ -138,6 +138,8 @@ export default function S5hOpsConsole({ section = "attention", onHome, onOpenBil
           {tenants ? `${tenants.length} account${tenants.length === 1 ? "" : "s"}` : "Loading…"}
         </p>
 
+        <DemoAccountCard onEnter={enterApp} />
+
         {error && <div style={{ marginBottom: 14, padding: "10px 14px", background: C.redLt, color: C.red, borderRadius: 8, fontSize: ".84rem" }}>{error}</div>}
 
         {/* Sales leads from the marketing site */}
@@ -582,6 +584,79 @@ function OperatorBilling({ data, onOpenTenantBilling }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+
+// ── Demo account for pitching ────────────────────────────────────────────────
+// Rebuilds "Northfield Components", a fictional manufacturer with a year of
+// history, from scratch. Only ever touches the tenant flagged as demo.
+function DemoAccountCard({ onEnter }) {
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => { api.opDemoStatus().then(setStatus).catch(() => setStatus({ exists: false })); }, []);
+
+  async function reset() {
+    setBusy(true); setError(""); setConfirming(false);
+    try {
+      const r = await api.opDemoReset();
+      setResult(r);
+      setStatus(await api.opDemoStatus());
+    } catch (e) { setError(e.message || "Reset failed — nothing was changed."); }
+    setBusy(false);
+  }
+
+  return (
+    <div style={{ background: "#F2F6FB", border: "1px solid #CFDDF0", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}>🎬 Demo account</div>
+          <div style={{ fontSize: ".78rem", color: C.mist, marginTop: 3 }}>
+            {status?.exists
+              ? `${status.name} · ${status.users} people · ${status.incidents} incidents · excluded from revenue`
+              : "A fictional 3-site manufacturer with a year of history, for pitching."}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {status?.exists && (
+            <button onClick={() => onEnter({ id: status.tenantId, name: status.name })} disabled={busy} style={{
+              padding: "8px 14px", borderRadius: 7, border: "1px solid #CFDDF0", background: "#fff", color: C.ink,
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 600, cursor: "pointer" }}>Enter demo →</button>
+          )}
+          {confirming ? (
+            <>
+              <button onClick={reset} style={{ padding: "8px 14px", borderRadius: 7, border: "none", background: "#B42318", color: "#fff",
+                fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>Yes, rebuild it</button>
+              <button onClick={() => setConfirming(false)} style={{ padding: "8px 12px", borderRadius: 7, border: "1px solid #CFDDF0",
+                background: "#fff", color: C.slate, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", cursor: "pointer" }}>Cancel</button>
+            </>
+          ) : (
+            <button onClick={() => setConfirming(true)} disabled={busy} style={{
+              padding: "8px 14px", borderRadius: 7, border: "none", background: C.sage, color: "#fff",
+              fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
+              {busy ? "Rebuilding…" : status?.exists ? "Reset demo data" : "Create demo account"}
+            </button>
+          )}
+        </div>
+      </div>
+      {confirming && (
+        <div style={{ fontSize: ".78rem", color: "#8A6212", marginTop: 10 }}>
+          This wipes everything in the demo account — including anything added during a pitch — and rebuilds it fresh.
+        </div>
+      )}
+      {error && <div role="alert" style={{ fontSize: ".8rem", color: "#B42318", fontWeight: 600, marginTop: 10 }}>⚠ {error}</div>}
+      {result && (
+        <div style={{ marginTop: 12, fontSize: ".8rem", color: C.ink, background: "#fff", borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>✓ Demo rebuilt. Sign-ins for the pitch:</div>
+          {result.logins.map(l => (
+            <div key={l.email} style={{ fontFamily: "monospace", fontSize: ".78rem" }}>{l.role}: {l.email} / {l.password}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

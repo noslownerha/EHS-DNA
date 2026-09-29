@@ -79,6 +79,8 @@ export const api = {
   opSetTenantModule: (id, module, enabled) => req(`/op/tenants/${id}/modules/${module}`, { method: "PUT", body: { enabled } }),
   opResetUserPassword: (id) => req(`/op/users/${id}/reset`, { method: "POST" }),
   opSetTenantActive: (id, active) => req(`/op/tenants/${id}`, { method: "PUT", body: { active: active ? 1 : 0 } }),
+  opDemoStatus: () => req("/op/demo"),
+  opDemoReset: () => req("/op/demo/reset", { method: "POST" }),
   opImpersonate: async (tenantId) => {
     const out = await req("/op/impersonate", { method: "POST", body: { tenantId } });
     setToken(out.token);

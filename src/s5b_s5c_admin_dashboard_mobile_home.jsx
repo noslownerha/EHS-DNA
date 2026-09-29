@@ -178,7 +178,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
 
         {/* Supporting context */}
         <div className="anim" style={{ fontSize: ".78rem", color: C.mist, marginBottom: 22, paddingLeft: 4 }}>
-          Avg training compliance: <strong style={{ color: avgCompliance >= 80 ? C.pine : C.gold }}>{avgCompliance}%</strong>
+          Staff fully current on training: <strong style={{ color: avgCompliance >= 80 ? C.pine : C.gold }}>{avgCompliance}%</strong>
           &nbsp;· {belowThreshold} site{belowThreshold !== 1 ? "s" : ""} below 80% threshold
         </div>
 
@@ -192,7 +192,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
 <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Site", "Days since recordable", "Open incidents", "Open corrective actions", "Critical findings", "Training compliance", ""].map((h, i) => (
+                {["Site", "Days since recordable", "Open incidents", "Open corrective actions", "Critical findings", "Fully trained", ""].map((h, i) => (
                   <th key={i} style={thStyle}>{h}</th>
                 ))}
               </tr>

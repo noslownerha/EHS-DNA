@@ -48,7 +48,9 @@ function MobileFrame({ children }) {
   );
 }
 
-const COMPANY = BRAND.company;
+// Company name is read at render time (BRAND.company), NOT copied into a
+// module-level constant: that copy was taken when the bundle loaded, before
+// the tenant's config arrived — so every customer's header said "WhistlePig".
 
 import { Component } from "react";
 
@@ -222,7 +224,7 @@ function App() {
       case "billing":
         return (
           <MobileFrame>
-            <DashboardProvider key={activeTab} user={userObj} companyName={COMPANY} initialScreen={DASHBOARD_SCREENS.OPS}>
+            <DashboardProvider key={activeTab} user={userObj} companyName={BRAND.company} initialScreen={DASHBOARD_SCREENS.OPS}>
               <DashboardRouter opsSection={activeTab} onDone={handleHome} />
             </DashboardProvider>
           </MobileFrame>
@@ -237,7 +239,7 @@ function App() {
         }
         return (
           <MobileFrame>
-            <DashboardProvider user={userObj} companyName={COMPANY} initialScreen={defaultScreenForRole(currentUser.role, currentUser.isOperator)}>
+            <DashboardProvider key="dash-home" user={userObj} companyName={BRAND.company} initialScreen={defaultScreenForRole(currentUser.role, currentUser.isOperator)}>
               <DashboardRouter
                 onTriage={()        => handleTab("triage")}
                 onReportIncident={() => handleTab("flag")}
@@ -256,7 +258,7 @@ function App() {
       case "flag":
         return (
           <MobileFrame>
-            <IncidentProvider key={`${flagScreen}-${flagPreset?.type ?? ""}`} user={userObj} companyName={COMPANY}
+            <IncidentProvider key={`${flagScreen}-${flagPreset?.type ?? ""}`} user={userObj} companyName={BRAND.company}
               initialScreen={flagScreen} initialDraft={flagPreset} triageProvider={triageProviderCfg}>
               <IncidentRouter onDone={handleHome} pickerStep={pickerStep}
                 onGoToTriage={afterTriage ? undefined : () => { setTriageFromInjury(true); setActiveTab("triage"); }} />
@@ -287,7 +289,7 @@ function App() {
       case "triage":
         return (
           <MobileFrame>
-            <TriageProvider user={userObj} companyName={COMPANY} config={triageFlowCfg}>
+            <TriageProvider user={userObj} companyName={BRAND.company} config={triageFlowCfg}>
               <TriageRouter onDone={handleHome} onFileReport={() => {
                 setAfterTriage(true);
                 if (triageFromInjury) {
@@ -312,7 +314,7 @@ function App() {
       case "inspect":
         return (
           <MobileFrame>
-            <InspectionProvider user={userObj} companyName={COMPANY} initialScreen={inspectScreen}
+            <InspectionProvider user={userObj} companyName={BRAND.company} initialScreen={inspectScreen}
               initialChecklistId={pendingChecklistId} key={pendingChecklistId ?? `inspect-${inspectScreen}`}>
               <InspectionRouter onDone={() => { setPendingChecklistId(null); handleHome(); }} />
             </InspectionProvider>
@@ -333,7 +335,7 @@ function App() {
             <TrainingProvider
               key={`training-${trainingNonce}`}
               user={userObj}
-              companyName={COMPANY}
+              companyName={BRAND.company}
               initialScreen={
                 currentUser.role === "staff" || currentUser.role === "trainer"
                   ? TRAINING_SCREENS.QUEUE
@@ -350,7 +352,11 @@ function App() {
         if (!perms.seeCAs) return <Placeholder title="Reports" icon="📊" onHome={handleHome} />;
         return (
           <MobileFrame>
-            <DashboardProvider user={userObj} companyName={COMPANY} initialScreen={DASHBOARD_SCREENS.REPORT}>
+            {/* key: Home and Analyze both render DashboardProvider at the same spot in
+                the tree. Without distinct keys React reused the Home instance, and
+                initialScreen only applies on mount — so Home → Analyze kept showing
+                the dashboard with the Analyze tab highlighted. */}
+            <DashboardProvider key="dash-reports" user={userObj} companyName={BRAND.company} initialScreen={DASHBOARD_SCREENS.REPORT}>
               <DashboardRouter onDone={handleHome} />
             </DashboardProvider>
           </MobileFrame>
