@@ -75,6 +75,9 @@ class CrashShield extends Component {
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab,   setActiveTab]   = useState("home");
+  // Bumped on every Training-tab tap so tapping it always returns to the queue
+  // (it used to leave you on whatever screen you were on, e.g. a failed quiz).
+  const [trainingNonce, setTrainingNonce] = useState(0);
   // An operator's nav has no "home" tab, so the default would highlight nothing.
   // Send them to the worklist instead — "what needs me today" is the first
   // question, and it's the console's landing section.
@@ -168,6 +171,7 @@ function App() {
   function handleTab(tabId) {
     if (tabId === "flag") { setFlagScreen(INCIDENT_SCREENS.TYPE); setPickerStep("top"); setAfterTriage(false); setFlagPreset(null); }
     if (tabId === "inspect") { setPendingChecklistId(null); setInspectScreen(INSPECTION_SCREENS.START); }
+    if (tabId === "training") setTrainingNonce(n => n + 1);
     setActiveTab(tabId);
   }
   function openFlag(screen) {
@@ -327,6 +331,7 @@ function App() {
         return (
           <MobileFrame>
             <TrainingProvider
+              key={`training-${trainingNonce}`}
               user={userObj}
               companyName={COMPANY}
               initialScreen={

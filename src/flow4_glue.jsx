@@ -20,7 +20,7 @@
  *   </TrainingProvider>
  */
 
-import { createContext, useContext, useReducer, useCallback, useState } from "react";
+import { createContext, useContext, useReducer, useCallback, useState, useRef } from "react";
 import { BRAND, COLORS as C } from "./constants.js";
 import S4iTrainingBuilder from "./s4i_training_builder";
 import { api } from "./api.js";
@@ -221,6 +221,21 @@ export function TrainingRouter({ onDone, onHome }) {
   } = useTraining();
 
   const { screen, activeTraining, viewingTrainingId, viewingStaffId, groupSessionOpen } = state;
+  // A pass used to navigate away even if saving the completion failed (the error
+  // only reached the console) — someone could "pass" and have no record at all.
+  // Now the save must succeed before leaving; otherwise they're told plainly.
+  const [saveError, setSaveError] = useState("");
+  const passSave = useRef(null);   // null | "saving" | "saved" | "failed"
+  function savePass(score, leaveAfter) {
+    if (!activeTraining?.id || passSave.current === "saving") return;
+    passSave.current = "saving"; setSaveError("");
+    api.logCompletion({ trainingId: activeTraining.id, method: "cbt", score, passed: true })
+      .then(() => { passSave.current = "saved"; if (leaveAfter) back(); })
+      .catch(err => {
+        passSave.current = "failed";
+        setSaveError(`Your pass was NOT saved — ${err.message}. Check your connection and tap Done to retry.`);
+      });
+  }
 
   // Group session log modal — overlays any desktop screen
   const GroupSessionModal = groupSessionOpen ? (
@@ -275,15 +290,21 @@ export function TrainingRouter({ onDone, onHome }) {
     // ── s4b: CBT player (mobile) ─────────────────────────────────────────────
     case TRAINING_SCREENS.CBT:
       return (
+        <>
+        {saveError && (
+          <div role="alert" style={{ position: "fixed", top: 70, left: 12, right: 12, zIndex: 50, background: "#FEF3F2", color: "#B42318",
+                                     border: "1px solid #F3C4BF", borderRadius: 10, padding: "12px 14px", fontSize: ".85rem", fontWeight: 600 }}>
+            ⚠ {saveError}
+          </div>
+        )}
         <S4bCBTPlayer
           onHome={onHome ?? onDone}
           training={activeTraining ?? undefined}
           onComplete={({ score, passed }) => {
-            if (activeTraining?.id) {
-              api.logCompletion({ trainingId: activeTraining.id, method: "cbt", score, passed })
-                .catch(err => console.error("Completion log failed:", err.message));
-            }
-            back();
+            // The pass was already saved when the result appeared (onPassed).
+            // "Done" only leaves — unless that save failed, in which case retry it.
+            if (!activeTraining?.id || passSave.current === "saved") { back(); return; }
+            savePass(score, true);
           }}
           onFail={({ score }) => {
             if (activeTraining?.id) {
@@ -291,8 +312,10 @@ export function TrainingRouter({ onDone, onHome }) {
                 .catch(err => console.error("Failed-attempt log failed:", err.message));
             }
           }}
-          onBack={back}
+          onPassed={({ score }) => savePass(score, false)}
+          onBack={() => { setSaveError(""); back(); }}
         />
+        </>
       );
 
     // ── s4c: In-person sign-off (mobile) ─────────────────────────────────────

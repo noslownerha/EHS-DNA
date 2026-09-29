@@ -26,13 +26,14 @@ function SlideVideo({ url }) {
   );
 }
 
-export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onBack }) {
+export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onPassed, onBack }) {
   const [slideIndex,   setSlideIndex]   = useState(0);
   const [answers,      setAnswers]      = useState({});   // slideId → selectedIndex
   const [revealed,     setRevealed]     = useState({});   // slideId → bool
   const [completed,    setCompleted]    = useState(false);
   const [score,        setScore]        = useState(null);
   const failLogged = useRef(false);
+  const passLogged = useRef(false);
 
   // No training content to play — guard rather than render placeholder data.
   if (!training || !Array.isArray(training.slides) || training.slides.length === 0) {
@@ -70,6 +71,13 @@ export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onBack }) {
       if (pct < training.passThreshold && !failLogged.current) {
         failLogged.current = true;
         onFail?.({ score: pct });
+      }
+      // Record a pass the moment the result screen appears, exactly like a fail.
+      // It used to wait for "Done" — while the screen already said "Your
+      // completion has been recorded" — so leaving from the 🎉 screen lost it.
+      if (pct >= training.passThreshold && !failLogged.current && !passLogged.current) {
+        passLogged.current = true;
+        onPassed?.({ score: pct });
       }
     } else {
       setSlideIndex(i => i + 1);
@@ -111,6 +119,14 @@ export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onBack }) {
         }}>
           {passed ? "Done" : "Retake module"}
         </button>
+        {/* A failed attempt used to trap the person here: "Retake" was the only
+            control, and tapping the Training tab didn't leave this screen. */}
+        {!passed && onBack && (
+          <button onClick={onBack} style={{
+            marginTop: 12, background: "none", border: "none", color: "rgba(255,255,255,.7)",
+            fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", textDecoration: "underline", cursor: "pointer",
+          }}>Back to my training</button>
+        )}
       </div>
     );
   }
