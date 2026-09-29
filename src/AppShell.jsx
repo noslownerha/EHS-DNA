@@ -49,7 +49,7 @@ export function EHSHeader({ onHome, onBack, title, rightContent, dark = false })
         </div>
       )}
       <div style={{ minWidth: 60, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
-        {rightContent ?? (
+        {rightContent ? <span className="ehs-hdr-context">{rightContent}</span> : (
           <span style={{ fontSize: ".65rem", color: "rgba(255,255,255,.2)", fontFamily: "'DM Mono', monospace" }}>
             {BRAND.tagline.split(" ").slice(0, 4).join(" ")}…
           </span>
@@ -419,6 +419,14 @@ export default function AppShell({ user, children, activeTab, onTab }) {
             min-width: 20px;
             min-height: 20px;
           }
+        }
+        /* Header context pill ("Company Dashboard", "Reports"…) is decorative —
+           the screen's own heading already says where you are. On a phone the
+           pill + bell + avatar consumed the whole header and crushed the title
+           (the company name) to a few pixels: "WhistlePig" rendered as a lone
+           slash-like sliver, the first stroke of the W. Drop the pill, keep the title. */
+        @media (max-width: 520px) {
+          .ehs-hdr-context { display: none; }
         }
       `}</style>
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>

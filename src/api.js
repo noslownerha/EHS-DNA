@@ -188,6 +188,8 @@ export const api = {
   listNotifications: () => req("/notifications"),
   markNotificationsRead: (ids) => req("/notifications/read", { method: "PUT", body: { ids } }),
   notificationRules: () => req("/notification-rules"),
+  notifyPreview: (type, severity) =>
+    req(`/notifications/preview?type=${encodeURIComponent(type ?? "")}&severity=${encodeURIComponent(severity ?? "")}`),
   createNotificationRule: (r) => req("/notification-rules", { method: "POST", body: r }),
   deleteNotificationRule: (id) => req(`/notification-rules/${id}`, { method: "DELETE" }),
 

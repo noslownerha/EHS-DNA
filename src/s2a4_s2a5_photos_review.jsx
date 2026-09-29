@@ -297,41 +297,40 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack, onHome }) {
 
   // Rules-driven recipient preview: resolve who will actually be notified
   const [LOCKED_RECIPIENTS, setLocked] = useState([]);
+  // Server-resolved with the SAME function the real send uses — so this list is
+  // exactly who submitting will alert. (The old client-side version read the
+  // admin-only rules endpoint; staff got a 403 and were told nobody was notified.)
   useEffect(() => {
-    Promise.all([api.notificationRules().catch(() => []), api.staffDirectory().catch(() => [])])
-      .then(([rules, dir]) => {
-        const isInjury = (flowData.type ?? "injury") === "injury";
-        const events = ["incident_any", ...(isInjury ? ["incident_injury"] : [])];
-        const active = rules.filter(r => events.includes(r.event));
-        const roleSet = new Set(), idSet = new Set();
-        active.forEach(r => {
-          JSON.parse(r.recipient_roles || "[]").forEach(x => roleSet.add(x));
-          JSON.parse(r.recipient_users || "[]").forEach(x => idSet.add(x));
-        });
-        const people = dir.filter(u => roleSet.has(u.role) || idSet.has(u.id));
+    api.notifyPreview(flowData.type ?? "injury", flowData.severity ?? "")
+      .then(({ people = [] }) => {
         setLocked(people.length
-          ? people.map(u => ({ id: u.id, name: u.name, role: u.role.replace("_", " "), site: u.site ?? "" }))
-          : [{ id: "none", name: "No matching notification rules", role: "Configure in Company Settings", site: "" }]);
-      });
-  }, [flowData.type]);
+          ? people.map(u => ({ id: u.id, name: u.name, role: String(u.role ?? "").replace("_", " "), site: u.site ?? "" }))
+          : [{ id: "none", name: "No one — no notification rule matches this report", role: "An admin can add one in Company Settings", site: "" }]);
+      })
+      .catch(() => setLocked([{ id: "none", name: "Couldn't load the recipient list", role: "Your report will still be sent", site: "" }]));
+  }, [flowData.type, flowData.severity]);
   const OPTIONAL_RECIPIENTS = [];
 
+  // No demo fallbacks. This is the screen where a reporter confirms what they are
+  // sending; a missing field must read as missing, never as plausible fake data
+  // ("Sarah Mitchell", "Bottling & Packaging") that is not what gets submitted.
   const {
-    type       = "injury",
-    site       = "Moriah",
-    dept       = "Bottling & Packaging",
-    datetime   = new Date().toISOString(),
-    description= "Staff member slipped on wet floor near bottling line 2.",
-    severity   = "significant",
-    involved   = { type: "staff", person: { first: "Sarah", last: "Mitchell" } },
+    type       = null,
+    site       = null,
+    dept       = null,
+    datetime   = null,
+    description= "",
+    severity   = null,
+    involved   = null,
     photos     = [],
     gpsCoords  = null,
     floorPos   = null,
   } = flowData;
 
-  const involveName = involved?.type === "staff"
-    ? `${involved.person?.first} ${involved.person?.last}`
-    : involved?.visitor?.name ?? "—";
+  const involveName = !involved ? "No one named"
+    : involved.type === "staff"
+      ? `${involved.person?.first ?? ""} ${involved.person?.last ?? ""}`.trim() || involved.person?.name || "—"
+      : involved.visitor?.name || "—";
 
   function toggleOptional(id) {
     setOptionalChecked(s => ({ ...s, [id]: !s[id] }));
@@ -346,11 +345,19 @@ export function S2a5ReviewSubmit({ flowData = {}, onSubmit, onBack, onHome }) {
   }
 
   const summaryRows = [
-    { label: "Type",        value: INCIDENT_TYPE_LABELS[type] ?? type },
-    { label: "Site",        value: site },
-    { label: "Department",  value: dept },
-    { label: "Date/time",   value: new Date(datetime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) },
-    { label: "Severity",    value: <span style={{ fontWeight: 700, color: SEVERITY_COLORS[severity] }}>{severity.charAt(0).toUpperCase() + severity.slice(1)}</span> },
+    { label: "Type",        value: INCIDENT_TYPE_LABELS[type] ?? type ?? "—" },
+    { label: "Site",        value: site || "—" },
+    { label: "Department",  value: dept || "—" },
+    // new Date(null) is the Unix epoch — it rendered as "Jan 1, 1970". A report
+    // with no explicit time is filed as "now", so say that instead.
+    { label: "Date/time",   value: datetime
+        ? new Date(datetime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "Now (time of submission)" },
+    // Ideas and shout-outs carry no severity; calling .charAt on null threw and
+    // white-screened the review step.
+    { label: "Severity",    value: severity
+        ? <span style={{ fontWeight: 700, color: SEVERITY_COLORS[severity] }}>{severity.charAt(0).toUpperCase() + severity.slice(1)}</span>
+        : "—" },
     { label: "Involved",    value: involveName },
     { label: "Photos",      value: photos.length > 0 ? `${photos.length} attached` : "None" },
     // Surfaced so the reporter can see what location data they're actually

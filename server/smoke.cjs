@@ -224,7 +224,10 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   await fetch(`${B}/api/incidents`, { method: "POST", headers: H(),
     body: JSON.stringify({ type: "injury", severity: "serious", siteId: 1, description: "notif test" }) }).then(j);
   const notifs = await fetch(`${B}/api/notifications`, { headers: H() }).then(j);
-  ok("injury notification", notifs.length >= 1 && notifs[0].title.includes("Injury") && notifs[0].emailed === 1);
+  ok("injury notification", notifs.length >= 1 && notifs[0].title.includes("Injury"));
+  // No mail provider is configured at this point in the run, so the bell must NOT
+  // claim the alert was emailed. (It used to: `emailed` came from the rule alone.)
+  ok("notification: 'emailed' is false when no mail provider is configured", notifs[0]?.emailed === 0);
   const sNotifs = await fetch(`${B}/api/notifications`, { headers: sH }).then(j);
   ok("staff not notified", sNotifs.length === 0);
   await fetch(`${B}/api/notifications/read`, { method: "PUT", headers: H(), body: JSON.stringify({}) });
@@ -1295,6 +1298,28 @@ const ok = (name, cond) => console.log(cond ? `PASS ${name}` : `FAIL ${name}`);
   ok("createCA: the returned id is immediately usable for assignment", freshAssign.status === 200);
   const freshBack = (await fetch(`${B}/api/cas`, { headers: H() }).then(j)).find(c => c.id === freshCA.id);
   ok("createCA: that assignment actually stuck", freshBack.assignee_id === freshUser.id);
+
+  // ── Training expiry reminders ──
+  // The job queried a non-existent table and swallowed the error, so reminders
+  // never fired in production. Seed one completion expiring in 3 days and one
+  // FAILED attempt expiring in 3 days; only the passing one may produce a nudge.
+  {
+    const rdb = require("./db.cjs"); const d = rdb.db || rdb;
+    const rUser = d.prepare("SELECT id FROM users WHERE tenant_id = 1 AND COALESCE(is_operator,0) = 0 AND active = 1 ORDER BY id LIMIT 1").get();
+    const rTrain = d.prepare("INSERT INTO trainings (tenant_id, title, kind, active) VALUES (1, 'Smoke Reminder Course', 'cbt', 1)").run().lastInsertRowid;
+    const rFail  = d.prepare("INSERT INTO trainings (tenant_id, title, kind, active) VALUES (1, 'Smoke Failed Course', 'cbt', 1)").run().lastInsertRowid;
+    const soon = new Date(Date.now() + 3 * 86400000).toISOString();
+    d.prepare("INSERT INTO training_completions (tenant_id, training_id, user_id, expires_at, passed) VALUES (1, ?, ?, ?, 1)").run(rTrain, rUser.id, soon);
+    d.prepare("INSERT INTO training_completions (tenant_id, training_id, user_id, expires_at, passed) VALUES (1, ?, ?, ?, 0)").run(rFail, rUser.id, soon);
+    const run = await fetch(`${B}/api/op/run-reminders`, { method: "POST", headers: opH() });
+    ok("reminders: operator can trigger the sweep", run.status === 200);
+    const nudges = d.prepare("SELECT link_ref FROM notifications WHERE user_id = ? AND link_kind = 'training'").all(rUser.id).map(r => r.link_ref);
+    ok("reminders: an expiring training produces a reminder", nudges.includes(`reminder-${rTrain}`));
+    ok("reminders: a FAILED attempt does not produce a renew reminder", !nudges.includes(`reminder-${rFail}`));
+    await fetch(`${B}/api/op/run-reminders`, { method: "POST", headers: opH() });
+    const again = d.prepare("SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND link_ref = ?").get(rUser.id, `reminder-${rTrain}`).n;
+    ok("reminders: re-running within 7 days does not duplicate", again === 1);
+  }
 
   console.log("SMOKE COMPLETE");
   process.exit(0);

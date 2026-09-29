@@ -29,6 +29,16 @@ function ComplianceBar({ pct, compact = false }) {
 }
 
 function DaysBadge({ days }) {
+  // null = no recordable ever logged at this site. Say so in words — a number
+  // here reads as a real, verified streak.
+  if (days === null || days === undefined) {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: ".78rem", fontWeight: 700, color: C.sage, lineHeight: 1.2 }}>None</div>
+        <div style={{ fontSize: ".6rem", fontWeight: 600, color: C.mist, marginTop: 1 }}>on record</div>
+      </div>
+    );
+  }
   const color = days >= 90 ? C.sage : days >= 30 ? C.gold : C.red;
   const bg    = days >= 90 ? C.foam  : days >= 30 ? C.goldLt : C.redLt;
   return (
@@ -57,9 +67,9 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
   const avgCompliance   = SITES.length ? Math.round(SITES.reduce((n, s) => n + s.compliance, 0) / SITES.length) : 0;
   const belowThreshold  = SITES.filter(s => s.compliance < 80).length;
   // Average days since the last incident across sites that HAVE had one. A site
-  // with no incidents on record (server sends 999 as the sentinel) is excluded
+  // with no recordable on record (server sends null) is excluded
   // rather than counted as a real streak, so the average stays honest.
-  const sitesWithHistory = SITES.filter(s => s.daysSince < 999);
+  const sitesWithHistory = SITES.filter(s => s.daysSince !== null && s.daysSince !== undefined);
   const avgDaysSince = sitesWithHistory.length
     ? Math.round(sitesWithHistory.reduce((n, s) => n + s.daysSince, 0) / sitesWithHistory.length)
     : null;

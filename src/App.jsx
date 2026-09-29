@@ -88,6 +88,15 @@ function App() {
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
   const [pickerStep,  setPickerStep]  = useState("top");
+  // Why triage was entered. "Report an injury" routes through triage first; when
+  // triage hands back to "file a report", the report must still BE an injury.
+  // Without this, the handoff opened the hazard/damage/idea picker — injury wasn't
+  // on it — so no injury filed through the UI could ever reach TRIR or the 300 log.
+  const [triageFromInjury, setTriageFromInjury] = useState(false);
+  // After any triage handoff, tapping "Report an injury" must file the report
+  // rather than bounce back into triage (the person has just been through it).
+  const [afterTriage, setAfterTriage] = useState(false);
+  const [flagPreset,  setFlagPreset]  = useState(null);
 
   // Drain any incident reports queued while offline (dead zones on the plant floor).
   // Safe to run always: it no-ops when the queue is empty or the device is offline.
@@ -153,11 +162,14 @@ function App() {
   function handleTab(tabId) {
     if (tabId === "flag" && activeTab !== "flag") setFlagScreen(s => s); // keep deep-link
     else if (tabId === "flag") setFlagScreen(INCIDENT_SCREENS.TYPE);
-    if (tabId === "flag") setPickerStep("top"); // normal Flag entry starts at top
+    if (tabId === "flag") { setPickerStep("top"); setAfterTriage(false); setFlagPreset(null); } // normal Flag entry starts at top
     if (tabId === "inspect") setPendingChecklistId(null); // manual Inspect entry: fresh Start screen
     setActiveTab(tabId);
   }
-  function handleNavigate(dest) { setActiveTab(dest); }
+  function handleNavigate(dest) {
+    if (dest === "triage") setTriageFromInjury(false); // general "something happened" entry
+    setActiveTab(dest);
+  }
 
   if (booting) return null;
   if (!currentUser) return <LandingPage onEnter={handleEnter} />;
@@ -173,6 +185,13 @@ function App() {
 
   const perms   = ROLE_PERMS[currentUser.role] ?? ROLE_PERMS.staff;
   const userObj = { ...currentUser, name: currentUser.name ?? `${currentUser.first ?? ""} ${currentUser.last ?? ""}`.trim() };
+  // The tenant's REAL triage provider, from /api/config. Both flows used to fall
+  // back to a hardcoded placeholder (with a 555 number) because this was never
+  // passed in — so Triage Settings changed nothing a worker actually saw. null when
+  // unconfigured: the prompts hide rather than show a number nobody answers.
+  const tri = BRAND.triage ?? {};
+  const triageProviderCfg = tri.providerName ? { name: tri.providerName, phone: tri.providerPhone ?? "" } : null;
+  const triageFlowCfg = { enabled: tri.enabled ?? true, providerName: tri.providerName ?? null, providerPhone: tri.providerPhone ?? null };
 
   function renderContent() {
     switch (activeTab) {
@@ -221,8 +240,10 @@ function App() {
       case "flag":
         return (
           <MobileFrame>
-            <IncidentProvider key={flagScreen} user={userObj} companyName={COMPANY} initialScreen={flagScreen}>
-              <IncidentRouter onDone={handleHome} onGoToTriage={() => setActiveTab("triage")} pickerStep={pickerStep} />
+            <IncidentProvider key={`${flagScreen}-${flagPreset?.type ?? ""}`} user={userObj} companyName={COMPANY}
+              initialScreen={flagScreen} initialDraft={flagPreset} triageProvider={triageProviderCfg}>
+              <IncidentRouter onDone={handleHome} pickerStep={pickerStep}
+                onGoToTriage={afterTriage ? undefined : () => { setTriageFromInjury(true); setActiveTab("triage"); }} />
             </IncidentProvider>
           </MobileFrame>
         );
@@ -250,8 +271,23 @@ function App() {
       case "triage":
         return (
           <MobileFrame>
-            <TriageProvider user={userObj} companyName={COMPANY}>
-              <TriageRouter onDone={handleHome} onFileReport={() => { setPickerStep("flag"); setFlagScreen(INCIDENT_SCREENS.TYPE); setActiveTab("flag"); }} />
+            <TriageProvider user={userObj} companyName={COMPANY} config={triageFlowCfg}>
+              <TriageRouter onDone={handleHome} onFileReport={() => {
+                setAfterTriage(true);
+                if (triageFromInjury) {
+                  // Straight into the injury form — the person already chose injury.
+                  const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  setFlagPreset({ type: "injury", site: userObj.site ?? null, datetime: now });
+                  setPickerStep("top");
+                  setFlagScreen(INCIDENT_SCREENS.WHAT);
+                } else {
+                  // General triage (not entered as an injury): full picker, injury included.
+                  setFlagPreset(null);
+                  setPickerStep("top");
+                  setFlagScreen(INCIDENT_SCREENS.TYPE);
+                }
+                setActiveTab("flag");
+              }} />
             </TriageProvider>
           </MobileFrame>
         );

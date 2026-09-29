@@ -200,16 +200,23 @@ function clearDraft() {
 export function IncidentProvider({
   children,
   user           = { name: "Ahren H.", site: "Moriah", dept: "Administration", role: "admin" },
-  triageProvider = { name: "Concentra Occupational Health", phone: "(800) 555-0147" },
+  triageProvider = null,   // { name, phone } from tenant config; null hides triage-call prompts
   companyName    = BRAND.company,
   initialScreen  = INCIDENT_SCREENS.TYPE,
+  // A caller that already knows the report type (triage handing back an injury)
+  // presets it here and opens past the picker. The preset wins over any restored
+  // draft's type — the person just told us what this is. History is seeded with
+  // the picker so Back from the first form screen still has somewhere to go.
+  initialDraft   = null,
 }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => {
     const restored = loadDraft();
+    const base = restored ? { ...INITIAL_STATE.draft, ...restored } : INITIAL_STATE.draft;
     return {
       ...INITIAL_STATE,
       screen: initialScreen,
-      draft: restored ? { ...INITIAL_STATE.draft, ...restored } : INITIAL_STATE.draft,
+      history: initialDraft && initialScreen !== INCIDENT_SCREENS.TYPE ? [INCIDENT_SCREENS.TYPE] : [],
+      draft: initialDraft ? { ...base, ...initialDraft } : base,
     };
   });
   const stateRef = useRef(state);       // always-fresh snapshot for async callbacks

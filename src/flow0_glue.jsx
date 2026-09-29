@@ -57,8 +57,8 @@ const INITIAL_STATE = {
   // Config (loaded from company settings)
   config: {
     enabled:       true,
-    providerName:  "Concentra Occupational Health",
-    providerPhone: "(800) 555-0147",
+    providerName:  null,   // real value arrives via the config prop (tenant settings)
+    providerPhone: null,
   },
 
   // Contacts for notification display (loaded from org)

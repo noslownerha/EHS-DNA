@@ -305,6 +305,15 @@ try { db.exec("ALTER TABLE trainings ADD COLUMN required_users TEXT DEFAULT '[]'
  "safety_relevant INTEGER DEFAULT 1"].forEach(col => {
   try { db.exec(`ALTER TABLE findings ADD COLUMN ${col}`); } catch {}
 });
+// Tenants seeded before the fix still carry the placeholder triage provider, and an
+// injured worker is shown it as a number to call. 555-01xx is the reserved fictional
+// range, so this can never be a real line. Clear exactly that placeholder — any
+// provider an admin actually configured is untouched. Prompts hide until one is set.
+try {
+  const r = db.prepare(`UPDATE tenants SET triage_provider_name = NULL, triage_provider_phone = NULL
+                        WHERE triage_provider_phone = '(800) 555-0147'`).run();
+  if (r.changes) console.log(`Cleared placeholder triage provider on ${r.changes} tenant(s) — set a real one in Triage Settings`);
+} catch {}
 // Backfill: any row predating the column is a safety finding by definition.
 try { db.exec("UPDATE findings SET safety_relevant = 1 WHERE safety_relevant IS NULL"); } catch {}
 try { db.exec("ALTER TABLE users ADD COLUMN is_operator INTEGER DEFAULT 0"); } catch {}
@@ -551,7 +560,10 @@ function seed() {
   const seedTx = db.transaction(() => {
     db.prepare(`INSERT INTO tenants (id, name, short_name, industry, tagline, triage_enabled, triage_provider_name, triage_provider_phone)
                 VALUES (1, 'WhistlePig Whiskey', 'WhistlePig', 'Spirits / Distilling',
-                        'Safety & Operations Management', 1, 'Concentra', '(800) 555-0147')`).run();
+                        'Safety & Operations Management', 1, NULL, NULL)`).run();
+    // Provider deliberately NULL: a seeded placeholder (it used to be a 555 number)
+    // would be shown to an injured worker as if it were real. With no provider
+    // configured the triage-call prompts simply don't render until an admin sets one.
 
     const siteStmt = db.prepare("INSERT INTO sites (tenant_id, name, location) VALUES (1, ?, ?)");
     siteStmt.run("Moriah", "Moriah, NY");

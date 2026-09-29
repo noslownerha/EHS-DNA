@@ -83,7 +83,11 @@ export default function S5aSiteManagerDashboard({
   }, [manager.site]);
 
   // Spec: days-since-recordable is a visible, motivational metric on site manager dashboards
-  const daysSinceRecordable = siteStats?.daysSince ?? 0;
+  // null = no recordable ever logged here. Kept distinct from 0 ("today"), and
+  // never rendered as a number — "999 days" and "clean record for 999 days"
+  // were both false statements when the server used a sentinel.
+  const noRecordable = siteStats && (siteStats.daysSince === null || siteStats.daysSince === undefined);
+  const daysSinceRecordable = noRecordable ? Infinity : (siteStats?.daysSince ?? 0);
 
   const kpis = [
     { label: "Open incidents",   value: siteStats?.openIncidents ?? 0,       color: C.red,    dest: "incidents" },
@@ -147,10 +151,10 @@ export default function S5aSiteManagerDashboard({
               fontSize: "3.5rem", fontWeight: 800, lineHeight: 1,
               color: daysSinceRecordable >= 30 ? C.mint : C.gold,
             }}>
-              {daysSinceRecordable}
+              {noRecordable ? "—" : daysSinceRecordable}
             </div>
             <div style={{ fontSize: ".78rem", fontWeight: 600, color: daysSinceRecordable >= 30 ? "rgba(168,213,181,.7)" : "#9A7A3A", marginTop: 4 }}>
-              DAYS
+              {noRecordable ? "NONE" : "DAYS"}
             </div>
           </div>
           <div>
@@ -158,7 +162,9 @@ export default function S5aSiteManagerDashboard({
               Since last OSHA recordable incident
             </div>
             <div style={{ fontSize: ".82rem", color: daysSinceRecordable >= 30 ? "rgba(255,255,255,.5)" : "#9A7A3A", lineHeight: 1.5 }}>
-              {daysSinceRecordable >= 30
+              {noRecordable
+                ? `No OSHA recordable incidents on record for ${SITE.name}.`
+                : daysSinceRecordable >= 30
                 ? `Great work — ${SITE.name} has maintained a clean record for ${daysSinceRecordable} days.`
                 : "A recent recordable incident was logged. Continue focusing on safe practices."
               }

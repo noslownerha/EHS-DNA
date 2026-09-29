@@ -119,7 +119,7 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
           !f.category.toLowerCase().includes(search.toLowerCase()))      return false;
       return true;
     }),
-    [open, filterSite, filterSev, filterAssignee, search, scope]
+    [open, filterSite, filterSev, filterAssignee, search]
   );
 
   function toggleSelect(id) {

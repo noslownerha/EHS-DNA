@@ -193,7 +193,7 @@ function TelehealthPrompt({ provider, onDismiss }) {
 export default function S2a3WhoWasInvolved({
   severity        = "minor",       // from s2a2
   incidentType    = "injury",
-  triageProvider  = { name: "Concentra", phone: "(800) 555-0147" },
+  triageProvider  = null,
   onContinue,
   onBack,
   onHome,
@@ -220,15 +220,22 @@ export default function S2a3WhoWasInvolved({
   // Spec: telehealth prompt suppressed for Serious severity
   const showPrompt = showTelehealth && severity !== "serious" && triageProvider;
 
-  const canContinue = mode === "staff"
+  // Only an injury REQUIRES a person — someone was hurt, and the record is about
+  // them. A hazard, damage or security report often involves nobody. Requiring a
+  // name there blocked the report outright, or pushed people to name a random
+  // colleague — which reads as blame and is exactly what stops people reporting.
+  const personRequired = incidentType === "injury";
+  const hasPerson = mode === "staff"
     ? !!selectedStaff
     : visitorData.name.trim().length > 0;
+  const canContinue = hasPerson || !personRequired;
 
   function handleContinue() {
     if (!canContinue) return;
-    const involved = mode === "staff"
-      ? { type: "staff",   person: selectedStaff }
-      : { type: "visitor", visitor: visitorData  };
+    const involved = !hasPerson ? null
+      : mode === "staff"
+        ? { type: "staff",   person: selectedStaff }
+        : { type: "visitor", visitor: visitorData  };
     onContinue?.(involved);
   }
 
@@ -259,7 +266,11 @@ export default function S2a3WhoWasInvolved({
 
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink }}>Who was involved?</h1>
-          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>The person injured or affected by this incident.</p>
+          <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 4 }}>
+            {personRequired
+              ? "The person injured or affected by this incident."
+              : "Optional — leave this blank if no one was involved."}
+          </p>
         </div>
 
         {/* Telehealth prompt — shown before form for applicable severities */}
@@ -321,7 +332,7 @@ export default function S2a3WhoWasInvolved({
             cursor: canContinue ? "pointer" : "default",
             transition: "all .18s",
           }}
-        >Photos & location →</button>
+        >{hasPerson || personRequired ? "Review & submit →" : "No one involved — review & submit →"}</button>
       </div>
     </div>
   );

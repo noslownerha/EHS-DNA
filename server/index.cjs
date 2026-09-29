@@ -379,7 +379,9 @@ app.post("/api/auth/forgot", async (req, res) => {
     // Also notify other admins for visibility/fallback (e.g. if email isn't
     // configured on this deploy) — same behavior as before, just no longer the
     // only path.
-    const admins = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND id != ?")
+    // Operators excluded: this names a person and their email — customer data the
+    // operator reaches only through attributable impersonation.
+    const admins = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role = 'admin' AND active = 1 AND COALESCE(is_operator, 0) = 0 AND id != ?")
       .all(user.tenant_id, user.id);
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
                              VALUES (?, ?, ?, ?, 'user', ?)`);
@@ -961,12 +963,9 @@ app.post("/api/incidents", auth, (req, res) => {
   const isEngagement = ENGAGEMENT_TYPES.includes(type);
   // Category for notification matching. Engagement types collapse to "engagement";
   // incident types map to their category (injury/near_miss/property/security/etc.).
-  const notifyCategory = isEngagement ? "engagement" : (type || "any");
-  const notifyMatch = { category: notifyCategory, severity: isEngagement ? "any" : (severity || "any") };
-  // Legacy event strings kept for any rules not yet migrated to the matrix.
-  const events = isEngagement ? ["engagement_any"] : ["incident_any"];
-  if (type === "injury") events.push("incident_injury");
-  if (!isEngagement && (severity === "critical" || severity === "serious")) events.push("incident_critical");
+  // Shared with /api/notifications/preview so the Review screen shows exactly who
+  // this submission will alert. Legacy event strings kept for unmigrated rules.
+  const { events, match: notifyMatch } = incidentNotifyArgs(type, severity);
   const site = siteId ? db.prepare("SELECT name FROM sites WHERE id = ?").get(siteId)?.name : null;
   const TYPE_TITLE = {
     injury: "Injury reported", near_miss: "Near miss reported", property: "Property damage reported",
@@ -1865,8 +1864,16 @@ app.get("/api/dashboard/summary", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (
     const capexBlocked = db.prepare(`SELECT COUNT(*) n FROM corrective_actions c
                                      LEFT JOIN incidents i ON i.id = c.incident_id
                                      WHERE c.tenant_id = ? AND i.site_id = ? AND c.status = 'capex_blocked'`).get(t, site.id).n;
-    const lastIncident = db.prepare("SELECT MAX(created_at) d FROM incidents WHERE tenant_id = ? AND site_id = ?").get(t, site.id).d;
-    const daysSince = lastIncident ? Math.floor((Date.now() - new Date(lastIncident).getTime()) / 86400000) : 999;
+    // "Days since last RECORDABLE" must count only confirmed recordables. It used
+    // to take the newest incident of ANY type, so a shout-out or an idea reset the
+    // counter to zero and told the site manager a recordable had just happened.
+    // Same 'Recordable%' match every other recordable query uses (first-aid-only
+    // is stored as 'First aid only (non-recordable)' and correctly excluded).
+    // null = no recordable on record — the client renders that as words, not as
+    // a number. (Was the sentinel 999, which displayed as a real "999 days".)
+    const lastRecordable = db.prepare(`SELECT MAX(created_at) d FROM incidents
+                                       WHERE tenant_id = ? AND site_id = ? AND osha_classification LIKE 'Recordable%'`).get(t, site.id).d;
+    const daysSince = lastRecordable ? Math.floor((Date.now() - new Date(lastRecordable).getTime()) / 86400000) : null;
     // Compliance: % of active site staff who are fully current on every required training
     // (expiry-aware, same definition as the per-user report — see staffCompliance()).
     const siteRows = staffCompliance(t, site.id);
@@ -1918,30 +1925,60 @@ function ruleMatches(rule, match) {
   return catOk && evtRank >= ruleMin;
 }
 
+// ONE recipient resolver, used by both the real send (notify) and the pre-submit
+// preview (/api/notifications/preview). The preview used to re-implement this on
+// the client from /api/notification-rules — which is admin-only, so every staff
+// reporter got a 403 and was told "No matching notification rules" while admin and
+// safety were in fact being alerted. Sharing this function makes drift impossible.
+function resolveRecipients(tenantId, events, match) {
+  const allRules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId);
+  // Two matching paths: the new category×severity matrix (when `match` is given,
+  // i.e. an incident/engagement), and the legacy event-string path (findings).
+  const rules = match
+    ? allRules.filter(r => ruleMatches(r, match))
+    : allRules.filter(r => events.includes(r.event));
+  const recipients = new Set();
+  let wantsEmail = false;
+  for (const r of rules) {
+    if (r.email) wantsEmail = true;
+    JSON.parse(r.recipient_users || "[]").forEach(id => recipients.add(id));
+    const roles = JSON.parse(r.recipient_roles || "[]");
+    // Operator accounts are role "admin" inside a tenant, so role fan-out used to
+    // hand them the customer's incident alerts — in-app AND email. That breaks the
+    // operator data boundary: incident detail is reached only by attributable
+    // impersonation, never pushed to the operator's inbox. Excluded here.
+    if (roles.length)
+      db.prepare(`SELECT id FROM users WHERE tenant_id = ? AND active = 1 AND COALESCE(is_operator, 0) = 0
+                  AND role IN (${roles.map(() => "?").join(",")})`)
+        .all(tenantId, ...roles).forEach(u => recipients.add(u.id));
+  }
+  return { rules, recipients, wantsEmail };
+}
+
+// Mirror of the incident-create mapping, so a preview for (type, severity) resolves
+// exactly the recipients that submitting that report will.
+function incidentNotifyArgs(type, severity) {
+  const isEngagement = ENGAGEMENT_TYPES.includes(type);
+  const match = { category: isEngagement ? "engagement" : (type || "any"), severity: isEngagement ? "any" : (severity || "any") };
+  const events = isEngagement ? ["engagement_any"] : ["incident_any"];
+  if (type === "injury") events.push("incident_injury");
+  if (!isEngagement && (severity === "critical" || severity === "serious")) events.push("incident_critical");
+  return { events, match };
+}
+
 function notify(tenantId, events, { title, body, linkKind, linkRef, match }) {
   try {
-    const allRules = db.prepare(`SELECT * FROM notification_rules WHERE tenant_id = ? AND active = 1`).all(tenantId);
-    // Two matching paths: the new category×severity matrix (when `match` is given,
-    // i.e. an incident/engagement), and the legacy event-string path (findings).
-    const rules = match
-      ? allRules.filter(r => ruleMatches(r, match))
-      : allRules.filter(r => events.includes(r.event));
+    const { rules, recipients, wantsEmail } = resolveRecipients(tenantId, events, match);
     if (!rules.length) return { count: 0, email: false, events: [] };
-    const recipients = new Set();
-    let wantsEmail = false;
-    for (const r of rules) {
-      if (r.email) wantsEmail = true;
-      JSON.parse(r.recipient_users || "[]").forEach(id => recipients.add(id));
-      const roles = JSON.parse(r.recipient_roles || "[]");
-      if (roles.length)
-        db.prepare(`SELECT id FROM users WHERE tenant_id = ? AND active = 1 AND role IN (${roles.map(() => "?").join(",")})`)
-          .all(tenantId, ...roles).forEach(u => recipients.add(u.id));
-    }
+    // `emailed` records whether an email was actually attempted, not merely wanted.
+    // It used to be set from the rule alone, so the bell showed "📧 emailed" on
+    // installs with no mail provider configured at all.
+    const willEmail = wantsEmail && emailConfigured();
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref, emailed)
                              VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    recipients.forEach(uid => stmt.run(tenantId, uid, title, body ?? null, linkKind ?? null, linkRef ?? null, wantsEmail ? 1 : 0));
+    recipients.forEach(uid => stmt.run(tenantId, uid, title, body ?? null, linkKind ?? null, linkRef ?? null, willEmail ? 1 : 0));
     let emailQueued = false;
-    if (wantsEmail && recipients.size && emailConfigured()) {
+    if (willEmail && recipients.size) {
       const emails = db.prepare(`SELECT email FROM users WHERE id IN (${[...recipients].map(() => "?").join(",")})`)
         .all(...recipients).map(u => u.email).filter(Boolean);
       if (emails.length) {
@@ -1955,6 +1992,22 @@ function notify(tenantId, events, { title, body, linkKind, linkRef, match }) {
     return { count: recipients.size, email: emailQueued, events: [...new Set(rules.map(r => r.event))] };
   } catch (e) { console.error("notify() failed:", e.message); return null; }
 }
+
+// Who WILL be notified if I submit a report of this type/severity. Any signed-in
+// user may ask (a staff reporter deserves to know their injury report reaches
+// someone); it returns names and roles only, never the rule configuration.
+app.get("/api/notifications/preview", auth, (req, res) => {
+  const { type, severity } = req.query;
+  const { events, match } = incidentNotifyArgs(String(type || ""), severity ? String(severity) : null);
+  const { recipients, wantsEmail } = resolveRecipients(req.auth.tenant, events, match);
+  const ids = [...recipients];
+  const people = ids.length
+    ? db.prepare(`SELECT u.id, u.name, u.role, s.name AS site FROM users u LEFT JOIN sites s ON s.id = u.site_id
+                  WHERE u.tenant_id = ? AND u.active = 1 AND u.id IN (${ids.map(() => "?").join(",")})
+                  ORDER BY u.name`).all(req.auth.tenant, ...ids)
+    : [];
+  res.json({ people, email: wantsEmail && emailConfigured() });
+});
 
 app.get("/api/notifications", auth, (req, res) =>
   res.json(db.prepare(`SELECT * FROM notifications WHERE tenant_id = ? AND user_id = ?
@@ -2680,17 +2733,22 @@ app.get("/api/reports/osha300", auth, requireRole(...CAN_SEE_ALL_INCIDENTS), (re
 });
 
 // ── Training due-date reminders (runs at boot + every 12h) ───────────────────
+// NOTE: this queried a table named `completions`, which never existed (the real one
+// is training_completions). It threw on every run and the catch only logged it, so
+// expiry reminders never fired in production. A failed attempt (passed=0) must not
+// produce a "renew" reminder, hence the passed guard.
 function runTrainingReminders() {
   try {
     const soonMs = 14 * 86400000;
     const rows = db.prepare(`
       SELECT c.user_id, c.training_id, c.expires_at, t.title, t.tenant_id,
              u.active AS user_active, u.is_operator
-      FROM completions c
+      FROM training_completions c
       JOIN trainings t ON t.id = c.training_id AND t.active = 1
       JOIN users u ON u.id = c.user_id
       WHERE c.expires_at IS NOT NULL
-        AND c.id IN (SELECT MAX(id) FROM completions GROUP BY user_id, training_id)
+        AND COALESCE(c.passed, 1) = 1
+        AND c.id IN (SELECT MAX(id) FROM training_completions GROUP BY user_id, training_id)
     `).all().filter(r => r.user_active && !r.is_operator);
     const now = Date.now();
     const stmt = db.prepare(`INSERT INTO notifications (tenant_id, user_id, title, body, link_kind, link_ref)
