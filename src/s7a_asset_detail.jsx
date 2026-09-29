@@ -127,6 +127,9 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
               )}
             </div>
 
+            {/* Maintenance schedule — recurring tasks with next-due dates. */}
+            <MaintenanceSection assetId={asset.id} canManage={canManage} />
+
             {/* Empty-state hint when nothing attached */}
             {!asset.loto?.length && !asset.sops?.length && !asset.checklist_id && (
               <div style={{ textAlign: "center", padding: "24px 20px", color: C.mist, fontSize: ".85rem" }}>
@@ -181,6 +184,85 @@ function ProcedureCard({ proc, open, onToggle, accent }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+
+// ── Maintenance schedule ─────────────────────────────────────────────────────
+// Recurring tasks ("grease bearings every 30 days"). Anyone who can see the
+// asset can record the work — the tech standing at the machine with the phone
+// that just scanned it. Adding/removing tasks is for admin/safety/site managers.
+function MaintenanceSection({ assetId, canManage }) {
+  const [rows, setRows] = useState(null);
+  const [err, setErr] = useState("");
+  const [confirm, setConfirm] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ task: "", intervalDays: "30", lastDone: "" });
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api.listMaintenance(assetId).then(setRows).catch(e => { setRows([]); setErr(e.message); }); }, [assetId]);
+
+  const run = (fn) => { setBusy(true); setErr(""); fn().then(r => { setRows(r); setConfirm(null); }).catch(e => setErr(e.message)).finally(() => setBusy(false)); };
+  const fmt = d => d ? new Date(d + (d.length === 10 ? "T12:00:00" : "")).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const inp = { width: "100%", padding: "9px 11px", border: "1.5px solid #D0DEDB", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", boxSizing: "border-box" };
+  if (rows === null) return null;
+  if (!rows.length && !canManage) return null;
+
+  return (
+    <div style={{ background: C.white, borderRadius: 12, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "16px 18px", marginBottom: 16 }}>
+      <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>🔧 Maintenance</div>
+      {err && <div role="alert" style={{ color: "#B42318", fontSize: ".8rem", fontWeight: 600, marginBottom: 8 }}>⚠ {err}</div>}
+      {!rows.length && <div style={{ fontSize: ".82rem", color: C.mist, marginBottom: 8 }}>No scheduled maintenance yet.</div>}
+      {rows.map(m => (
+        <div key={m.id} style={{ padding: "10px 0", borderTop: "1px solid #EEF3F1" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: ".9rem", fontWeight: 600, color: C.ink }}>{m.task}</div>
+              <div style={{ fontSize: ".75rem", color: C.mist }}>
+                Every {m.interval_days} day{m.interval_days === 1 ? "" : "s"}
+                {m.last_done_at && ` · last done ${fmt(m.last_done_at)}${m.last_done_by ? ` by ${m.last_done_by}` : ""}`}
+              </div>
+              <div style={{ fontSize: ".78rem", fontWeight: 700, marginTop: 2, color: m.overdue ? "#B42318" : C.pine }}>
+                {m.overdue ? `⚠ Overdue — was due ${fmt(m.next_due)}` : `Next due ${fmt(m.next_due)}`}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              {confirm === m.id ? (
+                <>
+                  <button disabled={busy} onClick={() => run(() => api.markMaintenanceDone(m.id))} style={{ padding: "7px 11px", borderRadius: 7, border: "none", background: C.sage, color: "#fff", fontWeight: 700, fontSize: ".78rem", cursor: "pointer" }}>Confirm done</button>
+                  <button onClick={() => setConfirm(null)} style={{ padding: "7px 9px", borderRadius: 7, border: "1px solid #D0DEDB", background: "#fff", fontSize: ".78rem", cursor: "pointer" }}>Cancel</button>
+                </>
+              ) : (
+                <button onClick={() => setConfirm(m.id)} style={{ padding: "7px 11px", borderRadius: 7, border: `1.5px solid ${C.sage}`, background: "#fff", color: C.pine, fontWeight: 700, fontSize: ".78rem", cursor: "pointer" }}>✓ Done</button>
+              )}
+              {canManage && confirm !== m.id && (
+                <button aria-label={`Remove ${m.task}`} onClick={() => { if (window.confirm(`Remove "${m.task}" from the schedule?`)) run(() => api.deleteMaintenance(m.id)); }}
+                  style={{ background: "none", border: "none", color: C.mist, fontSize: "1rem", cursor: "pointer" }}>×</button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+      {canManage && (adding ? (
+        <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+          <input style={inp} placeholder="Task, e.g. Grease main bearings" value={form.task} onChange={e => setForm({ ...form, task: e.target.value })} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <label style={{ flex: 1, fontSize: ".72rem", color: C.mist }}>Every (days)
+              <input style={inp} type="number" min="1" max="3650" value={form.intervalDays} onChange={e => setForm({ ...form, intervalDays: e.target.value })} />
+            </label>
+            <label style={{ flex: 1, fontSize: ".72rem", color: C.mist }}>Last done (optional)
+              <input style={inp} type="date" value={form.lastDone} onChange={e => setForm({ ...form, lastDone: e.target.value })} />
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button disabled={busy || !form.task.trim()} onClick={() => run(() => api.addMaintenance(assetId, { task: form.task, intervalDays: Number(form.intervalDays), lastDone: form.lastDone || null }).then(r => { setAdding(false); setForm({ task: "", intervalDays: "30", lastDone: "" }); return r; }))}
+              style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: form.task.trim() ? C.sage : "#B0C8BA", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Add task</button>
+            <button onClick={() => setAdding(false)} style={{ padding: "9px 14px", borderRadius: 8, border: "1px solid #D0DEDB", background: "#fff", cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} style={{ marginTop: 10, padding: "8px 14px", borderRadius: 8, border: `1.5px dashed ${C.mint}`, background: "#fff", color: C.pine, fontWeight: 600, cursor: "pointer" }}>+ Add maintenance task</button>
+      ))}
     </div>
   );
 }

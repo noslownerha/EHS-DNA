@@ -36,6 +36,7 @@ import { S5bCompanyAdminDashboard, S5cStaffMobileHome } from "./s5b_s5c_admin_da
 import S5dReportBuilder                                from "./s5d_report_builder";
 import S5eManageStaff                                  from "./s5e_manage_staff";
 import S7bAssetRegistry                                from "./s7b_asset_registry.jsx";
+import S7cQrLabels                                     from "./s7c_qr_labels.jsx";
 import S7aAssetDetail                                  from "./s7a_asset_detail.jsx";
 import S5fCompanySettings                              from "./s5f_company_settings";
 import S5gBilling                                      from "./s5g_billing";
@@ -54,6 +55,7 @@ export const DASHBOARD_SCREENS = {
   BILLING:      "s5g",
   OPS:          "s5h",
   EQUIPMENT:    "s7b",   // asset registry
+  QR_LABELS:    "s7c",   // print QR labels (equipment + inspection points)
   ASSET:        "s7a",   // single asset detail
 };
 
@@ -155,6 +157,7 @@ export function DashboardRouter({
       case "staff":     return navigate(DASHBOARD_SCREENS.STAFF_MGMT);
       case "settings":  return navigate(DASHBOARD_SCREENS.SETTINGS);
       case "equipment": return navigate(DASHBOARD_SCREENS.EQUIPMENT);
+      case "qr":        return navigate(DASHBOARD_SCREENS.QR_LABELS);
       case "billing":   return navigate(DASHBOARD_SCREENS.BILLING);
       case "ops":       return navigate(DASHBOARD_SCREENS.OPS);
       case "incidents": return onIncidents?.();
@@ -222,6 +225,10 @@ export function DashboardRouter({
           companyName={companyName}
         />
       );
+
+    // ── s7c: QR labels ──────────────────────────────────────────────────────
+    case DASHBOARD_SCREENS.QR_LABELS:
+      return <S7cQrLabels onHome={onHome ?? onDone} user={user} onBack={back} />;
 
     // ── s7b: Equipment & Assets registry ────────────────────────────────────
     case DASHBOARD_SCREENS.EQUIPMENT:

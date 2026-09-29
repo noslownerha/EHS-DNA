@@ -464,6 +464,25 @@ db.exec(`CREATE TABLE IF NOT EXISTS finding_activity (
   detail TEXT,                      -- human-readable summary of what changed
   created_at TEXT DEFAULT (datetime('now'))
 )`);
+// QR-driven features (server/qr.cjs): inspection points and asset maintenance.
+db.exec(`CREATE TABLE IF NOT EXISTS inspection_points (
+  id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  name TEXT NOT NULL, site_id INTEGER REFERENCES sites(id), location TEXT,
+  checklist_id INTEGER REFERENCES checklists(id), active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now')))`);
+db.exec(`CREATE TABLE IF NOT EXISTS asset_maintenance (
+  id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  asset_id INTEGER NOT NULL REFERENCES assets(id), task TEXT NOT NULL,
+  interval_days INTEGER NOT NULL, last_done_at TEXT, next_due TEXT, active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now')))`);
+db.exec(`CREATE TABLE IF NOT EXISTS asset_maintenance_log (
+  id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL REFERENCES tenants(id),
+  maintenance_id INTEGER NOT NULL REFERENCES asset_maintenance(id), asset_id INTEGER NOT NULL REFERENCES assets(id),
+  done_by INTEGER REFERENCES users(id), done_at TEXT NOT NULL, notes TEXT)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_asset_maint ON asset_maintenance(tenant_id, asset_id)"); } catch {}
+// Which inspection point (if any) a checklist run was started from.
+try { db.exec("ALTER TABLE inspections ADD COLUMN inspection_point_id INTEGER"); } catch {}
+
 // Demo tenant flag (server/demo.cjs). Reset only ever touches is_demo = 1, and
 // demo tenants are excluded from operator revenue, attention and analytics.
 try { db.exec("ALTER TABLE tenants ADD COLUMN is_demo INTEGER DEFAULT 0"); } catch {}

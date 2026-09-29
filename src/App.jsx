@@ -90,6 +90,8 @@ function App() {
   }, [currentUser?.isOperator, currentUser?.supportTenant]);
   const [assetIdView, setAssetIdView] = useState(null);
   const [pendingChecklistId, setPendingChecklistId] = useState(null);
+  const [pendingPointId, setPendingPointId] = useState(null);   // inspection started from a point's QR
+  const [deepLinkError, setDeepLinkError] = useState("");
   const [booting,     setBooting]     = useState(!!getToken());
   const [flagScreen,  setFlagScreen]  = useState(INCIDENT_SCREENS.TYPE);
   const [inspectScreen, setInspectScreen] = useState(INSPECTION_SCREENS.START);
@@ -140,6 +142,12 @@ function App() {
       else if (kind === "training") handleTab("training");
       else if (kind === "finding") openInspect(INSPECTION_SCREENS.AGING);
       else if (kind === "asset") { setAssetIdView(e.detail.ref); setActiveTab("asset"); }
+      else if (kind === "point") {
+        // Scanned an inspection point: open its checklist ready to run.
+        api.getInspectionPoint(e.detail.ref)
+          .then(p => { setPendingChecklistId(p.checklist_id); setPendingPointId(p.id); setInspectScreen(INSPECTION_SCREENS.START); setActiveTab("inspect"); })
+          .catch(() => { setDeepLinkError("That inspection QR code is no longer active. Ask your safety lead for a new label."); setActiveTab("home"); });
+      }
       else handleTab("home");
     }
     window.addEventListener("ehs:navigate", onDeepLink);
@@ -172,7 +180,7 @@ function App() {
   // the CA tracker instead of the report screen.
   function handleTab(tabId) {
     if (tabId === "flag") { setFlagScreen(INCIDENT_SCREENS.TYPE); setPickerStep("top"); setAfterTriage(false); setFlagPreset(null); }
-    if (tabId === "inspect") { setPendingChecklistId(null); setInspectScreen(INSPECTION_SCREENS.START); }
+    if (tabId === "inspect") { setPendingChecklistId(null); setPendingPointId(null); setInspectScreen(INSPECTION_SCREENS.START); }
     if (tabId === "training") setTrainingNonce(n => n + 1);
     setActiveTab(tabId);
   }
@@ -181,7 +189,7 @@ function App() {
     setActiveTab("flag");
   }
   function openInspect(screen) {
-    setPendingChecklistId(null); setInspectScreen(screen);
+    setPendingChecklistId(null); setPendingPointId(null); setInspectScreen(screen);
     setActiveTab("inspect");
   }
   function handleNavigate(dest) {
@@ -315,8 +323,9 @@ function App() {
         return (
           <MobileFrame>
             <InspectionProvider user={userObj} companyName={BRAND.company} initialScreen={inspectScreen}
-              initialChecklistId={pendingChecklistId} key={pendingChecklistId ?? `inspect-${inspectScreen}`}>
-              <InspectionRouter onDone={() => { setPendingChecklistId(null); handleHome(); }} />
+              initialChecklistId={pendingChecklistId} initialPointId={pendingPointId}
+              key={pendingChecklistId ? `inspect-cl-${pendingChecklistId}-${pendingPointId ?? ""}` : `inspect-${inspectScreen}`}>
+              <InspectionRouter onDone={() => { setPendingChecklistId(null); setPendingPointId(null); handleHome(); }} />
             </InspectionProvider>
           </MobileFrame>
         );
@@ -370,6 +379,11 @@ function App() {
   return (
     <AccountContext.Provider value={{ user: currentUser, onLogout: handleLogout }}>
     <AppShell user={currentUser} activeTab={activeTab} onTab={handleTab}>
+      {deepLinkError && (
+        <div role="alert" onClick={() => setDeepLinkError("")} style={{ position: "fixed", top: 70, left: 12, right: 12, zIndex: 300,
+             background: "#FEF3F2", color: "#B42318", border: "1px solid #F3C4BF", borderRadius: 10, padding: "12px 14px",
+             fontSize: ".85rem", fontWeight: 600, cursor: "pointer" }}>⚠ {deepLinkError} <span style={{ opacity: .6 }}>(tap to dismiss)</span></div>
+      )}
       {renderContent()}
     </AppShell>
     </AccountContext.Provider>

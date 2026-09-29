@@ -316,6 +316,35 @@ function seedDemo(db, tenantId) {
       .run(T, aid, `${name} — energy isolation`, JSON.stringify(LOTO[tag]));
   }
 
+  // Inspection points (QR on the wall → starts its checklist)
+  const monthly = clByName["Monthly Facility Safety Walk"], ext = clByName["Fire Extinguisher Inspection"];
+  for (const [name, si, loc, cl] of [
+    ["Eyewash station — Paint booth", 0, "Paint & Finishing, west wall", monthly],
+    ["Fire extinguisher bay — Fabrication", 0, "Column B4", ext],
+    ["Fire extinguisher bay — Assembly", 1, "High bay, column C4", ext],
+    ["Dock door 3", 2, "Reno dock, blind corner", monthly],
+  ]) db.prepare("INSERT INTO inspection_points (tenant_id, name, site_id, location, checklist_id, active) VALUES (?,?,?,?,?,1)")
+      .run(T, name, siteIds[si], loc, cl);
+
+  // Maintenance schedules — one overdue, so the red state shows in a pitch
+  const assetByTag = tag => db.prepare("SELECT id FROM assets WHERE tenant_id = ? AND asset_tag = ?").get(T, tag)?.id;
+  for (const [tag, task, every, lastAgo] of [
+    ["PB-101", "Check hydraulic fluid level and hoses", 30, 12],
+    ["PB-101", "Inspect light curtain alignment", 7, 2],
+    ["CP-502", "Drain receiver tank condensate", 7, 11],
+    ["CP-502", "Replace intake filter", 90, 40],
+    ["FL-007", "Lubricate mast chains", 30, 20],
+    ["CR-005", "Annual crane inspection (third party)", 365, 300],
+  ]) {
+    const aid = assetByTag(tag); if (!aid) continue;
+    const last = new Date(Date.now() - lastAgo * 86400000);
+    const next = new Date(last.getTime() + every * 86400000);
+    const mid = Number(db.prepare(`INSERT INTO asset_maintenance (tenant_id, asset_id, task, interval_days, last_done_at, next_due, active)
+                                   VALUES (?,?,?,?,?,?,1)`).run(T, aid, task, every, last.toISOString().slice(0, 10), next.toISOString().slice(0, 10)).lastInsertRowid);
+    db.prepare("INSERT INTO asset_maintenance_log (tenant_id, maintenance_id, asset_id, done_by, done_at) VALUES (?,?,?,?,?)")
+      .run(T, mid, aid, pick(users.filter(u => u.dept === "Maintenance")).id, last.toISOString());
+  }
+
   // Payroll hours → realistic TRIR (~1.0)
   for (let m = 0; m < 12; m++) {
     const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - m);

@@ -17,7 +17,7 @@
  *   </InspectionProvider>
  */
 
-import { createContext, useContext, useReducer, useCallback, useEffect, useRef } from "react";
+import { createContext, useContext, useReducer, useCallback, useEffect, useRef, useState } from "react";
 import { BRAND, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 
@@ -149,6 +149,7 @@ export function InspectionProvider({
   companyName = BRAND.company,
   initialScreen = INSPECTION_SCREENS.START,
   initialChecklistId = null,      // when set (e.g. from an asset QR), open straight into this checklist
+  initialPointId = null,          // set when started by scanning an inspection point's QR
 }) {
   const [state, dispatch] = useReducer(reducer, { ...INITIAL_STATE, screen: initialScreen });
   const stateRef = useRef(state);
@@ -159,6 +160,10 @@ export function InspectionProvider({
   // A real useRef, kept in sync here every render, is stable across renders
   // (safe for memoized callbacks to reference) while .current is always fresh.
   stateRef.current = state;
+  const pointRef = useRef(initialPointId);
+  // A completed inspection that failed to save used to be console-only while the
+  // screen said "Inspection complete". Now it says plainly that it wasn't saved.
+  const [saveError, setSaveError] = useState("");
 
   // Deep-link from an asset: fetch the asset's checklist and drop the inspector
   // straight into running it, instead of the generic Start screen. Closes the
@@ -180,7 +185,13 @@ export function InspectionProvider({
       try {
         const cl = stateRef?.current?.activeChecklist ?? null;
         const siteRec = (BRAND.siteRecords ?? []).find(s => s.name === user?.site);
-        const { id: inspectionId } = await api.createInspection({ checklistId: cl?.id ?? null, siteId: siteRec?.id ?? null });
+        const point = pointRef.current;
+        const { id: inspectionId } = await api.createInspection({
+          checklistId: cl?.id ?? null,
+          // Scanned at a point: the point's site is the truth, not the inspector's home site.
+          siteId: point ? null : (siteRec?.id ?? null),
+          inspectionPointId: point ?? null,
+        });
         const responses = Object.fromEntries((items ?? []).map(it => [it.id, it.result ?? it.status ?? "na"]));
         await api.updateInspection(inspectionId, { responses, complete: true });
         for (const f of (findings ?? [])) {
@@ -198,7 +209,9 @@ export function InspectionProvider({
             photos:     f?.photo ? [f.photo] : [],
           });
         }
-      } catch (err) { console.error("Inspection save failed:", err.message); }
+      } catch (err) {
+        setSaveError(`This inspection was NOT saved — ${err.message}. Check your connection and run it again.`);
+      }
     })();
   }, [user?.site]);
   const submitQuick  = useCallback(finding => {
@@ -229,6 +242,12 @@ export function InspectionProvider({
       user, companyName,
     }}>
       {children}
+      {saveError && (
+        <div role="alert" style={{ position: "fixed", top: 70, left: 12, right: 12, zIndex: 50, background: "#FEF3F2", color: "#B42318",
+                                   border: "1px solid #F3C4BF", borderRadius: 10, padding: "12px 14px", fontSize: ".85rem", fontWeight: 600 }}>
+          ⚠ {saveError}
+        </div>
+      )}
     </InspectionContext.Provider>
   );
 }

@@ -1607,8 +1607,18 @@ app.get("/api/inspections", auth, (req, res) => {
   res.json(rows);
 });
 app.post("/api/inspections", auth, (req, res) => {
-  const r = db.prepare("INSERT INTO inspections (tenant_id, checklist_id, site_id, inspector_id) VALUES (?, ?, ?, ?)")
-    .run(req.auth.tenant, req.body.checklistId ?? null, req.body.siteId ?? null, req.auth.uid);
+  let { checklistId, siteId, inspectionPointId } = req.body || {};
+  // Started by scanning an inspection point's QR: record which point, and take
+  // its checklist/site when the client didn't send them. The point must belong
+  // to this tenant — otherwise it's ignored rather than trusted.
+  if (inspectionPointId != null) {
+    const pt = db.prepare("SELECT id, checklist_id, site_id FROM inspection_points WHERE tenant_id = ? AND id = ? AND active = 1")
+      .get(req.auth.tenant, inspectionPointId);
+    if (pt) { checklistId = checklistId ?? pt.checklist_id; siteId = siteId ?? pt.site_id; inspectionPointId = pt.id; }
+    else inspectionPointId = null;
+  }
+  const r = db.prepare("INSERT INTO inspections (tenant_id, checklist_id, site_id, inspector_id, inspection_point_id) VALUES (?, ?, ?, ?, ?)")
+    .run(req.auth.tenant, checklistId ?? null, siteId ?? null, req.auth.uid, inspectionPointId ?? null);
   res.json({ id: r.lastInsertRowid });
 });
 app.put("/api/inspections/:id", auth, (req, res) => {
@@ -3039,6 +3049,7 @@ require("./billing.cjs")(app, db, auth, () => requireOperator);
 
 // ── Equipment & Assets module ─────────────────────────────────────────────────
 require("./equipment.cjs")(app, db, auth, requireRole, ADMINISH, { storePhoto });
+require("./qr.cjs")(app, db, auth, requireRole, ADMINISH, (t, key) => enabledModules(t).has(key));
 require("./templates.cjs")(app, db, auth, requireOperator);
 require("./mbr.cjs")(app, db, auth, requireRole, { isRecordableClass, staffCompliance, CAN_SEE_ALL_INCIDENTS });
 

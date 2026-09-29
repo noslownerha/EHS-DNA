@@ -31,7 +31,7 @@ const MODULES = {
     label: "Core",
     // Path prefixes that must always work regardless of enabled modules.
     paths: ["auth", "users", "sites", "departments", "config", "health", "op",
-            "notifications", "notification-rules", "leads", "labor-hours", "photos"],
+            "notifications", "notification-rules", "leads", "labor-hours", "photos", "qr"],
     tabs: ["home"],
   },
 
@@ -54,7 +54,7 @@ const MODULES = {
   inspections: {
     label: "Inspections & Audits",
     blurb: "Checklist-driven inspections and audits with findings.",
-    paths: ["inspections", "checklists", "findings"],
+    paths: ["inspections", "checklists", "findings", "inspection-points"],
     tabs: ["inspect"],
     default: true,
   },
@@ -85,7 +85,7 @@ const MODULES = {
   equipment: {
     label: "Equipment & Assets",
     blurb: "Asset registry with QR codes linking to LOTO procedures, SOPs, and equipment inspections.",
-    paths: ["assets", "procedures"], // /api/assets/* and /api/procedures/*
+    paths: ["assets", "procedures", "maintenance"], // /api/assets/*, /api/procedures/*, /api/maintenance/*
     tabs: [],                       // reached via deep link + admin settings, no dedicated tab yet
     softDeps: ["inspections"],      // asset inspections use the inspections module when present
     default: false,                 // opt-in per tenant
