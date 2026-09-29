@@ -54,6 +54,8 @@ export function applyServerConfig(cfg) {
   if (Array.isArray(cfg.modules)) {
     BRAND.modules = cfg.modules;   // enabled module keys, e.g. ["core","incidents",…]
     BRAND.features = cfg.features ?? {};
+    BRAND.environment = cfg.environment ?? "production";
+    BRAND.emailDisabled = !!cfg.emailDisabled;
   }
 }
 

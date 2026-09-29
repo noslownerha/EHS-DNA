@@ -499,6 +499,9 @@ app.get("/api/config", auth, (req, res) => {
     // Optional features that depend on server setup. aiDraft is only true when
     // an Anthropic API key is configured — the button stays hidden otherwise.
     features: { aiDraft: !!process.env.ANTHROPIC_API_KEY },
+    // "staging" shows a banner on every screen so the two copies are never confused.
+    environment: process.env.EHS_STAGING === "1" ? "staging" : "production",
+    emailDisabled: process.env.EHS_EMAIL_DISABLED === "1",
   });
 });
 app.put("/api/config", auth, requireRole(...ADMINISH), (req, res) => {

@@ -89,6 +89,12 @@ function fromAddress() {
 // bounces damage the sending domain's reputation for real customers.
 const NEVER_EMAIL = /(\.invalid$)|(^demo(-worker)?@ehsdna\.com$)/i;
 async function sendEmail(to, subject, text, html) {
+  // Staging (and any copy of real data) runs with EHS_EMAIL_DISABLED=1: nothing
+  // leaves the box, so testing against a copy of production can't email real people.
+  if (process.env.EHS_EMAIL_DISABLED === "1") {
+    console.log(`[email disabled] would send "${subject}" to ${[].concat(to).filter(Boolean).join(", ")}`);
+    return { sent: false, reason: "email disabled on this environment" };
+  }
   const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean)
     .filter(r => !NEVER_EMAIL.test(String(r).trim()));
   if (!recipients.length) return { sent: false, reason: "no recipients" };

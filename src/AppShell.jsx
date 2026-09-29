@@ -331,6 +331,13 @@ export default function AppShell({ user, children, activeTab, onTab }) {
 
   return (
     <RoleContext.Provider value={{ user, perms }}>
+      {BRAND.environment === "staging" && (
+        <div role="note" aria-label="Staging environment" style={{
+          position: "sticky", top: 0, zIndex: 400, background: "#E8871E", color: "#fff", textAlign: "center",
+          fontFamily: "'DM Sans', sans-serif", fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", padding: "3px 8px" }}>
+          STAGING — test copy{BRAND.emailDisabled ? " · emails are switched off" : ""}
+        </div>
+      )}
       {(!online || pending > 0) && (
         <div className="no-print" style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 500,

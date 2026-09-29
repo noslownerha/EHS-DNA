@@ -92,6 +92,12 @@ export default function LandingPage({ onEnter }) {
       padding: "24px 24px",
       position: "relative", overflow: "hidden",
     }}>
+      {/^staging\./.test(window.location.hostname) && (
+        <div role="note" aria-label="Staging environment" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400,
+          background: "#E8871E", color: "#fff", textAlign: "center", fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", padding: "3px 8px" }}>
+          STAGING — test copy, not the live app
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
