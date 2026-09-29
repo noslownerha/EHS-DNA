@@ -157,6 +157,22 @@ function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: "Not authenticated" });
   try {
     req.auth = jwt.verify(token, SECRET);
+    // Operator data boundary, enforced server-side. The operator console only
+    // ever needs /api/op/* plus a few non-record endpoints; everything else is
+    // a customer's records. Before this, an operator token could read a
+    // tenant's incidents (descriptions, names) directly from the API — the
+    // console hid them, the server didn't. Reading customer records now
+    // requires deliberately entering support mode (imp), which shows the banner.
+    if (req.auth.op && !req.auth.imp) {
+      const p = req.path;
+      // /api/billing: the operator manages each company's pricing and invoices
+      // (commercial data, not safety records) via ?tenantId=.
+      const OPERATOR_OK = ["/api/config", "/api/health", "/api/leads", "/api/notifications", "/api/billing"];
+      const allowed = p.startsWith("/api/op/") || p.startsWith("/api/auth/")
+        || OPERATOR_OK.some(x => p === x || p.startsWith(x + "/"));
+      if (!allowed)
+        return res.status(403).json({ error: "Operator accounts can't read customer records directly. Use \"Enter app\" (support mode) on the company." });
+    }
     if (!req.auth.op) {
       const tRow = db.prepare("SELECT active, suspension_reason FROM tenants WHERE id = ?").get(req.auth.tenant);
       if (tRow && tRow.active === 0)
@@ -2395,7 +2411,7 @@ app.post("/api/op/impersonate", auth, requireOperator, (req, res) => {
   const tenant = db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.body?.tenantId);
   if (!tenant) return res.status(404).json({ error: "Tenant not found" });
   const token = jwt.sign(
-    { uid: req.auth.uid, tenant: tenant.id, role: "admin", name: `${req.auth.name} (support)`, op: true },
+    { uid: req.auth.uid, tenant: tenant.id, role: "admin", name: `${req.auth.name} (support)`, op: true, imp: true },
     SECRET, { expiresIn: "4h" }
   );
   res.json({ token, user: { id: req.auth.uid, name: `EHS DNA Support`, role: "admin",
