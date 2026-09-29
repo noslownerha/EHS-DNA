@@ -2520,7 +2520,7 @@ app.get("/api/reports/program-summary", auth, requireRole(...CAN_SEE_ALL_INCIDEN
       SUM(CASE WHEN status='open' AND severity IN ('medium','low') THEN 1 ELSE 0 END) AS minorOpen,
       SUM(CASE WHEN status='resolved' AND resolved_at > ${since} THEN 1 ELSE 0 END) AS resolvedInPeriod,
       SUM(CASE WHEN status='open' THEN 1 ELSE 0 END) AS totalOpen
-    FROM findings WHERE tenant_id = ?${siteClause}`).get(t);
+    FROM findings WHERE tenant_id = ?${siteClause} AND COALESCE(safety_relevant, 1) = 1`).get(t);  // safety findings only, matching the Report Builder
 
   // CapEx-blocked corrective actions (that's where the capex state lives).
   const capex = db.prepare(`SELECT COUNT(*) n FROM corrective_actions

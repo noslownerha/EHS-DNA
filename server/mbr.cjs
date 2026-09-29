@@ -78,8 +78,12 @@ module.exports = function mountMbr(app, db, auth, requireRole, deps) {
         const hc = db.prepare("SELECT COUNT(*) n FROM users WHERE tenant_id = ? AND site_id = ? AND active = 1 AND is_operator = 0").get(tenantId, st.id).n;
         return hc * 160;
       })();
-      const findings = db.prepare("SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ?").get(tenantId, st.id).n;
-      const closed = db.prepare("SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? AND status = 'resolved'").get(tenantId, st.id).n;
+      // Safety findings only — must match the Report Builder. Non-safety items
+      // (tracked upkeep, e.g. a dusty baseboard) were being counted on the one
+      // slide that goes to leadership.
+      const SAFETY = "AND COALESCE(safety_relevant, 1) = 1";
+      const findings = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? ${SAFETY}`).get(tenantId, st.id).n;
+      const closed = db.prepare(`SELECT COUNT(*) n FROM findings WHERE tenant_id = ? AND site_id = ? AND status = 'resolved' ${SAFETY}`).get(tenantId, st.id).n;
       return {
         name: st.name,
         trirMonth: trir(countRecordable(monthRows), monthHours),

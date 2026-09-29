@@ -403,7 +403,15 @@ const SEED_DETAIL = {
 };
 
 // Spec §12.8: OSHA classification editable by Safety Officer and Company Admin only
-const USER_ROLE = JSON.parse(sessionStorage.getItem("ehs_user") || "{}").role ?? "staff";
+// Read the role when it's needed, not once at module load. This used to be a
+// module-level constant, evaluated when the bundle first loaded — i.e. BEFORE
+// sign-in — so it read "staff" and kept it. After a fresh sign-in, an admin
+// opening an incident couldn't set the OSHA classification (which drives TRIR)
+// or manage corrective actions until they refreshed the page.
+const userRole = () => {
+  try { return JSON.parse(sessionStorage.getItem("ehs_user") || "{}").role ?? "staff"; }
+  catch { return "staff"; }
+};
 
 const OSHA_OPTIONS = [
   "Pending", "Review: likely recordable", "Non-recordable", "First aid only (non-recordable)",
@@ -681,7 +689,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
     });
   }
 
-  const canClose = ["admin", "safety", "site_manager"].includes(USER_ROLE);
+  const canClose = ["admin", "safety", "site_manager"].includes(userRole());
   function toggleIncidentStatus() {
     if (!dbId) return;
     const next = incident.status === "closed" ? "open" : "closed";
@@ -690,9 +698,9 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
       .catch(err => console.error("Status update failed:", err.message));
   }
 
-  const canEditOsha = USER_ROLE === "safety" || USER_ROLE === "admin";
+  const canEditOsha = userRole() === "safety" || userRole() === "admin";
   // Spec §12.8: once closed, read-only for standard users; Company Admin can edit for error correction
-  const canEdit = incident.status !== "closed" || USER_ROLE === "admin";
+  const canEdit = incident.status !== "closed" || userRole() === "admin";
 
   function updateField(field, value) {
     setIncident(i => ({ ...i, [field]: value }));
@@ -996,7 +1004,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               </div>
               {incident.cas.map(ca => {
                 const s = CA_STATUS[ca.status] ?? CA_STATUS["on-track"];
-                const canManageCA = ["admin", "safety", "site_manager"].includes(USER_ROLE);
+                const canManageCA = ["admin", "safety", "site_manager"].includes(userRole());
                 const srv = ca.serverStatus ?? "open";
                 return (
                   <div key={ca.id} style={{
@@ -1036,7 +1044,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                   </div>
                 );
               })}
-              {["admin", "safety", "site_manager"].includes(USER_ROLE) && (
+              {["admin", "safety", "site_manager"].includes(userRole()) && (
                 <form onSubmit={handleAddCA} style={{ display: "flex", gap: 8, marginTop: 4 }}>
                   <input value={newCA} onChange={e => setNewCA(e.target.value)} placeholder="Add a corrective action…"
                     style={{ flex: 1, padding: "9px 11px", border: "1.5px solid #D0DEDB", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".84rem", color: C.ink, outline: "none" }} />
