@@ -386,7 +386,7 @@ export default function S1b3Departments({ industry = "Spirits / Distilling", onC
 
       {/* Top nav */}
       <EHSHeader onHome={onHome} rightContent={
-        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.82)", background: "rgba(255,255,255,.1)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           New account setup
         </div>
       } />

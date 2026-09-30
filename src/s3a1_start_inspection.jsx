@@ -111,7 +111,7 @@ export default function S3a1StartInspection({ onHome,
         .continue-btn:hover:not(:disabled) { background: ${C.pine} !important; transform: translateY(-1px); }
       `}</style>
 
-      <EHSHeader onHome={onHome} rightContent={<div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.45)" }}>{user.name} · {user.site}</div>} />
+      <EHSHeader onHome={onHome} rightContent={<div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>{user.name} · {user.site}</div>} />
 
       <div style={{ flex: 1, padding: "18px 18px 100px", overflowY: "auto" }}>
 

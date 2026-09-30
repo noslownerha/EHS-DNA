@@ -10,10 +10,10 @@ function OpsNav({ title }) {
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".9rem", fontWeight: 500, color: C.teal, letterSpacing: ".06em" }}>
           <span style={{ color: C.white }}>EHS</span>ops
         </div>
-        <span style={{ color: "rgba(255,255,255,.15)" }}>|</span>
-        <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.5)" }}>{title}</span>
+        <span style={{ color: "rgba(255,255,255,.78)" }}>|</span>
+        <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.78)" }}>{title}</span>
       </div>
-      <span style={{ fontSize: ".7rem", color: "rgba(255,255,255,.3)", background: "rgba(255,255,255,.06)", padding: "2px 8px", borderRadius: 12 }}>Super Admin</span>
+      <span style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.06)", padding: "2px 8px", borderRadius: 12 }}>Super Admin</span>
     </div>
   );
 }
@@ -77,7 +77,7 @@ export function S6ePlatformMetrics() {
         .anim { animation: fadeUp .25s ease both; }
         .hide-btn:hover { color: ${C.red} !important; }
         .unhide-btn:hover { background: rgba(255,255,255,.08) !important; }
-        input::placeholder { color: rgba(255,255,255,.2); }
+        input::placeholder { color: rgba(255,255,255,.78); }
       `}</style>
 
       <OpsNav title="Platform Metrics" />
@@ -86,7 +86,7 @@ export function S6ePlatformMetrics() {
 
         <div className="anim" style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white }}>Platform Metrics</h1>
-          <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)", marginTop: 3 }}>
+          <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)", marginTop: 3 }}>
             Tile layout customisable — use X to hide tiles. Hidden state persists across sessions.
           </p>
         </div>
@@ -107,24 +107,24 @@ export function S6ePlatformMetrics() {
                 <button className="hide-btn" onClick={() => hideTile(tile.id)} style={{
                   position: "absolute", top: 6, right: 8,
                   background: "none", border: "none",
-                  color: "rgba(255,255,255,.2)", fontSize: ".8rem",
+                  color: "rgba(255,255,255,.78)", fontSize: ".8rem",
                   cursor: "pointer", padding: "2px 4px",
                   transition: "color .12s",
                 }} title="Hide tile">×</button>
 
                 <div style={{ fontSize: "1.6rem", fontWeight: 800, color: tile.color, lineHeight: 1 }}>{tile.value}</div>
-                <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.5)", marginTop: 3, fontWeight: 500 }}>{tile.label}</div>
+                <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", marginTop: 3, fontWeight: 500 }}>{tile.label}</div>
               </div>
             ))}
           </div>
         ) : (
           <div className="anim" style={{ padding: "32px", textAlign: "center", background: "rgba(255,255,255,.03)", border: "1px dashed rgba(255,255,255,.08)", borderRadius: 10, marginBottom: 8 }}>
-            <div style={{ color: "rgba(255,255,255,.3)", fontSize: ".88rem" }}>All tiles hidden</div>
+            <div style={{ color: "rgba(255,255,255,.78)", fontSize: ".88rem" }}>All tiles hidden</div>
           </div>
         )}
 
         {/* Supporting context */}
-        <div className="anim" style={{ fontSize: ".75rem", color: "rgba(255,255,255,.3)", marginBottom: 20, paddingLeft: 2 }}>
+        <div className="anim" style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", marginBottom: 20, paddingLeft: 2 }}>
           {hiddenTiles.size > 0 && `${hiddenTiles.size} tile${hiddenTiles.size > 1 ? "s" : ""} hidden`}
         </div>
 
@@ -133,24 +133,24 @@ export function S6ePlatformMetrics() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
               <h2 style={{ fontSize: ".9rem", fontWeight: 600, color: C.white }}>Benchmark cost fields</h2>
-              <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,.3)", marginTop: 2 }}>Owner-only · editable inline · saves on blur · drives recovery calculations below</p>
+              <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", marginTop: 2 }}>Owner-only · editable inline · saves on blur · drives recovery calculations below</p>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
             <div>
-              <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Build cost ($)</div>
+              <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Build cost ($)</div>
               <input value={buildCost} onChange={e => setBuildCost(e.target.value)}
                 onFocus={() => setBuildFocused(true)} onBlur={() => setBuildFocused(false)}
                 style={fieldStyle(buildFocused)} />
             </div>
             <div>
-              <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Monthly opex ($)</div>
+              <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Monthly opex ($)</div>
               <input value={monthlyOpex} onChange={e => setMonthlyOpex(e.target.value)}
                 onFocus={() => setOpexFocused(true)} onBlur={() => setOpexFocused(false)}
                 style={fieldStyle(opexFocused)} />
             </div>
             <div>
-              <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Build cost recovery</div>
+              <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Build cost recovery</div>
               <div style={{ padding: "6px 10px", fontSize: ".9rem", color: buildRecovery >= 50 ? C.green : C.gold, fontWeight: 700, fontFamily: "'DM Mono', monospace" }}>
                 {buildRecovery}% · ~{profitableIn} months
               </div>
@@ -162,7 +162,7 @@ export function S6ePlatformMetrics() {
         {hiddenTiles.size > 0 && (
           <button className="unhide-btn" onClick={unhideAll} style={{
             padding: "9px 18px", background: "none",
-            color: "rgba(255,255,255,.4)", border: "1px solid rgba(255,255,255,.1)",
+            color: "rgba(255,255,255,.78)", border: "1px solid rgba(255,255,255,.1)",
             borderRadius: 7, fontFamily: "'DM Sans', sans-serif",
             fontSize: ".82rem", fontWeight: 500, cursor: "pointer", transition: "background .15s",
           }}>Unhide all tiles ({hiddenTiles.size})</button>
@@ -211,7 +211,7 @@ export function S6fCSSettings() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        input::placeholder { color: rgba(255,255,255,.2); }
+        input::placeholder { color: rgba(255,255,255,.78); }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .anim { animation: fadeUp .25s ease both; }
         .save-btn:hover:not(:disabled) { background: ${C.teal}cc !important; }
@@ -222,7 +222,7 @@ export function S6fCSSettings() {
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 22px" }}>
         <div className="anim" style={{ marginBottom: 22 }}>
           <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white }}>CS Backend Settings</h1>
-          <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)", marginTop: 3 }}>Rate card, module pricing, feature flags, invoice rules. Super Admin only.</p>
+          <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)", marginTop: 3 }}>Rate card, module pricing, feature flags, invoice rules. Super Admin only.</p>
         </div>
 
         {/* Rate card */}
@@ -235,12 +235,12 @@ export function S6fCSSettings() {
               { label: "Per user/mo ($)",     val: perUser,    set: setPerUser    },
             ].map((f, i) => (
               <div key={i}>
-                <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>{f.label}</div>
+                <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>{f.label}</div>
                 <input value={f.val} onChange={e => f.set(e.target.value)} style={inputStyle} />
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 10, fontSize: ".72rem", color: "rgba(255,255,255,.25)" }}>
+          <div style={{ marginTop: 10, fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>
             Per-account overrides take precedence. Changes to this card apply to new accounts only.
           </div>
         </div>
@@ -251,9 +251,9 @@ export function S6fCSSettings() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {MODULE_PRICES.map(mod => (
               <div key={mod.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: ".85rem", color: "rgba(255,255,255,.6)" }}>{mod.label}</span>
+                <span style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)" }}>{mod.label}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.25)" }}>$/mo</span>
+                  <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>$/mo</span>
                   <input defaultValue={mod.price} style={{ ...inputStyle, width: 80, textAlign: "right" }} />
                 </div>
               </div>
@@ -264,7 +264,7 @@ export function S6fCSSettings() {
         {/* Routine invoice rule */}
         <div className="anim" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
           <h2 style={{ fontSize: ".9rem", fontWeight: 600, color: C.white, marginBottom: 4 }}>Routine invoice rule</h2>
-          <p style={{ fontSize: ".75rem", color: "rgba(255,255,255,.3)", marginBottom: 14 }}>
+          <p style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", marginBottom: 14 }}>
             Invoices within X% of prior month may be configured for auto-send. Owner retains override at all times.
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -274,9 +274,9 @@ export function S6fCSSettings() {
             <span style={{ fontSize: ".85rem", color: routineInv ? "rgba(255,255,255,.7)" : "rgba(255,255,255,.3)" }}>Enable routine auto-send</span>
             {routineInv && (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)" }}>within</span>
+                <span style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)" }}>within</span>
                 <input value={routinePct} onChange={e => setRoutinePct(e.target.value)} style={{ ...inputStyle, width: 48, textAlign: "center" }} />
-                <span style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)" }}>% of prior month</span>
+                <span style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)" }}>% of prior month</span>
               </div>
             )}
           </div>
@@ -289,8 +289,8 @@ export function S6fCSSettings() {
             <div key={flag.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < FEATURE_FLAGS.length - 1 ? "1px solid rgba(255,255,255,.05)" : "none" }}>
               <div>
                 <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.7)" }}>{flag.label}</div>
-                {flag.note && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.25)", marginTop: 1 }}>{flag.note}</div>}
-                {flag.locked && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.2)", marginTop: 1 }}>Locked — cannot be disabled</div>}
+                {flag.note && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>{flag.note}</div>}
+                {flag.locked && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>Locked — cannot be disabled</div>}
               </div>
               <div style={{ opacity: flag.locked ? 0.4 : 1, pointerEvents: flag.locked ? "none" : "auto" }}>
                 <div style={{ width: 36, height: 20, borderRadius: 20, background: flag.enabled ? C.teal : "rgba(255,255,255,.1)", position: "relative", cursor: "pointer", transition: "background .2s" }}>
@@ -358,7 +358,7 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
         <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white }}>Enrollment Queue</h1>
-            <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)", marginTop: 3 }}>
+            <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)", marginTop: 3 }}>
               {pendingCount} pending · self-serve (auto-activated) · sales-assisted (manual provisioning)
             </p>
           </div>
@@ -387,7 +387,7 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
             <thead>
               <tr>
                 {["Company", "Contact", "Type", "Plan", "Sites", "Submitted", "Status", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "9px 14px", textAlign: "left", fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: "rgba(255,255,255,.3)", borderBottom: "1px solid rgba(255,255,255,.07)", background: "rgba(255,255,255,.02)", whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={i} style={{ padding: "9px 14px", textAlign: "left", fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: "rgba(255,255,255,.78)", borderBottom: "1px solid rgba(255,255,255,.07)", background: "rgba(255,255,255,.02)", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -396,9 +396,9 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
                 <tr key={enr.id} className="enroll-row">
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.white }}>{enr.name}</div>
-                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>{enr.email}</div>
+                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>{enr.email}</div>
                   </td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".83rem", color: "rgba(255,255,255,.55)" }}>{enr.contact}</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".83rem", color: "rgba(255,255,255,.78)" }}>{enr.contact}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <span style={{
                       padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap",
@@ -408,9 +408,9 @@ export function S6gEnrollmentQueue({ onProvisionAccount }) {
                       {enr.type === "self_serve" ? "Self-serve" : "Sales-assisted"}
                     </span>
                   </td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.5)" }}>{enr.plan}</td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.5)" }}>{enr.sites}</td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".78rem", color: "rgba(255,255,255,.35)" }}>{enr.submitted}</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.78)" }}>{enr.plan}</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.78)" }}>{enr.sites}</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".78rem", color: "rgba(255,255,255,.78)" }}>{enr.submitted}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     {enr.status === "active"
                       ? <span style={{ padding: "2px 9px", borderRadius: 20, fontSize: ".68rem", fontWeight: 600, whiteSpace: "nowrap", background: C.greenLt + "20", color: C.green }}>Active</span>

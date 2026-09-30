@@ -40,13 +40,13 @@ function NotifiedRow({ role, name, method, sent }) {
         <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.white }}>
           {name ?? "—"}
         </div>
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>
           {role} · via {method}
         </div>
       </div>
       {sent
         ? <span style={{ fontSize: ".75rem", color: C.mint, display: "flex", alignItems: "center", gap: 4 }}>✓ Sent</span>
-        : <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.25)" }}>Not notified</span>
+        : <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>Not notified</span>
       }
     </div>
   );
@@ -93,7 +93,7 @@ export function S0dNotificationsSent({
       `}</style>
 
       <EHSHeader onHome={onHome ?? onDone} dark rightContent={
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder} · {site}</div>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder} · {site}</div>
       } />
 
       <div style={{
@@ -107,7 +107,7 @@ export function S0dNotificationsSent({
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: C.white, marginBottom: 6 }}>
             Notifications sent
           </h1>
-          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.45)", lineHeight: 1.5 }}>
+          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)", lineHeight: 1.5 }}>
             The right people have been alerted based on this outcome.
           </p>
         </div>
@@ -120,7 +120,7 @@ export function S0dNotificationsSent({
           border: "1px solid rgba(255,255,255,.1)",
           borderRadius: 10, marginBottom: 16,
         }}>
-          <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)" }}>
+          <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)" }}>
             Outcome · {dateStr} at {timeStr}
           </div>
           <span style={{
@@ -144,7 +144,7 @@ export function S0dNotificationsSent({
             padding: "11px 16px",
             borderBottom: "1px solid rgba(255,255,255,.08)",
             fontSize: ".7rem", fontWeight: 600, letterSpacing: ".08em",
-            textTransform: "uppercase", color: "rgba(255,255,255,.3)",
+            textTransform: "uppercase", color: "rgba(255,255,255,.78)",
             display: "flex", justifyContent: "space-between",
           }}>
             <span>Who was notified</span>
@@ -152,7 +152,7 @@ export function S0dNotificationsSent({
           </div>
 
           {notified.length === 0 ? (
-            <div style={{ padding: "16px", fontSize: ".85rem", color: "rgba(255,255,255,.3)", textAlign: "center" }}>
+            <div style={{ padding: "16px", fontSize: ".85rem", color: "rgba(255,255,255,.78)", textAlign: "center" }}>
               Logged only — no notifications for minor outcomes unless configured.
             </div>
           ) : notified.map(role => (
@@ -184,7 +184,7 @@ export function S0dNotificationsSent({
             ].map((item, i) => (
               <li key={i} style={{
                 display: "flex", gap: 8,
-                fontSize: ".84rem", color: "rgba(255,255,255,.55)", lineHeight: 1.5,
+                fontSize: ".84rem", color: "rgba(255,255,255,.78)", lineHeight: 1.5,
               }}>
                 <span style={{ color: C.sage, flexShrink: 0 }}>→</span> {item}
               </li>
@@ -211,7 +211,7 @@ export function S0dNotificationsSent({
         }}>Done — go to home screen</button>
         <button className="record-btn" onClick={onViewRecord} style={{
           width: "100%", padding: "12px",
-          background: "none", color: "rgba(255,255,255,.45)",
+          background: "none", color: "rgba(255,255,255,.78)",
           border: "1px solid rgba(255,255,255,.1)", borderRadius: 10,
           fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem",
           cursor: "pointer", transition: "background .15s",
@@ -274,13 +274,13 @@ export function S0eTriageRecord({
       `}</style>
 
       <EHSHeader onHome={onHome ?? onDone} dark rightContent={
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".72rem", color: "rgba(255,255,255,.35)", letterSpacing: ".06em" }}>{record.id}</div>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".72rem", color: "rgba(255,255,255,.78)", letterSpacing: ".06em" }}>{record.id}</div>
       } />
 
       {/* Top bar */}
       <div style={{ padding: "16px 20px", display: "flex", alignItems: "center" }}>
         <button onClick={onDone} style={{
-          background: "none", border: "none", color: "rgba(255,255,255,.4)",
+          background: "none", border: "none", color: "rgba(255,255,255,.78)",
           fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>← Back</button>
       </div>
@@ -295,7 +295,7 @@ export function S0eTriageRecord({
           <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.white, marginBottom: 4 }}>
             Triage record
           </h1>
-          <p style={{ fontSize: ".83rem", color: "rgba(255,255,255,.4)", lineHeight: 1.5 }}>
+          <p style={{ fontSize: ".83rem", color: "rgba(255,255,255,.78)", lineHeight: 1.5 }}>
             Created automatically. This record will be linked to any incident report filed.
           </p>
         </div>
@@ -313,7 +313,7 @@ export function S0eTriageRecord({
               borderBottom: i < fields.length - 1 ? "1px solid rgba(255,255,255,.06)" : "none",
               gap: 12,
             }}>
-              <div style={{ fontSize: ".72rem", fontWeight: 600, color: "rgba(255,255,255,.3)", width: 120, flexShrink: 0, paddingTop: 2, textTransform: "uppercase", letterSpacing: ".04em" }}>
+              <div style={{ fontSize: ".72rem", fontWeight: 600, color: "rgba(255,255,255,.78)", width: 120, flexShrink: 0, paddingTop: 2, textTransform: "uppercase", letterSpacing: ".04em" }}>
                 {f.label}
               </div>
               <div style={{ fontSize: ".88rem", color: C.white, flex: 1 }}>
@@ -330,13 +330,13 @@ export function S0eTriageRecord({
             border: "1px solid rgba(255,255,255,.08)",
             borderRadius: 10, padding: "14px 16px", marginBottom: 16,
           }}>
-            <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: "rgba(255,255,255,.3)", marginBottom: 10 }}>
+            <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: "rgba(255,255,255,.78)", marginBottom: 10 }}>
               Steps marked complete
             </div>
             {record.stepsCompleted.map((s, i) => (
               <div key={i} style={{
                 display: "flex", gap: 8, fontSize: ".85rem",
-                color: "rgba(255,255,255,.5)", marginBottom: 6, alignItems: "flex-start",
+                color: "rgba(255,255,255,.78)", marginBottom: 6, alignItems: "flex-start",
               }}>
                 <span style={{ color: C.sage, flexShrink: 0 }}>✓</span> {s}
               </div>
@@ -351,7 +351,7 @@ export function S0eTriageRecord({
           border: `1px solid ${record.linkedReportId ? "rgba(74,140,92,.2)" : "rgba(255,255,255,.08)"}`,
           borderRadius: 10, marginBottom: 8,
         }}>
-          <div style={{ fontSize: ".72rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: "rgba(255,255,255,.3)", marginBottom: 4 }}>
+          <div style={{ fontSize: ".72rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: "rgba(255,255,255,.78)", marginBottom: 4 }}>
             Linked incident report
           </div>
           <div style={{ fontSize: ".88rem", color: record.linkedReportId ? C.mint : "rgba(255,255,255,.3)" }}>
@@ -380,7 +380,7 @@ export function S0eTriageRecord({
         )}
         <button className="done-btn" onClick={onDone} style={{
           width: "100%", padding: "12px",
-          background: "none", color: "rgba(255,255,255,.4)",
+          background: "none", color: "rgba(255,255,255,.78)",
           border: "1px solid rgba(255,255,255,.1)", borderRadius: 10,
           fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem",
           cursor: "pointer", transition: "background .15s",

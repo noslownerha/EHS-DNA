@@ -151,7 +151,7 @@ export default function LandingPage({ onEnter }) {
 
         {/* Tagline */}
         <div className="a2" style={{ marginBottom: 36, textAlign: "center" }}>
-          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.35)", letterSpacing: ".02em", lineHeight: 1.5 }}>
+          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)", letterSpacing: ".02em", lineHeight: 1.5 }}>
             {BRAND.tagline}
           </p>
         </div>
@@ -161,7 +161,7 @@ export default function LandingPage({ onEnter }) {
             <>
               {/* Reset succeeded */}
               <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
-                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
+                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.78)" }}>
                   Password updated
                 </p>
               </div>
@@ -180,7 +180,7 @@ export default function LandingPage({ onEnter }) {
             <>
               {/* Set new password (landed here from an emailed reset link) */}
               <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
-                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
+                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.78)" }}>
                   Set a new password
                 </p>
               </div>
@@ -223,7 +223,7 @@ export default function LandingPage({ onEnter }) {
         <>
         {/* Sign-in label */}
         <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
-          <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.22)" }}>
+          <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.78)" }}>
             Sign in
           </p>
         </div>
@@ -245,7 +245,7 @@ export default function LandingPage({ onEnter }) {
               aria-label={showPw ? "Hide password" : "Show password"} style={{
                 position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
                 background: "none", border: "none", cursor: "pointer", fontSize: "1.05rem",
-                color: "rgba(255,255,255,.55)", padding: 4, lineHeight: 1,
+                color: "rgba(255,255,255,.78)", padding: 4, lineHeight: 1,
               }}>{showPw ? "🙈" : "👁️"}</button>
           </div>
           {error && (
@@ -276,7 +276,7 @@ export default function LandingPage({ onEnter }) {
           }} style={{ background: "none", border: "none", color: "rgba(168,213,181,.6)", fontSize: ".78rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
             Forgot password?
           </button>
-          <p style={{ fontSize: ".67rem", color: "rgba(255,255,255,.15)", letterSpacing: ".04em", lineHeight: 1.6 }}>
+          <p style={{ fontSize: ".67rem", color: "rgba(255,255,255,.78)", letterSpacing: ".04em", lineHeight: 1.6 }}>
             Access is provisioned by your administrator
           </p>
         </div>

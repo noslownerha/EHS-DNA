@@ -508,7 +508,7 @@ function ForcePasswordChange({ onDone, onLogout }) {
         <h1 style={{ color: "#fff", fontSize: "1.3rem", fontWeight: 700, textAlign: "center", marginBottom: 6 }}>
           Set a new password
         </h1>
-        <p style={{ color: "rgba(255,255,255,.6)", fontSize: ".85rem", textAlign: "center", marginBottom: 20, lineHeight: 1.5 }}>
+        <p style={{ color: "rgba(255,255,255,.78)", fontSize: ".85rem", textAlign: "center", marginBottom: 20, lineHeight: 1.5 }}>
           Your account is using a temporary password. Choose a new one to continue.
         </p>
         <input type="password" value={current} onChange={e => setCurrent(e.target.value)}
@@ -530,7 +530,7 @@ function ForcePasswordChange({ onDone, onLogout }) {
         }}>{busy ? "Saving…" : "Set password & continue"}</button>
         <button type="button" onClick={onLogout} style={{
           width: "100%", marginTop: 10, background: "none", border: "none",
-          color: "rgba(255,255,255,.5)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+          color: "rgba(255,255,255,.78)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>Sign out</button>
       </form>
     </div>

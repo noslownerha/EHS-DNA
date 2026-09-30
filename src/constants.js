@@ -7,14 +7,17 @@
 // rebrand. NOTE: email (server/email.cjs), the PWA manifest, and index.html each
 // carry their own copy of the primary colour because they run outside the JS
 // bundle — keep them in sync with `primary` when rebranding.
+// "Clarity with character" (Sep 2026). Every text/background pair used by the
+// app is checked against WCAG AA by e2e/test_contrast.py — change a value here
+// and that suite tells you if it breaks readability anywhere.
 export const BRAND_COLORS = {
-  primary:   "#1C3A2A",   // forest — headers, primary surfaces
-  primary2:  "#2D5A3D",   // pine — gradients, hover
-  accent:    "#4A8C5C",   // sage — buttons, links, active
-  accentSoft:"#A8D5B5",   // mint — soft accents
-  wash:      "#E8F5EC",   // foam — tinted backgrounds
-  textDark:  "#0F1F17",   // ink — primary text on light
-  surface:   "#F4F7F5",   // chalk — app background
+  primary:   "#0B3F4C",   // deep petrol — sidebar, headers, dark surfaces
+  primary2:  "#0B4A58",   // petrol — hover, strong text links
+  accent:    "#0E5566",   // brand teal — primary buttons, links, active (white text 8.4:1)
+  accentSoft:"#7FD1C3",   // mint — accent on dark surfaces (6.5:1 on primary)
+  wash:      "#E3EEF0",   // teal tint — selected / soft backgrounds
+  textDark:  "#15212B",   // ink — primary text
+  surface:   "#F6F4EF",   // warm white — app background
 };
 
 export const COLORS = {
@@ -27,27 +30,39 @@ export const COLORS = {
   ink:    BRAND_COLORS.textDark,
   chalk:  BRAND_COLORS.surface,
   // Semantic / neutral tokens — constant across any rebrand.
-  slate: "#4A5568",
-  mist: "#8FA3A0",
+  slate: "#4B5A66",          // secondary text (7.1:1)
+  mist: "#5E6973",           // tertiary text — was #8FA3A0 (2.6:1, failed AA); ≥4.65:1 on white AND every status tint
   white: "#FFFFFF",
   dark: "#1A1A2E",
   mid: "#16213E",
-  gold: "#C8922A",
-  goldLt: "#FDF3E3",
-  red: "#C0392B",
-  redLt: "#FDECEA",
+  // Status colours ("visual management"): green = on track, amber = watch,
+  // red = act now, blue = in progress. Text variants meet 4.5:1 on their tints.
+  gold: "#9A5B00",           // amber text/fill (was #C8922A, 2.6:1)
+  goldLt: "#FDF1D6",
+  amberFill: "#F4B400",      // bright amber — fills with ink text only; decorative strips
+  amberGfx: "#B37400",       // amber for required graphics (icons, bars, borders; 3:1)
+  red: "#B8352A",
+  redLt: "#FBE5E2",
   alarm: "#B91C1C",
   alarmLt: "#FEF2F2",
-  orange: "#D4622A",
-  orangeLt: "#FEF0E7",
-  green: "#2EC4B6",
-  greenLt: "#E8FAF9",
-  navy: "#1F4E79",
-  navyLt: "#D6E4F0",
+  orange: "#B5501C",
+  orangeLt: "#FDEBDD",
+  green: "#1A7A42",          // was a teal #2EC4B6 (2.2:1) — "green" now means on-track green
+  greenLt: "#E3F3E9",
+  navy: "#2463A6",           // in-progress blue
+  navyLt: "#E4EEF8",
   purple: "#6B3FA0",
   purpleLt: "#F3F0F9",
-  teal: "#00B4D8",
-  tealLt: "#E0F7FC",
+  teal: "#0A7390",
+  tealLt: "#E1F1F5",
+  field: "#8C8577",          // input + outline-button borders (3:1)
+  line: "#E4E0D7",           // card borders / dividers (decorative)
+};
+
+export const FONTS = {
+  body: "'DM Sans', system-ui, sans-serif",
+  display: "'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif",
+  mono: "'DM Mono', ui-monospace, monospace",
 };
 
 // EHS DNA – Shared constants & demo seed data

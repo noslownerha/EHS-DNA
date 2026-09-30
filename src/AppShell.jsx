@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import Icon, { Logo } from "./Icon.jsx";
 import { BRAND, ROLE_PERMS, TAB_CONFIG, OPERATOR_TABS, visibleTabs, COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 import { onQueueChange, queueCount } from "./offlineQueue.js";
@@ -33,24 +34,21 @@ export function EHSHeader({ onHome, onBack, title, rightContent, dark = false })
         {onBack && (
           <button onClick={onBack} aria-label="Back" style={{
             background: "none", border: "none", cursor: "pointer", color: "#fff",
-            fontSize: "1.15rem", lineHeight: 1, padding: "4px 6px 4px 0", marginRight: 2,
-          }}>←</button>
+            lineHeight: 1, padding: "8px 6px 8px 0", marginRight: 2, display: "flex", alignItems: "center",
+          }}><Icon name="back" size={22} stroke={2} /></button>
         )}
-        <button onClick={onHome} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, minWidth: 0 }}>
-          <span style={{ fontSize: "1rem" }}>🧬</span>
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".88rem", fontWeight: 600, letterSpacing: ".06em", color: accent, whiteSpace: "nowrap" }}>
-            <span style={{ color: "#fff" }}>EHS</span> DNA
-          </span>
+        <button onClick={onHome} aria-label="EHS DNA — home" style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, minWidth: 0 }}>
+          <Logo size={26} />
         </button>
       </div>
       {title && (
-        <div style={{ flex: 1, minWidth: 0, margin: "0 10px", fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.6)", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ flex: 1, minWidth: 0, margin: "0 10px", fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {title}
         </div>
       )}
       <div style={{ minWidth: 60, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
         {rightContent ? <span className="ehs-hdr-context">{rightContent}</span> : (
-          <span style={{ fontSize: ".65rem", color: "rgba(255,255,255,.2)", fontFamily: "'DM Mono', monospace" }}>
+          <span style={{ fontSize: ".65rem", color: "rgba(255,255,255,.78)", fontFamily: "'DM Mono', monospace" }}>
             {BRAND.tagline.split(" ").slice(0, 4).join(" ")}…
           </span>
         )}
@@ -237,42 +235,41 @@ function ChangePasswordModal({ onClose }) {
 }
 
 // ── Bottom tab bar ─────────────────────────────────────────────────────────────
+// Tab ids → icon names (emoji removed: they render differently per phone and
+// can't take the brand colour).
+const TAB_ICON = { home: "home", flag: "flag", triage: "medic", inspect: "check", training: "cap", reports: "chart",
+                   attention: "bell", overview: "chart", companies: "building", billing: "card", recognition: "star" };
+
 function BottomTabBar({ tabs, activeTab, onTab }) {
   return (
-    <div className="bottom-nav" style={{
+    <nav aria-label="Main" className="bottom-nav" style={{
       position: "fixed", bottom: 0, left: 0, right: 0,
       height: 58,
-      background: "#2A4435",
-      borderTop: "1px solid rgba(168,213,181,.25)",
+      background: C.white,
+      borderTop: `1px solid ${C.line}`,
       display: "flex", zIndex: 200,
-      boxShadow: "0 -4px 20px rgba(0,0,0,.3)",
+      boxShadow: "0 -2px 12px rgba(21,33,43,.06)",
     }}>
-      <style>{`.tab-btn-inner{transition:all .15s ease;}.tab-btn-inner:active{transform:scale(.9);}`}</style>
+      <style>{`.tab-btn-inner{transition:background .15s ease;}.tab-btn:active .tab-btn-inner{transform:scale(.94);}`}</style>
       {tabs.map(tabId => {
         const cfg    = TAB_CONFIG[tabId];
         const active = activeTab === tabId;
         if (!cfg) return null;
         return (
-          <button key={tabId} onClick={() => onTab(tabId)} style={{
+          <button key={tabId} className="tab-btn" onClick={() => onTab(tabId)} aria-current={active ? "page" : undefined} style={{
             flex: 1, background: "none", border: "none", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: 3, padding: "6px 2px 4px", position: "relative",
+            gap: 2, padding: "5px 2px 4px", color: active ? C.sage : C.slate,
           }}>
-            {active && (
-              <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 24, height: 2, background: C.sage, borderRadius: "0 0 2px 2px" }} />
-            )}
-            <div className="tab-btn-inner">
-              <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>{cfg.icon}</span>
-            </div>
-            <span style={{
-              fontSize: ".58rem", fontWeight: active ? 700 : 400,
-              color: active ? "#D6EDDD" : "rgba(255,255,255,.65)",
-              fontFamily: "'DM Sans', sans-serif", letterSpacing: ".03em", transition: "color .15s",
-            }}>{cfg.label}</span>
+            <span className="tab-btn-inner" style={{ width: 52, height: 28, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
+                                                      background: active ? C.foam : "transparent" }}>
+              <Icon name={TAB_ICON[tabId] || "home"} size={21} stroke={active ? 2.1 : 1.8} />
+            </span>
+            <span style={{ fontSize: ".7rem", fontWeight: active ? 700 : 500, fontFamily: "'DM Sans', sans-serif", letterSpacing: ".01em" }}>{cfg.label}</span>
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
@@ -353,8 +350,18 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         </div>
       )}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
+        body { background: ${C.chalk}; color: ${C.ink}; }
+        /* Headlines get the display face; body stays DM Sans (continuity). */
+        h1, h2, .display { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; letter-spacing: -0.01em; }
+        /* Visible keyboard focus (WCAG 2.4.7): teal ring + white halo shows on light and dark. */
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+        textarea:focus-visible, [tabindex]:focus-visible {
+          outline: 3px solid ${C.sage}; outline-offset: 2px; box-shadow: 0 0 0 5px #FFFFFF;
+        }
+        /* Form controls: 3:1 boundary (WCAG 1.4.11) wherever a screen didn't set one. */
+        input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { border-color: ${C.field}; }
 
         /* ── Bucket 1.4: Global bottom padding fix ──────────────────────────
            Every scrollable content area needs clearance for the fixed bottom
@@ -444,7 +451,7 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         {inSupportMode && (
           <div style={{
             position: "sticky", top: 0, zIndex: 300,
-            background: "#8A6D00", color: "#fff", padding: "8px 14px",
+            background: "#806000", color: "#fff", padding: "8px 14px",
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
             fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", flexShrink: 0,
           }}>
@@ -452,7 +459,7 @@ export default function AppShell({ user, children, activeTab, onTab }) {
               🛠️ Support mode — viewing <strong>{user.supportTenant}</strong>
             </span>
             <button onClick={exitSupportMode} style={{
-              background: "#fff", color: "#8A6D00", border: "none", borderRadius: 6,
+              background: "#fff", color: "#806000", border: "none", borderRadius: 6,
               padding: "5px 12px", fontWeight: 700, fontSize: ".76rem", cursor: "pointer",
               fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", flexShrink: 0,
             }}>Exit</button>

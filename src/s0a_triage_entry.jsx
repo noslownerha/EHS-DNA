@@ -30,7 +30,7 @@ export default function S0aTriageEntry({
       `}</style>
 
       <EHSHeader onHome={onHome} dark rightContent={
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{user.name} · {user.site}</div>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{user.name} · {user.site}</div>
       } />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 24px" }}>
@@ -40,7 +40,7 @@ export default function S0aTriageEntry({
           <h1 style={{ fontSize: "1.45rem", fontWeight: 800, color: C.white, lineHeight: 1.25, marginBottom: 10 }}>
             Did something just happen?
           </h1>
-          <p style={{ fontSize: ".88rem", color: "rgba(255,255,255,.45)", lineHeight: 1.6, maxWidth: 300 }}>
+          <p style={{ fontSize: ".88rem", color: "rgba(255,255,255,.78)", lineHeight: 1.6, maxWidth: 300 }}>
             We'll guide you through what to do right now. Takes about 60 seconds.
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function S0aTriageEntry({
             onClick={onReportInstead}
             style={{
               width: "100%", padding: "14px 20px",
-              background: "rgba(255,255,255,.04)", color: "rgba(255,255,255,.55)",
+              background: "rgba(255,255,255,.04)", color: "rgba(255,255,255,.78)",
               border: "1px solid rgba(255,255,255,.1)", borderRadius: 10,
               fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", fontWeight: 500,
               cursor: "pointer", transition: "background .15s",
@@ -80,9 +80,9 @@ export default function S0aTriageEntry({
         </div>
 
         <div className="a3" style={{ marginTop: 20, textAlign: "center" }}>
-          <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,.2)", lineHeight: 1.7, maxWidth: 280 }}>
-            <strong style={{ color: "rgba(255,255,255,.3)" }}>"Guide me now"</strong> is for something happening right now.{" "}
-            <strong style={{ color: "rgba(255,255,255,.3)" }}>"File a report"</strong> is for after the fact.
+          <p style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", lineHeight: 1.7, maxWidth: 280 }}>
+            <strong style={{ color: "rgba(255,255,255,.78)" }}>"Guide me now"</strong> is for something happening right now.{" "}
+            <strong style={{ color: "rgba(255,255,255,.78)" }}>"File a report"</strong> is for after the fact.
           </p>
         </div>
       </div>

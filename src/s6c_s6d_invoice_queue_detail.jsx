@@ -38,10 +38,10 @@ function OpsNav({ title }) {
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".9rem", fontWeight: 500, color: C.teal, letterSpacing: ".06em" }}>
           <span style={{ color: C.white }}>EHS</span>ops
         </div>
-        <span style={{ color: "rgba(255,255,255,.15)" }}>|</span>
-        <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.5)" }}>{title}</span>
+        <span style={{ color: "rgba(255,255,255,.78)" }}>|</span>
+        <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.78)" }}>{title}</span>
       </div>
-      <span style={{ fontSize: ".7rem", color: "rgba(255,255,255,.3)", background: "rgba(255,255,255,.06)", padding: "2px 8px", borderRadius: 12 }}>Super Admin</span>
+      <span style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.06)", padding: "2px 8px", borderRadius: 12 }}>Super Admin</span>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function S6cInvoiceQueue({ onViewInvoice, onBack }) {
   const thStyle = {
     padding: "9px 14px", textAlign: "left",
     fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em",
-    textTransform: "uppercase", color: "rgba(255,255,255,.3)",
+    textTransform: "uppercase", color: "rgba(255,255,255,.78)",
     borderBottom: "1px solid rgba(255,255,255,.07)",
     background: "rgba(255,255,255,.02)", whiteSpace: "nowrap",
   };
@@ -99,7 +99,7 @@ export function S6cInvoiceQueue({ onViewInvoice, onBack }) {
         <div className="anim" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
             <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white }}>Invoice Queue</h1>
-            <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)", marginTop: 3 }}>
+            <p style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)", marginTop: 3 }}>
               {pending.length} pending approval · {INVOICES.length} total
             </p>
           </div>
@@ -139,11 +139,11 @@ export function S6cInvoiceQueue({ onViewInvoice, onBack }) {
                 <tr key={inv.id} className="inv-row" onClick={() => onViewInvoice?.(inv.id)}>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontFamily: "'DM Mono', monospace", fontSize: ".82rem", color: C.teal, fontWeight: 600 }}>{inv.id}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontWeight: 600, fontSize: ".85rem", color: C.white }}>{inv.company}</td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.5)" }}>{inv.period}</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.78)" }}>{inv.period}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontWeight: 700, color: C.white, fontFamily: "'DM Mono', monospace" }}>${inv.amount.toLocaleString()}</td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".8rem", color: "rgba(255,255,255,.35)" }}>{inv.generated}</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".8rem", color: "rgba(255,255,255,.78)" }}>{inv.generated}</td>
                   <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}><InvStatusPill status={inv.status} /></td>
-                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>→</td>
+                  <td style={{ padding: "11px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.78)", fontSize: ".8rem" }}>→</td>
                 </tr>
               ))}
             </tbody>
@@ -196,8 +196,8 @@ export function S6dInvoiceDetail({ invoiceId, onBack, onApprove }) {
         {/* Breadcrumb */}
         <div className="anim" style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(255,255,255,.3)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Invoices</button>
-            <span style={{ color: "rgba(255,255,255,.15)" }}>/</span>
+            <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(255,255,255,.78)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Invoices</button>
+            <span style={{ color: "rgba(255,255,255,.78)" }}>/</span>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".8rem", color: C.teal }}>{inv.id}</span>
           </div>
 
@@ -206,12 +206,12 @@ export function S6dInvoiceDetail({ invoiceId, onBack, onApprove }) {
               <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.white, marginBottom: 6 }}>{inv.company}</h1>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <InvStatusPill status={status} />
-                <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)" }}>{inv.period} · Generated {inv.generated}</span>
+                <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)" }}>{inv.period} · Generated {inv.generated}</span>
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: "2rem", fontWeight: 800, color: C.teal, fontFamily: "'DM Mono', monospace" }}>${inv.amount.toLocaleString()}</div>
-              <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.3)" }}>Total due</div>
+              <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>Total due</div>
             </div>
           </div>
         </div>
@@ -280,7 +280,7 @@ export function S6dInvoiceDetail({ invoiceId, onBack, onApprove }) {
           )}
 
           {status === "paid" && (
-            <div style={{ padding: "10px 14px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 8, fontSize: ".82rem", color: "rgba(255,255,255,.4)" }}>
+            <div style={{ padding: "10px 14px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 8, fontSize: ".82rem", color: "rgba(255,255,255,.78)" }}>
               ✓ Paid — no further action required.
             </div>
           )}

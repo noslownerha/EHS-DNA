@@ -138,7 +138,7 @@ export default function S5gBilling({ companyName, onHome, onBack, tenantId = nul
       `}</style>
 
       <EHSHeader onHome={onHome} onBack={onBack} title={companyName} rightContent={
-        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>Billing</div>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.82)", background: "rgba(255,255,255,.1)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>Billing</div>
       } />
 
       <div style={{ maxWidth: 820, margin: "0 auto", padding: "26px 20px" }}>

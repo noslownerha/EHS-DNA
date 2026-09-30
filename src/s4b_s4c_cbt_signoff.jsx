@@ -104,7 +104,7 @@ export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onPassed, o
         <div style={{ fontSize: "2.5rem", fontWeight: 700, color: passed ? C.mint : "#F5A0A0", marginBottom: 8 }}>
           {score}%
         </div>
-        <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)", textAlign: "center", marginBottom: 28, lineHeight: 1.5 }}>
+        <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)", textAlign: "center", marginBottom: 28, lineHeight: 1.5 }}>
           {passed
             ? `Passed (threshold: ${training.passThreshold}%). Your completion has been recorded.`
             : `Below the ${training.passThreshold}% pass threshold. Please retake the module.`
@@ -364,10 +364,10 @@ export function S4cInPersonSignOff({ onHome,
       <div style={{ minHeight: "100vh", background: C.forest, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 28 }}>
         <div style={{ fontSize: "2.8rem", marginBottom: 14 }}>✅</div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.white, textAlign: "center", marginBottom: 8 }}>Completion recorded</h1>
-        <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)", textAlign: "center", marginBottom: 24 }}>
+        <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)", textAlign: "center", marginBottom: 24 }}>
           {selectedStaff?.first} {selectedStaff?.last} — {selectedTraining?.title}
         </p>
-        <p style={{ fontSize: ".75rem", color: "rgba(255,255,255,.35)", textAlign: "center", marginBottom: 28 }}>
+        <p style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", textAlign: "center", marginBottom: 28 }}>
           Signed off by {trainer.name}
         </p>
         <button onClick={() => { setSubmitted(false); setSelectedTraining(null); setSelectedStaff(null); setNotes(""); }} style={{

@@ -8,7 +8,7 @@ const C = { ...COLORS };
 function DesktopNav({ companyName = BRAND.company, label, onHome }) {
   return (
     <EHSHeader onHome={onHome} title={companyName} rightContent={
-      <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{label}</div>
+      <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.82)", background: "rgba(255,255,255,.1)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>{label}</div>
     } />
   );
 }
@@ -289,7 +289,7 @@ export function S5cStaffMobileHome({
       `}</style>
 
       <EHSHeader onHome={onHome} dark rightContent={
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
           {user.name} · {user.site}
         </div>
       } />
@@ -328,7 +328,7 @@ export function S5cStaffMobileHome({
               <span>🚨 Something happened</span>
               <span style={{ fontSize: ".9rem", opacity: .7 }}>→</span>
             </button>
-            <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.28)", textAlign: "center", marginTop: 6 }}>
+            <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", textAlign: "center", marginTop: 6 }}>
               For right now — guided triage in 60 seconds
             </div>
           </div>
@@ -346,7 +346,7 @@ export function S5cStaffMobileHome({
           }}>
             <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>📋</div>
             <div style={{ fontSize: ".82rem", fontWeight: 600, color: "rgba(255,255,255,.8)" }}>Report incident</div>
-            <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 2 }}>After the fact</div>
+            <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", marginTop: 2 }}>After the fact</div>
           </button>
           )}
           {moduleEnabled("lms") && (
@@ -390,7 +390,7 @@ export function S5cStaffMobileHome({
               <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.gold }}>
                 {overdueTrainings} training{overdueTrainings > 1 ? "s" : ""} overdue
               </div>
-              <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)", marginTop: 1 }}>
+              <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>
                 Tap to view your training queue
               </div>
             </div>
@@ -400,7 +400,7 @@ export function S5cStaffMobileHome({
 
         {/* Recent activity */}
         <div className="anim-3">
-          <div style={{ fontSize: ".72rem", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.3)", marginBottom: 10 }}>
+          <div style={{ fontSize: ".72rem", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(255,255,255,.78)", marginBottom: 10 }}>
             Recent activity
           </div>
           <div style={{ background: "rgba(255,255,255,.05)", borderRadius: 10, overflow: "hidden" }}>
@@ -418,9 +418,9 @@ export function S5cStaffMobileHome({
                 }}>{item.icon}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: ".85rem", color: "rgba(255,255,255,.8)", lineHeight: 1.3 }}>{item.desc}</div>
-                  <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.3)", marginTop: 2 }}>{item.time}</div>
+                  <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", marginTop: 2 }}>{item.time}</div>
                 </div>
-                <span style={{ color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>→</span>
+                <span style={{ color: "rgba(255,255,255,.78)", fontSize: ".8rem" }}>→</span>
               </div>
             ))}
           </div>

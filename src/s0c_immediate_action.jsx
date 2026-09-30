@@ -101,10 +101,10 @@ function TriageProviderCard({ provider }) {
         border: "1.5px solid rgba(255,255,255,.12)",
         borderRadius: 12, padding: "16px 18px", marginBottom: 20,
       }}>
-        <div style={{ fontSize: ".78rem", color: "rgba(255,255,255,.4)", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
+        <div style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
           Triage line
         </div>
-        <div style={{ fontSize: ".9rem", color: "rgba(255,255,255,.55)", lineHeight: 1.5 }}>
+        <div style={{ fontSize: ".9rem", color: "rgba(255,255,255,.78)", lineHeight: 1.5 }}>
           No triage provider configured. Seek a clinical assessment via your own occupational health contact or a telehealth provider <strong style={{ color: "rgba(255,255,255,.75)" }}>before</strong> going to outside medical care.
         </div>
       </div>
@@ -117,7 +117,7 @@ function TriageProviderCard({ provider }) {
       border: "1.5px solid rgba(255,255,255,.2)",
       borderRadius: 12, padding: "16px 18px", marginBottom: 20,
     }}>
-      <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.4)", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
+      <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
         Triage line
       </div>
       <div style={{ fontSize: "1rem", fontWeight: 700, color: C.white, marginBottom: 12 }}>
@@ -184,13 +184,13 @@ export default function S0cImmediateAction({
       `}</style>
 
       <EHSHeader onHome={onHome} dark rightContent={
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder} · {site}</div>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder} · {site}</div>
       } />
 
       {/* Top bar */}
       <div style={{ padding: "16px 20px", display: "flex", alignItems: "center" }}>
         <button onClick={onBack} style={{
-          background: "none", border: "none", color: "rgba(255,255,255,.4)",
+          background: "none", border: "none", color: "rgba(255,255,255,.78)",
           fontSize: ".88rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
         }}>← Back</button>
       </div>
@@ -209,7 +209,7 @@ export default function S0cImmediateAction({
             fontSize: "1.65rem", fontWeight: 700, color: C.white,
             lineHeight: 1.2, marginBottom: 8,
           }}>{config.heading}</h1>
-          <p style={{ fontSize: ".92rem", color: "rgba(255,255,255,.55)", lineHeight: 1.5 }}>
+          <p style={{ fontSize: ".92rem", color: "rgba(255,255,255,.78)", lineHeight: 1.5 }}>
             {config.subheading}
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function S0cImmediateAction({
             borderBottom: "1px solid rgba(255,255,255,.08)",
             fontSize: ".72rem", fontWeight: 600,
             letterSpacing: ".08em", textTransform: "uppercase",
-            color: "rgba(255,255,255,.35)",
+            color: "rgba(255,255,255,.78)",
             display: "flex", justifyContent: "space-between",
           }}>
             <span>Steps</span>
@@ -299,7 +299,7 @@ export default function S0cImmediateAction({
             <div style={{ fontSize: ".72rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: C.gold, marginBottom: 5 }}>
               OSHA note
             </div>
-            <p style={{ fontSize: ".83rem", color: "rgba(255,255,255,.6)", lineHeight: 1.6 }}>
+            <p style={{ fontSize: ".83rem", color: "rgba(255,255,255,.78)", lineHeight: 1.6 }}>
               {config.oshaTip}
             </p>
           </div>
@@ -312,7 +312,7 @@ export default function S0cImmediateAction({
             border: "1px solid rgba(255,255,255,.1)",
             borderRadius: 10, padding: "12px 14px", marginBottom: 16,
           }}>
-            <p style={{ fontSize: ".82rem", color: "rgba(255,255,255,.5)", lineHeight: 1.6 }}>
+            <p style={{ fontSize: ".82rem", color: "rgba(255,255,255,.78)", lineHeight: 1.6 }}>
               {config.addDetailsNote}
             </p>
           </div>
@@ -348,7 +348,7 @@ export default function S0cImmediateAction({
           style={{
             width: "100%", padding: "12px",
             background: "none",
-            color: "rgba(255,255,255,.4)",
+            color: "rgba(255,255,255,.78)",
             border: "1px solid rgba(255,255,255,.1)",
             borderRadius: 10,
             fontFamily: "'DM Sans', sans-serif",

@@ -118,7 +118,7 @@ export default function S5hOpsConsole({ section = "attention", onHome, onOpenBil
         * { box-sizing: border-box; margin: 0; padding: 0; }
       `}</style>
       <EHSHeader onHome={onHome} title="EHS DNA Operations" rightContent={
-        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>Operator</div>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.82)", background: "rgba(255,255,255,.1)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>Operator</div>
       } />
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "26px 20px" }}>
@@ -411,7 +411,7 @@ function OperatorOverview({ analytics }) {
               <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.ink, display: "flex", alignItems: "center", gap: 7 }}>
                 {t.name}
                 {!t.active && <span style={{ fontSize: ".64rem", color: C.red, background: C.redLt, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>SUSPENDED</span>}
-                {t.active && (t.daysSinceActivity === null || t.daysSinceActivity >= 30) && <span style={{ fontSize: ".64rem", color: "#8A6D00", background: "#FBF0CE", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>AT RISK</span>}
+                {t.active && (t.daysSinceActivity === null || t.daysSinceActivity >= 30) && <span style={{ fontSize: ".64rem", color: "#806000", background: "#FBF0CE", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>AT RISK</span>}
               </div>
               <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>
                 {t.users} users · {t.sites} sites · {t.reports30d} reports/30d
@@ -451,7 +451,7 @@ function OperatorOverview({ analytics }) {
 // impersonating (which is attributable in the audit trail).
 const SEV = {
   high:   { dot: "#B3261E", bg: "#FDECEA", label: "Needs action" },
-  medium: { dot: "#8A6D00", bg: "#FBF0CE", label: "Worth a look" },
+  medium: { dot: "#806000", bg: "#FBF0CE", label: "Worth a look" },
 };
 
 function OperatorAttention({ data, onOpenTenantBilling }) {
@@ -518,8 +518,8 @@ function OperatorAttention({ data, onOpenTenantBilling }) {
 // money in one place, with a direct link into each tenant's billing detail.
 const INV_STATUS = {
   draft:    { label: "Draft",    bg: "#EEF1F0", color: "#5A5A5A" },
-  approved: { label: "Approved", bg: "#FBF0CE", color: "#8A6D00" },
-  sent:     { label: "Sent",     bg: "#FBF0CE", color: "#8A6D00" },
+  approved: { label: "Approved", bg: "#FBF0CE", color: "#806000" },
+  sent:     { label: "Sent",     bg: "#FBF0CE", color: "#806000" },
   paid:     { label: "Paid",     bg: "#E6F4EA", color: "#2E7D32" },
   void:     { label: "Void",     bg: "#EEF1F0", color: "#9AA5A1" },
 };
@@ -531,7 +531,7 @@ function OperatorBilling({ data, onOpenTenantBilling }) {
 
   const kpis = [
     { label: "Monthly recurring revenue", value: money(totals.mrr), color: C.sage },
-    { label: "Outstanding", value: money(totals.outstanding), color: totals.outstanding > 0 ? "#8A6D00" : C.sage,
+    { label: "Outstanding", value: money(totals.outstanding), color: totals.outstanding > 0 ? "#806000" : C.sage,
       sub: totals.tenantsUnpaid ? `${totals.tenantsUnpaid} account${totals.tenantsUnpaid === 1 ? "" : "s"}` : "all settled" },
     { label: "Collected to date", value: money(totals.paidToDate), color: C.navy },
   ];

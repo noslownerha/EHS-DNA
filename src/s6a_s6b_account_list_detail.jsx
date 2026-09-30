@@ -89,11 +89,11 @@ function OpsNav({ title }) {
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".9rem", fontWeight: 500, color: C.teal, letterSpacing: ".06em" }}>
           <span style={{ color: C.white }}>EHS</span>ops
         </div>
-        <span style={{ color: "rgba(255,255,255,.15)" }}>|</span>
-        <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.5)" }}>{title}</span>
+        <span style={{ color: "rgba(255,255,255,.78)" }}>|</span>
+        <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.78)" }}>{title}</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: ".7rem", color: "rgba(255,255,255,.3)", background: "rgba(255,255,255,.06)", padding: "2px 8px", borderRadius: 12 }}>Super Admin</span>
+        <span style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.06)", padding: "2px 8px", borderRadius: 12 }}>Super Admin</span>
       </div>
     </div>
   );
@@ -120,7 +120,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
   const thStyle = {
     padding: "9px 14px", textAlign: "left",
     fontSize: ".68rem", fontWeight: 600, letterSpacing: ".07em",
-    textTransform: "uppercase", color: "rgba(255,255,255,.3)",
+    textTransform: "uppercase", color: "rgba(255,255,255,.78)",
     borderBottom: "1px solid rgba(255,255,255,.07)",
     background: C.mid, whiteSpace: "nowrap",
   };
@@ -132,7 +132,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .anim { animation: fadeUp .25s ease both; }
-        input::placeholder { color: rgba(255,255,255,.2); }
+        input::placeholder { color: rgba(255,255,255,.78); }
         select option { color: ${COLORS.ink}; background: #fff; }
         .acct-row:hover td { background: rgba(255,255,255,.04) !important; cursor: pointer; }
         .create-btn:hover { background: ${C.teal}cc !important; transform: translateY(-1px); }
@@ -153,7 +153,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
           ].map((s, i) => (
             <div key={i} style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", borderRadius: 10, padding: "16px 18px", height: 80, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.4)", marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -165,7 +165,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
               placeholder="Search accounts…"
               style={{ width: "100%", padding: "8px 12px 8px 30px", background: "rgba(255,255,255,.06)", border: `1px solid ${sfocused ? C.teal : "rgba(255,255,255,.1)"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.white, outline: "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: "rgba(255,255,255,.25)", pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: "rgba(255,255,255,.78)", pointerEvents: "none" }}>🔍</span>
           </div>
           <select className="filter-sel" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: "8px 28px 8px 10px", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", color: "rgba(255,255,255,.7)", cursor: "pointer", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,.3)'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}>
             <option value="">All statuses</option>
@@ -192,7 +192,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
                 <tr key={acct.id} className="acct-row" onClick={() => onViewAccount?.(acct.id)}>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.white }}>{acct.name}</div>
-                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>{acct.plan} · Enrolled {new Date(acct.enrolled).toLocaleDateString([], { month: "short", year: "numeric" })}</div>
+                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>{acct.plan} · Enrolled {new Date(acct.enrolled).toLocaleDateString([], { month: "short", year: "numeric" })}</div>
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
                     <HealthBadge score={acct.healthScore} />
@@ -203,7 +203,7 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontWeight: 700, color: C.teal, fontFamily: "'DM Mono', monospace", fontSize: ".88rem" }}>
                     ${acct.mrr.toLocaleString()}
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.55)" }}>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".82rem", color: "rgba(255,255,255,.78)" }}>
                     {acct.sites} sites · {acct.users} users
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)" }}>
@@ -211,10 +211,10 @@ export function S6aAccountList({ onViewAccount, onNewEnrollment }) {
                       {acct.modules.map(m => <ModulePill key={m} id={m} />)}
                     </div>
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".8rem", color: "rgba(255,255,255,.35)" }}>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", fontSize: ".8rem", color: "rgba(255,255,255,.78)" }}>
                     {acct.lastActive}
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.2)", fontSize: ".8rem" }}>→</td>
+                  <td style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.05)", color: "rgba(255,255,255,.78)", fontSize: ".8rem" }}>→</td>
                 </tr>
               ))}
             </tbody>
@@ -265,7 +265,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .anim { animation: fadeUp .25s ease both; }
-        textarea::placeholder, input::placeholder { color: rgba(255,255,255,.2); }
+        textarea::placeholder, input::placeholder { color: rgba(255,255,255,.78); }
         .shadow-btn:hover { background: rgba(231,76,60,.15) !important; border-color: ${C.red} !important; }
         .module-toggle:hover { border-color: ${C.teal} !important; }
       `}</style>
@@ -277,16 +277,16 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
         {/* Breadcrumb + header */}
         <div className="anim" style={{ marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(255,255,255,.3)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Accounts</button>
-            <span style={{ color: "rgba(255,255,255,.15)" }}>/</span>
-            <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.5)" }}>{acct.name}</span>
+            <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(255,255,255,.78)", fontSize: ".8rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Accounts</button>
+            <span style={{ color: "rgba(255,255,255,.78)" }}>/</span>
+            <span style={{ fontSize: ".8rem", color: "rgba(255,255,255,.78)" }}>{acct.name}</span>
           </div>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
             <div>
               <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.white, marginBottom: 6 }}>{acct.name}</h1>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <StatusPill status={acct.status} />
-                <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.35)" }}>{acct.plan} · ${acct.mrr.toLocaleString()}/mo · {acct.sites} sites · {acct.users} users</span>
+                <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)" }}>{acct.plan} · ${acct.mrr.toLocaleString()}/mo · {acct.sites} sites · {acct.users} users</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
@@ -319,13 +319,13 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                 <HealthBadge score={healthScore} />
                 <div>
                   <div style={{ fontWeight: 600, fontSize: ".95rem", color: C.white }}>Health score</div>
-                  <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.35)", marginTop: 1 }}>Composite of 4 sub-scores</div>
+                  <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,.78)", marginTop: 1 }}>Composite of 4 sub-scores</div>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {subScores.map(s => (
                   <div key={s.label} style={{ background: "rgba(255,255,255,.03)", borderRadius: 8, padding: "11px 14px" }}>
-                    <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", marginBottom: 4 }}>{s.label}</div>
+                    <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", marginBottom: 4 }}>{s.label}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,.08)", borderRadius: 2, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${s.score}%`, background: s.color, borderRadius: 2 }} />
@@ -358,8 +358,8 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                         </div>
                         <div>
                           <div style={{ fontSize: ".85rem", fontWeight: active ? 600 : 400, color: active ? C.white : "rgba(255,255,255,.4)" }}>{mod.label}</div>
-                          {mod.price > 0 && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.25)" }}>${mod.price}/mo add-on</div>}
-                          {mod.included && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.25)" }}>Included in all plans</div>}
+                          {mod.price > 0 && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)" }}>${mod.price}/mo add-on</div>}
+                          {mod.included && <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)" }}>Included in all plans</div>}
                         </div>
                       </div>
                       <div style={{ width: 36, height: 20, borderRadius: 20, background: active ? C.teal : "rgba(255,255,255,.1)", position: "relative", flexShrink: 0, transition: "background .2s" }}>
@@ -375,23 +375,23 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
             <div className="anim" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 10, padding: "18px 20px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <h2 style={{ fontSize: ".92rem", fontWeight: 600, color: C.white }}>Pricing override</h2>
-                <span style={{ fontSize: ".68rem", color: "rgba(255,255,255,.25)", fontStyle: "italic" }}>Internal only — not visible to customer</span>
+                <span style={{ fontSize: ".68rem", color: "rgba(255,255,255,.78)", fontStyle: "italic" }}>Internal only — not visible to customer</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4 }}>Override MRR</div>
+                  <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4 }}>Override MRR</div>
                   <div style={{ fontSize: ".92rem", color: overrideMRR ? C.gold : "rgba(255,255,255,.45)" }}>
                     {overrideMRR ? `$${overrideMRR}/mo` : "Standard rate ($1,840/mo)"}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4 }}>Effective since</div>
-                  <div style={{ fontSize: ".88rem", color: "rgba(255,255,255,.55)" }}>Sep 1, 2023</div>
+                  <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 4 }}>Effective since</div>
+                  <div style={{ fontSize: ".88rem", color: "rgba(255,255,255,.78)" }}>Sep 1, 2023</div>
                 </div>
               </div>
               {/* Spec §16.4: editable note field, saves on blur */}
               <div>
-                <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Override note</div>
+                <div style={{ fontSize: ".68rem", fontWeight: 600, color: "rgba(255,255,255,.78)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>Override note</div>
                 <textarea
                   value={pricingNote}
                   onChange={e => setPricingNote(e.target.value)}
@@ -408,7 +408,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                     transition: "all .18s",
                   }}
                 />
-                {noteFocused && <div style={{ fontSize: ".68rem", color: "rgba(255,255,255,.25)", marginTop: 3 }}>Saves on blur · internal only</div>}
+                {noteFocused && <div style={{ fontSize: ".68rem", color: "rgba(255,255,255,.78)", marginTop: 3 }}>Saves on blur · internal only</div>}
               </div>
             </div>
           </div>
@@ -427,7 +427,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                 { label: "Last login",value: acct.lastActive },
               ].map((row, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: i < 5 ? "1px solid rgba(255,255,255,.05)" : "none" }}>
-                  <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.3)" }}>{row.label}</span>
+                  <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)" }}>{row.label}</span>
                   <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.7)", fontWeight: 500 }}>{row.value}</span>
                 </div>
               ))}
@@ -447,10 +447,10 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
                 <div key={i} onClick={() => onViewInvoice?.(inv.num)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i < 2 ? "1px solid rgba(255,255,255,.05)" : "none", cursor: "pointer" }}>
                   <div>
                     <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".72rem", color: C.teal }}>{inv.num}</div>
-                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.3)" }}>{inv.date}</div>
+                    <div style={{ fontSize: ".7rem", color: "rgba(255,255,255,.78)" }}>{inv.date}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.6)", fontWeight: 600 }}>{inv.amount}</span>
+                    <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.78)", fontWeight: 600 }}>{inv.amount}</span>
                     <span style={{ padding: "1px 7px", borderRadius: 10, fontSize: ".65rem", fontWeight: 600, background: C.greenLt, color: C.green }}>{inv.status}</span>
                   </div>
                 </div>
@@ -459,7 +459,7 @@ export function S6bAccountDetail({ accountId, onBack, onViewInvoice, onShadowMod
 
             {/* Spec §16.1: AI analysis — deferred post-MVP */}
             <div className="anim" style={{ background: "rgba(255,255,255,.02)", border: "1px dashed rgba(255,255,255,.07)", borderRadius: 10, padding: "14px 16px" }}>
-              <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.2)", fontStyle: "italic", lineHeight: 1.5 }}>
+              <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", fontStyle: "italic", lineHeight: 1.5 }}>
                 📊 AI account analysis — deferred post-MVP (§16.1). Will surface module adoption insights, usage trends, and proactive recommendations once sufficient usage data exists.
               </div>
             </div>

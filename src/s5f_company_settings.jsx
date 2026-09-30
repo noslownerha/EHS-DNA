@@ -180,7 +180,7 @@ export default function S5fCompanySettings({ companyName, onHome, onBack }) {
       `}</style>
 
       <EHSHeader onHome={onHome} onBack={onBack} title={cfg.company} rightContent={
-        <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.82)", background: "rgba(255,255,255,.1)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
           Company Settings
         </div>
       } />

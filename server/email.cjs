@@ -24,7 +24,7 @@ const RESEND_ENDPOINT = "https://api.resend.com/emails";
 // Brand palette (matches the app's forest/sage).
 // Brand palette for email. Mirrors src/constants.js BRAND_COLORS (email runs
 // outside the JS bundle so it can't import that file — keep in sync on rebrand).
-const BRAND = { forest: "#1C3A2A", sage: "#4A8C5C", ink: "#0F1F17", mist: "#6B7E76", chalk: "#F4F7F5", line: "#E2EBE6" };
+const BRAND = { forest: "#0B3F4C", sage: "#0E5566", ink: "#15212B", mist: "#5B6670", chalk: "#F6F4EF", line: "#E4E0D7" };  // mirrors src/constants.js BRAND_COLORS
 const APP_URL = process.env.EHS_APP_URL || "https://app.ehsdna.com";
 
 const escapeHtml = (s) => String(s ?? "")
@@ -215,7 +215,7 @@ function renderDigestHtml({ company, periodLabel, metrics, link }) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F5;padding:24px 0;">
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(15,31,23,.06);">
-        <tr><td style="background:${BRAND.forest || "#1C3A2A"};padding:18px 28px;">
+        <tr><td style="background:${BRAND.forest || "#0B3F4C"};padding:18px 28px;">
           <span style="color:#ffffff;font-weight:700;font-size:16px;font-family:'Helvetica Neue',Arial,sans-serif;letter-spacing:.3px;">EHS&nbsp;<span style="color:${BRAND.sage};">DNA</span></span>${company ? `<span style="color:${BRAND.mist};font-size:13px;font-family:'Helvetica Neue',Arial,sans-serif;"> &nbsp;·&nbsp; ${escapeHtml(company)}</span>` : ""}
         </td></tr>
         <tr><td style="padding:26px 28px 6px;">

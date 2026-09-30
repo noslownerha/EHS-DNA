@@ -154,7 +154,7 @@ export default function S0bDecisionTree({
       `}</style>
 
       <EHSHeader onHome={onHome} dark rightContent={
-        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.35)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder}</div>
+        <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)", background: "rgba(255,255,255,.07)", padding: "3px 10px", borderRadius: 20 }}>{responder}</div>
       } />
 
       {/* Top bar */}
@@ -166,7 +166,7 @@ export default function S0bDecisionTree({
           onClick={handleBack}
           style={{
             background: "none", border: "none",
-            color: "rgba(255,255,255,.45)", fontSize: ".88rem",
+            color: "rgba(255,255,255,.78)", fontSize: ".88rem",
             cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
             display: "flex", alignItems: "center", gap: 4, padding: "4px 0",
           }}
@@ -201,7 +201,7 @@ export default function S0bDecisionTree({
           </h1>
           {node.sublabel && (
             <p style={{
-              fontSize: ".85rem", color: "rgba(255,255,255,.45)",
+              fontSize: ".85rem", color: "rgba(255,255,255,.78)",
               textAlign: "center", lineHeight: 1.5, marginTop: 8,
               fontStyle: "italic",
             }}>
@@ -223,7 +223,7 @@ export default function S0bDecisionTree({
         {depth >= 1 && (
           <p style={{
             marginTop: 28,
-            fontSize: ".72rem", color: "rgba(255,255,255,.2)",
+            fontSize: ".72rem", color: "rgba(255,255,255,.78)",
             textAlign: "center", lineHeight: 1.5,
           }}>
             Answers are recorded · you can go back

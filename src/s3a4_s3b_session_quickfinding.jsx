@@ -213,7 +213,7 @@ export function S3bQuickFinding({ onHome,
 
       <EHSHeader onHome={onHome} rightContent={
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.4)" }}>{site}</span>
+          <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>{site}</span>
           <button onClick={step === "details" ? () => setStep("category") : onBack}
             style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
         </div>

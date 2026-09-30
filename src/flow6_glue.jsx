@@ -190,7 +190,7 @@ export function CSSidebar() {
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", fontWeight: 500, color: "#00B4D8", letterSpacing: ".06em" }}>
           <span style={{ color: "#FFFFFF" }}>EHS</span>ops
         </div>
-        <div style={{ fontSize: ".65rem", color: "rgba(255,255,255,.25)", marginTop: 2 }}>CS Backend</div>
+        <div style={{ fontSize: ".65rem", color: "rgba(255,255,255,.78)", marginTop: 2 }}>CS Backend</div>
       </div>
       {navItems.map(item => {
         const isActive = state.screen === item.id ||

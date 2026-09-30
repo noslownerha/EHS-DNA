@@ -22,7 +22,7 @@ const CA_STATUS = {
   overdue:  { label: "Overdue",  bg: C.redLt,   color: C.red  },
   // "Blocked" is a roadblock the assignee can't clear alone. It keeps ageing on
   // purpose, so it reads as an alert rather than a parked/neutral state.
-  blocked:  { label: "⚠ Blocked — needs help", bg: "#FBF0CE", color: "#8A6D00" },
+  blocked:  { label: "⚠ Blocked — needs help", bg: "#FBF0CE", color: "#806000" },
   "on-track":{ label: "On track", bg: C.foam,    color: C.pine },
   closed:   { label: "Closed",   bg: "#EEF1F0", color: C.slate},
 };
@@ -47,7 +47,7 @@ function pill(label, bg, color) {
 function DesktopNav({ companyName = BRAND.company, onHome }) {
   return (
     <EHSHeader onHome={onHome} title={companyName} rightContent={
-      <div style={{ fontSize: ".72rem", color: C.mist, background: "rgba(255,255,255,.08)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
+      <div style={{ fontSize: ".72rem", color: "rgba(255,255,255,.82)", background: "rgba(255,255,255,.1)", padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
         Incidents
       </div>
     } />
@@ -1018,7 +1018,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                       <span style={{ fontSize: ".7rem", color: C.mist }}>→ {ca.assignee}</span>
                     </div>
                     {ca.serverStatus === "blocked" && ca.blockedReason && (
-                      <div style={{ fontSize: ".75rem", color: "#8A6D00", background: "#FBF0CE", borderRadius: 6, padding: "6px 9px", marginTop: 6, lineHeight: 1.35 }}>
+                      <div style={{ fontSize: ".75rem", color: "#806000", background: "#FBF0CE", borderRadius: 6, padding: "6px 9px", marginTop: 6, lineHeight: 1.35 }}>
                         <strong>Blocked:</strong> {ca.blockedReason}
                       </div>
                     )}

@@ -360,7 +360,7 @@ export function S3a2ChecklistInProgress({ onHome,
       <div style={{ background: C.forest, padding: "12px 18px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
-          <div style={{ fontSize: ".78rem", color: "rgba(255,255,255,.6)", textAlign: "center" }}>
+          <div style={{ fontSize: ".78rem", color: "rgba(255,255,255,.78)", textAlign: "center" }}>
             <div style={{ fontWeight: 600, color: C.white }}>{templateName}</div>
             <div>{site}</div>
           </div>
@@ -377,7 +377,7 @@ export function S3a2ChecklistInProgress({ onHome,
           {[
             { label: `${passCount} pass`, color: C.mint },
             { label: `${failCount} fail`, color: "#F5C6C2" },
-            { label: `${naCount} N/A`,    color: "rgba(255,255,255,.35)" },
+            { label: `${naCount} N/A`,    color: "rgba(255,255,255,.78)" },
           ].map((s, i) => (
             <span key={i} style={{ fontSize: ".72rem", color: s.color, fontWeight: 600 }}>{s.label}</span>
           ))}

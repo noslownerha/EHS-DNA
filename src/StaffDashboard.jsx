@@ -52,7 +52,7 @@ export default function StaffDashboard({ user, onHome, onNavigate }) {
       <EHSHeader
         onHome={onHome}
         rightContent={
-          <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.4)" }}>
+          <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>
             {user.first} · {site.name}
           </span>
         }
