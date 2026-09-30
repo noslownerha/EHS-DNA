@@ -36,7 +36,7 @@ elif [ "$MODE" = "demo" ]; then
     const r = require('./server/demo.cjs').resetDemo(db);
     console.log('   Demo company rebuilt:', r.name);
     for (const l of r.logins) console.log('   ' + l.role + ': ' + l.email + ' / ' + l.password);
-  " 2>&1 | grep -vE 'Backfilled|ExperimentalWarning|trace-warnings|SQLite engine'
+  " 2>&1 | { grep -vE 'Backfilled|ExperimentalWarning|trace-warnings|SQLite engine' || true; }
 else
   echo "Usage: $0 demo|prod"; exit 1
 fi

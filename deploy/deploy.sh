@@ -24,7 +24,7 @@ if [ -f "$DB" ]; then
   sqlite3 "$DB" ".backup '$SNAP'"
   echo "   $SNAP ($(du -h "$SNAP" | cut -f1))"
   # keep the 20 most recent pre-deploy snapshots
-  ls -1t "$SNAPDIR"/ehs-*.db 2>/dev/null | tail -n +21 | xargs -r rm -f
+  { ls -1t "$SNAPDIR"/ehs-*.db 2>/dev/null || true; } | tail -n +21 | xargs -r rm -f
 else
   SNAP=""
   echo "   (no database yet)"
