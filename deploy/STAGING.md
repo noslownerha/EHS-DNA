@@ -18,9 +18,16 @@ Urgent one-line fixes can still go straight to `main` — staging is for anythin
    gets an HTTPS certificate, builds, and loads the demo company.
 
 ## Staging data
-- Demo company (default): `bash /home/ehs-staging/deploy/staging/refresh-staging-data.sh demo`
-- Copy of **live** data, to reproduce a real bug: `… refresh-staging-data.sh prod`
-  (real people's records — password-protected, email off; refresh back to demo afterwards)
+Every staging deploy runs on a **fresh copy of live data** — every company, account and
+password, plus photos — so changes are proven against real records, and the new code's
+database changes run on real data before they reach live. Sign in with normal live passwords.
+- Keep staging's current data instead (e.g. testing across several deploys):
+  `bash /home/ehs-staging/deploy/staging/deploy-staging.sh --keep-data`
+- Refresh live data any time without deploying: `… refresh-staging-data.sh prod`
+- Demo company only: `… refresh-staging-data.sh demo`
+Safety: password prompt, own login secret, **email off**, no AI key. Nothing done in
+staging touches live. Customer terms should say production data may be used in a
+secured test environment to validate changes.
 
 ## Every live deploy is reversible
 `deploy.sh` now snapshots the database and records the version it replaced first.

@@ -3,9 +3,9 @@
 #   bash /home/ehs-staging/deploy/staging/refresh-staging-data.sh demo   # fresh + demo company (default)
 #   bash /home/ehs-staging/deploy/staging/refresh-staging-data.sh prod   # copy of LIVE data
 #
-# "prod" copies real people's records into staging. Staging is password-protected
-# and has email switched off, but treat it as live data: use it to reproduce a
-# real bug, then refresh back to demo.
+# "prod" copies real people's records (every company, account and password) into
+# staging. deploy-staging.sh does this on every deploy by default. Staging is
+# password-protected, has its own login secret, and has email switched off.
 set -euo pipefail
 MODE="${1:-demo}"
 APP=/home/ehs-staging
@@ -16,9 +16,13 @@ systemctl stop ehs-dna-staging
 rm -f "$DB" "$DB-wal" "$DB-shm"
 if [ "$MODE" = "prod" ]; then
   echo "── Copying LIVE database + photos into staging ──"
+  # .backup is a consistent snapshot even while live is being written to.
   sqlite3 /home/ehs-platform/data/ehs.db ".backup '$DB'"
-  rsync -a --delete /home/ehs-platform/data/photos/ "$PHOTOS/"
-  echo "   Done. Sign in with your normal live accounts."
+  LIVE_PHOTOS="$(grep -s '^EHS_PHOTO_DIR=' /etc/ehs-dna.env | cut -d= -f2-)"
+  rsync -a --delete "${LIVE_PHOTOS:-/home/ehs-platform/data/photos}/" "$PHOTOS/"
+  # Sanity: the copy must be readable and non-empty before staging starts on it.
+  sqlite3 "$DB" "PRAGMA quick_check;" | grep -qx ok || { echo "!! Copied database failed its integrity check"; exit 1; }
+  echo "   Copied: $(sqlite3 "$DB" "SELECT COUNT(*) FROM users") accounts, $(find "$PHOTOS" -type f | wc -l) photos."
 elif [ "$MODE" = "demo" ]; then
   echo "── Fresh database + demo company ──"
   rm -rf "$PHOTOS"; mkdir -p "$PHOTOS"
