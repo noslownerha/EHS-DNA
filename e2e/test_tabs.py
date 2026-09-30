@@ -20,7 +20,7 @@ EXPECT = {
     "staff": [("Flag", "Report an injury"), ("Inspect", "Start inspection"), ("Training", "My training")],
     "operator": [("Overview", "Module adoption"), ("Companies", "Client companies"), ("Billing", "Outstanding"), ("Attention", "worth a look")],
 }
-HOME = {"admin": "Open incidents", "staff": "Open tasks", "operator": "Attention"}
+HOME = {"admin": "Open incidents", "staff": "Report something", "operator": "Attention"}
 
 def main():
     proc = boot_server()

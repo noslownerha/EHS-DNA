@@ -148,7 +148,9 @@ app.post("/api/auth/login", loginRateLimit, (req, res) => {
     SECRET, { expiresIn: TOKEN_TTL }
   );
   const site = user.site_id ? db.prepare("SELECT name FROM sites WHERE id = ?").get(user.site_id) : null;
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, site: site?.name ?? null, siteId: user.site_id, isOperator: !!user.is_operator, mustChangePassword: !!user.must_change_password } });
+  const dept = user.department_id ? db.prepare("SELECT name FROM departments WHERE id = ? AND tenant_id = ?").get(user.department_id, user.tenant_id) : null;
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, site: site?.name ?? null, siteId: user.site_id,
+                            department: dept?.name ?? null, isOperator: !!user.is_operator, mustChangePassword: !!user.must_change_password } });
 });
 
 function auth(req, res, next) {
@@ -3260,21 +3262,24 @@ function staffCompliance(t, siteId = null) {
         || roles.includes(u.role) || depts.includes(u.department_id) || usrs.includes(u.id);
     });
     let current = 0, overdue = 0, expiring = 0;
+    const todo = [];   // which courses, not just how many — the worker home lists them
     required.forEach(tr => {
       const comp = completions.filter(c => c.training_id === tr.id && c.user_id === u.id && c.passed !== 0)
         .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
       const notExpired = comp && (!comp.expires_at || new Date(comp.expires_at).getTime() > now);
       if (notExpired) {
         current++;
-        if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) expiring++;
+        if (comp.expires_at && new Date(comp.expires_at).getTime() < soon) {
+          expiring++; todo.push({ id: tr.id, title: tr.title, kind: tr.kind, state: "expiring", expiresAt: comp.expires_at });
+        }
       } else {
-        overdue++;
+        overdue++; todo.push({ id: tr.id, title: tr.title, kind: tr.kind, state: comp ? "expired" : "not_started" });
       }
     });
     const total = required.length;
     return { id: u.id, name: u.name, site: u.site, dept: u.dept,
              compliance: total > 0 ? Math.round((current / total) * 100) : 100,
-             overdue, expiring, current, total };
+             overdue, expiring, current, total, todo };
   });
 }
 

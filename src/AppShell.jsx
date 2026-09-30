@@ -47,11 +47,9 @@ export function EHSHeader({ onHome, onBack, title, rightContent, dark = false })
         </div>
       )}
       <div style={{ minWidth: 60, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
-        {rightContent ? <span className="ehs-hdr-context">{rightContent}</span> : (
-          <span style={{ fontSize: ".65rem", color: "rgba(255,255,255,.78)", fontFamily: "'DM Mono', monospace" }}>
-            {BRAND.tagline.split(" ").slice(0, 4).join(" ")}…
-          </span>
-        )}
+        {/* The truncated tagline that used to sit here collided with the logo on
+            phones and added nothing; screens pass rightContent when they need it. */}
+        {rightContent ? <span className="ehs-hdr-context">{rightContent}</span> : null}
         <NotificationBell />
         <AccountButton />
       </div>
@@ -91,11 +89,11 @@ function NotificationBell() {
 
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={openPanel} title="Notifications" style={{
-        width: 28, height: 28, borderRadius: "50%", position: "relative",
+      <button onClick={openPanel} title="Notifications" aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"} style={{
+        width: 36, height: 36, borderRadius: "50%", position: "relative",
         background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
-        color: "#fff", fontSize: ".85rem", cursor: "pointer", lineHeight: 1,
-      }}>🔔
+        color: "#fff", cursor: "pointer", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center",
+      }}><Icon name="bell" size={18} />
         {unread > 0 && (
           <span style={{
             position: "absolute", top: -4, right: -4, minWidth: 16, height: 16,

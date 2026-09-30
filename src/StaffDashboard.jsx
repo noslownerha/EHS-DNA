@@ -1,174 +1,141 @@
+// Worker home — "Clarity with character". One big obvious action (report),
+// then what's waiting on this person: their training and the things they've
+// reported. Name, site and department come from the signed-in user — the old
+// screen read fields sign-in never provided (and a hard-coded WhistlePig site
+// list), so every worker saw "Hey 👋" with no name or site.
 import { useState, useEffect } from "react";
-import { BRAND, SITES, COLORS, moduleEnabled } from "./constants.js";
+import { COLORS as C, FONTS, moduleEnabled } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
+import Icon from "./Icon.jsx";
+import { StatusChip, Card, CardHeader, Row, greeting } from "./ui.jsx";
 
-const C = { ...COLORS };
+const TRAINING_STATE = {
+  not_started: { tone: "amber", label: "Not started" },
+  expired:     { tone: "red",   label: "Expired" },
+  expiring:    { tone: "amber", label: "Expiring soon" },
+};
+const INCIDENT_STATE = { open: { tone: "blue", label: "In progress" }, investigating: { tone: "blue", label: "Being looked at" },
+                         closed: { tone: "green", label: "Closed" } };
 
 export default function StaffDashboard({ user, onHome, onNavigate }) {
-  const site = SITES.find(s => s.name === user.site) ?? SITES[0];
-
-  const [openTasks, setOpenTasks] = useState(0);
-  const [overdueTrainings, setOverdueTrainings] = useState(0);
-  const [recentActivity, setRecentActivity] = useState([]);
+  const first = (user?.name || "").trim().split(/\s+/)[0] || "there";
+  const where = [user?.site, user?.department].filter(Boolean).join(" · ");
+  const [todo, setTodo] = useState(null);
+  const [mine, setMine] = useState(null);
+  const [recent, setRecent] = useState([]);
 
   useEffect(() => {
-    // My open work: incidents I reported that aren't closed
     Promise.all([api.listIncidents().catch(() => []), api.dashboardCompliance().catch(() => null), api.listNotifications().catch(() => [])])
       .then(([incs, compliance, notifs]) => {
-        const mine = incs.filter(i => i.reporter_name === user.name && i.status !== "closed");
-        setOpenTasks(mine.length);
-        const meRow = compliance?.find?.(c => c.id === user.id);
-        setOverdueTrainings(meRow?.overdue ?? 0);
-        const fmt = ts => {
-          const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
-          if (mins < 60) return `${Math.max(1, mins)}m ago`;
-          if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
-          return `${Math.floor(mins / 1440)}d ago`;
-        };
-        setRecentActivity(notifs.slice(0, 4).map(n => ({
-          icon: n.title?.includes("🩹") ? "🩹" : n.title?.includes("🔑") ? "🔑" : "🔔",
-          desc: n.title?.replace(/^[^\w]+\s*/, "") ?? "Notification",
-          time: fmt(n.created_at), nav: n.link_kind === "incident" ? "flag" : "home",
-        })));
+        setMine(incs.filter(i => i.reporter_name === user.name).slice(0, 3));
+        const me = compliance?.find?.(c => c.id === user.id);
+        setTodo(me?.todo ?? []);
+        setRecent((notifs || []).slice(0, 3));
       });
   }, [user.id, user.name]);
 
+  const tile = { display: "flex", alignItems: "center", gap: 10, height: 60, padding: "0 14px", borderRadius: 14,
+                 border: `1px solid ${C.line}`, background: C.white, fontFamily: FONTS.body, fontSize: ".9rem",
+                 fontWeight: 600, color: C.ink, cursor: "pointer", textAlign: "left" };
+  const ago = ts => {
+    const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+    return m < 60 ? `${Math.max(1, m)}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`;
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes triage-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.3);} 50%{box-shadow:0 0 0 10px rgba(192,57,43,0);} }
-        .anim { animation: fadeUp .25s ease both; }
-        .tile { transition: all .15s ease; cursor: pointer; }
-        .tile:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1) !important; }
-        .tile:active { transform: scale(.97); }
-        .triage-tile { animation: triage-pulse 2.5s ease-in-out infinite; }
-        .activity-row:hover { background: ${C.foam} !important; }
-      `}</style>
+    <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: FONTS.body, color: C.ink, display: "flex", flexDirection: "column" }}>
+      <EHSHeader onHome={onHome} />
 
-      <EHSHeader
-        onHome={onHome}
-        rightContent={
-          <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,.78)" }}>
-            {user.first} · {site.name}
-          </span>
-        }
-      />
-
-      <div style={{ flex: 1, padding: "16px 16px 0", overflowY: "auto" }}>
-
-        {/* Greeting */}
-        <div className="anim" style={{ marginBottom: 18 }}>
-          <h1 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink }}>Hey {user.first} 👋</h1>
-          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>
-            {site.name} · {user.dept} · {new Date().toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
-          </p>
-        </div>
-
-        {/* Bucket 3: 3 tiles — 2-up top row, triage full-width below */}
-        <div className="anim" style={{ marginBottom: 18 }}>
-
-          {/* Top row: 2 tiles */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            {/* Open Tasks (combined flags + CAs) */}
-            <div className="tile" onClick={() => window.dispatchEvent(new CustomEvent("ehs:navigate", { detail: { kind: "incident" } }))} style={{
-              background: openTasks > 0 ? C.redLt : C.foam,
-              border: `1.5px solid ${openTasks > 0 ? C.red + "33" : C.mint}`,
-              borderRadius: 12, padding: "15px 14px",
-              boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-            }}>
-              <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>🚩</div>
-              <div style={{ fontSize: "1.7rem", fontWeight: 800, color: openTasks > 0 ? C.red : C.sage, lineHeight: 1, marginBottom: 3 }}>{openTasks}</div>
-              <div style={{ fontSize: ".75rem", fontWeight: 600, color: C.ink }}>Open tasks</div>
-              <div style={{ fontSize: ".67rem", color: C.mist, marginTop: 2 }}>Flags & actions</div>
-            </div>
-
-            {/* Overdue training */}
-            {moduleEnabled("lms") && (
-            <div className="tile" onClick={() => onNavigate("training")} style={{
-              background: overdueTrainings > 0 ? C.goldLt : C.foam,
-              border: `1.5px solid ${overdueTrainings > 0 ? C.gold + "44" : C.mint}`,
-              borderRadius: 12, padding: "15px 14px",
-              boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-            }}>
-              <div style={{ fontSize: "1.2rem", marginBottom: 6 }}>📚</div>
-              <div style={{ fontSize: "1.7rem", fontWeight: 800, color: overdueTrainings > 0 ? C.gold : C.sage, lineHeight: 1, marginBottom: 3 }}>{overdueTrainings}</div>
-              <div style={{ fontSize: ".75rem", fontWeight: 600, color: C.ink }}>Overdue training</div>
-              <div style={{ fontSize: ".67rem", color: overdueTrainings > 0 ? C.gold : C.mist, marginTop: 2 }}>
-                {overdueTrainings > 0 ? "Action needed" : "All current"}
-              </div>
-            </div>
-            )}
-          </div>
-
-          {/* Recognition — points & this month's leaders */}
-          {moduleEnabled("recognition") && (
-          <div className="tile" onClick={() => onNavigate("recognition")} style={{
-            background: "linear-gradient(135deg, #EEF6F0, #E0F2F7)",
-            border: `1.5px solid ${C.mint}`,
-            borderRadius: 12, padding: "15px 14px", marginBottom: 12,
-            boxShadow: "0 2px 8px rgba(0,0,0,.06)", cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 12,
-          }}>
-            <div style={{ fontSize: "1.6rem" }}>🏆</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: ".9rem", fontWeight: 700, color: C.ink }}>Recognition</div>
-              <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 1 }}>Your points, this month's leaders, give a shout-out</div>
-            </div>
-            <div style={{ fontSize: "1rem", color: C.sage }}>→</div>
-          </div>
+      {/* Hero band — continues the header colour so the greeting and the one
+          primary action read as a single block. */}
+      <div style={{ background: C.forest, color: "#fff", padding: "6px 20px 22px" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          {where && <div style={{ fontSize: ".82rem", color: "rgba(255,255,255,.78)" }}>{where}</div>}
+          <h1 style={{ margin: "2px 0 16px", fontSize: "1.75rem", fontWeight: 700 }}>{greeting()}, {first}</h1>
+          {moduleEnabled("incidents") && (
+            <button onClick={() => onNavigate("flag")} style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", padding: 16,
+                    border: "none", borderRadius: 16, background: C.mint, color: C.forest, textAlign: "left", cursor: "pointer", fontFamily: FONTS.body }}>
+              <span style={{ width: 46, height: 46, borderRadius: 13, background: C.forest, color: C.mint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name="flag" size={23} stroke={2} />
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: "block", fontFamily: FONTS.display, fontSize: "1.2rem", fontWeight: 700 }}>Report something</span>
+                <span style={{ display: "block", fontSize: ".85rem", fontWeight: 500 }}>Injury, hazard, damage or an idea</span>
+              </span>
+              <Icon name="chev" size={22} stroke={2.2} />
+            </button>
           )}
-          <div
-            className="tile triage-tile"
-            onClick={() => onNavigate("triage")}
-            style={{
-              background: C.redLt,
-              border: `1.5px solid ${C.red}33`,
-              borderRadius: 12, padding: "15px 18px",
-              display: "flex", alignItems: "center", gap: 14,
-              boxShadow: "0 2px 8px rgba(0,0,0,.06)",
-            }}
-          >
-            <span style={{ fontSize: "1.6rem", flexShrink: 0 }}>🚨</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: ".88rem", fontWeight: 700, color: C.red }}>Triage · Something happening right now?</div>
-              <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>Get live guidance · takes 60 seconds</div>
-            </div>
-            <span style={{ color: C.red, fontSize: ".9rem", flexShrink: 0 }}>→</span>
-          </div>
         </div>
-
-        {/* Recent activity */}
-        <div className="anim">
-          <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: C.mist, marginBottom: 8, paddingLeft: 2 }}>
-            Recent activity
-          </div>
-          <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden" }}>
-            {recentActivity.map((item, i) => (
-              <div key={i} className="activity-row" onClick={() => onNavigate(item.nav)} style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-                borderBottom: i < recentActivity.length - 1 ? "1px solid #F0F4F2" : "none",
-                cursor: "pointer", transition: "background .12s",
-              }}>
-                <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: C.chalk, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ".95rem" }}>
-                  {item.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: ".85rem", color: C.ink, lineHeight: 1.3 }}>{item.desc}</div>
-                  <div style={{ fontSize: ".7rem", color: C.mist, marginTop: 2 }}>{item.time}</div>
-                </div>
-                <span style={{ color: C.mist, fontSize: ".8rem" }}>→</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom spacer — ensures content clears the fixed nav bar */}
-        <div style={{ height: 80 }} />
       </div>
+
+      <main style={{ flex: 1, width: "100%", maxWidth: 640, margin: "0 auto", padding: "18px 20px 100px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {moduleEnabled("incidents") && (
+          <button onClick={() => onNavigate("triage")} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
+                  border: `1.5px solid ${C.red}`, background: C.redLt, color: C.red, cursor: "pointer", textAlign: "left", fontFamily: FONTS.body }}>
+            <Icon name="alert" size={22} stroke={2} />
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontWeight: 700, fontSize: ".95rem" }}>Something happening right now?</span>
+              <span style={{ display: "block", fontSize: ".8rem", color: C.ink }}>Step-by-step guidance · about 60 seconds</span>
+            </span>
+            <Icon name="chev" size={18} />
+          </button>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+          {moduleEnabled("inspections") && (
+            <button style={tile} onClick={() => onNavigate("inspect")}><span style={{ color: C.sage }}><Icon name="check" size={22} /></span>Inspect</button>
+          )}
+          {moduleEnabled("recognition") && (
+            <button style={tile} onClick={() => onNavigate("recognition")}><span style={{ color: C.sage }}><Icon name="star" size={22} /></span>Recognition</button>
+          )}
+        </div>
+
+        {moduleEnabled("lms") && (
+          <Card>
+            <CardHeader title="Your training" right={todo && (todo.length
+              ? <StatusChip tone="amber" solid>{todo.length} to do</StatusChip>
+              : <StatusChip tone="green">All current</StatusChip>)} />
+            {todo === null && <div style={{ padding: "4px 16px 14px", fontSize: ".85rem", color: C.slate }}>Loading…</div>}
+            {todo && todo.length === 0 && <div style={{ padding: "4px 16px 14px", fontSize: ".88rem", color: C.slate }}>You're up to date. Nice work.</div>}
+            {todo && todo.slice(0, 3).map(t => {
+              const st = TRAINING_STATE[t.state] || TRAINING_STATE.not_started;
+              return <Row key={t.id} tone={st.tone} icon={<Icon name={t.kind === "in_person" ? "building" : "cap"} size={18} />}
+                          title={t.title} meta={t.kind === "in_person" ? "In person · with your trainer" : "Online course"}
+                          status={<StatusChip tone={st.tone}>{st.label}</StatusChip>} onClick={() => onNavigate("training")} />;
+            })}
+            {todo && todo.length > 3 && (
+              <button onClick={() => onNavigate("training")} style={{ width: "100%", padding: "12px 16px", border: "none", borderTop: `1px solid ${C.line}`,
+                      background: "transparent", color: C.sage, fontWeight: 700, fontSize: ".88rem", cursor: "pointer", textAlign: "left", fontFamily: FONTS.body }}>
+                See all {todo.length} →
+              </button>
+            )}
+          </Card>
+        )}
+
+        {moduleEnabled("incidents") && mine && mine.length > 0 && (
+          <Card>
+            <CardHeader title="Things you reported" />
+            {mine.map(i => {
+              const st = INCIDENT_STATE[i.status] || INCIDENT_STATE.open;
+              return <Row key={i.id} tone={st.tone} icon={<Icon name="alert" size={18} />}
+                          title={i.description || i.ref} meta={`${i.ref} · ${ago(i.created_at)}`}
+                          status={<StatusChip tone={st.tone}>{st.label}</StatusChip>}
+                          onClick={() => window.dispatchEvent(new CustomEvent("ehs:navigate", { detail: { kind: "incident" } }))} />;
+            })}
+          </Card>
+        )}
+
+        {recent.length > 0 && (
+          <Card>
+            <CardHeader title="Recent activity" />
+            {recent.map(n => (
+              <Row key={n.id} tone="blue" icon={<Icon name="bell" size={18} />} title={(n.title || "Notification").replace(/^[^\w]+\s*/, "")}
+                   meta={ago(n.created_at)} onClick={() => onNavigate(n.link_kind === "incident" ? "flag" : n.link_kind === "training" ? "training" : "home")} />
+            ))}
+          </Card>
+        )}
+      </main>
     </div>
   );
 }
