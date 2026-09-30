@@ -170,6 +170,11 @@ function auth(req, res, next) {
       const OPERATOR_OK = ["/api/config", "/api/health", "/api/leads", "/api/notifications", "/api/billing"];
       const allowed = p.startsWith("/api/op/") || p.startsWith("/api/auth/")
         || OPERATOR_OK.some(x => p === x || p.startsWith(x + "/"));
+      // /api/config is readable (the console needs branding/modules) but NOT
+      // writable: PUT /api/config would change the operator's home tenant's
+      // company settings — WhistlePig's — without entering support mode.
+      if (p === "/api/config" && req.method !== "GET")
+        return res.status(403).json({ error: "Operator accounts can't change a company's settings directly. Use \"Enter app\" (support mode)." });
       if (!allowed)
         return res.status(403).json({ error: "Operator accounts can't read customer records directly. Use \"Enter app\" (support mode) on the company." });
     }
@@ -561,17 +566,25 @@ app.post("/api/sites/bulk", auth, requireRole(...ADMINISH), (req, res) => {
 });
 
 app.post("/api/sites", auth, requireRole(...ADMINISH), (req, res) => {
+  const name = String(req.body?.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "Give the site a name." });
   const r = db.prepare("INSERT INTO sites (tenant_id, name, location) VALUES (?, ?, ?)")
-    .run(req.auth.tenant, req.body.name, req.body.location ?? null);
+    .run(req.auth.tenant, name, req.body.location?.trim() || null);
   res.json({ id: r.lastInsertRowid });
 });
 app.put("/api/sites/:id", auth, requireRole(...ADMINISH), (req, res) => {
+  // Booleans can't be bound by the SQLite driver (active:false used to 500);
+  // a blank rename would leave an empty row in every site dropdown.
+  if (req.body?.name !== undefined && !String(req.body.name).trim()) return res.status(400).json({ error: "Site name can't be blank." });
+  const siteActive = req.body?.active === undefined || req.body?.active === null ? null : (req.body.active ? 1 : 0);
   db.prepare("UPDATE sites SET name = COALESCE(?, name), location = COALESCE(?, location), active = COALESCE(?, active) WHERE id = ? AND tenant_id = ?")
-    .run(req.body.name, req.body.location, req.body.active, req.params.id, req.auth.tenant);
+    .run(req.body?.name?.trim() ?? null, req.body?.location ?? null, siteActive, req.params.id, req.auth.tenant);
   res.json({ ok: true });
 });
 app.post("/api/departments", auth, requireRole(...ADMINISH), (req, res) => {
-  const r = db.prepare("INSERT INTO departments (tenant_id, name) VALUES (?, ?)").run(req.auth.tenant, req.body.name);
+  const name = String(req.body?.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "Give the department a name." });
+  const r = db.prepare("INSERT INTO departments (tenant_id, name) VALUES (?, ?)").run(req.auth.tenant, name);
   res.json({ id: r.lastInsertRowid });
 });
 // Bulk department creation — mirrors /api/sites/bulk. This exists because the
@@ -601,8 +614,10 @@ app.post("/api/departments/bulk", auth, requireRole(...ADMINISH), (req, res) => 
              failed: results.filter(r => r.error).length, results });
 });
 app.put("/api/departments/:id", auth, requireRole(...ADMINISH), (req, res) => {
+  if (req.body?.name !== undefined && !String(req.body.name).trim()) return res.status(400).json({ error: "Department name can't be blank." });
+  const deptActive = req.body?.active === undefined || req.body?.active === null ? null : (req.body.active ? 1 : 0);
   db.prepare("UPDATE departments SET name = COALESCE(?, name), active = COALESCE(?, active) WHERE id = ? AND tenant_id = ?")
-    .run(req.body.name, req.body.active, req.params.id, req.auth.tenant);
+    .run(req.body?.name?.trim() ?? null, deptActive, req.params.id, req.auth.tenant);
   res.json({ ok: true });
 });
 
