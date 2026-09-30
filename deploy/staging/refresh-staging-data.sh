@@ -13,12 +13,16 @@ set -a; . /etc/ehs-dna-staging.env; set +a
 DB="$EHS_DB_PATH"; PHOTOS="$EHS_PHOTO_DIR"
 mkdir -p "$(dirname "$DB")" "$PHOTOS"
 systemctl stop ehs-dna-staging
+# Never leave staging stopped silently: on any failure from here, say where and restart it.
+trap 'echo "!! Data refresh failed at line $LINENO — restarting staging on whatever data it has."; systemctl start ehs-dna-staging' ERR
 rm -f "$DB" "$DB-wal" "$DB-shm"
 if [ "$MODE" = "prod" ]; then
   echo "── Copying LIVE database + photos into staging ──"
   # .backup is a consistent snapshot even while live is being written to.
   sqlite3 /home/ehs-platform/data/ehs.db ".backup '$DB'"
-  LIVE_PHOTOS="$(grep -s '^EHS_PHOTO_DIR=' /etc/ehs-dna.env | cut -d= -f2-)"
+  # `|| true`: live usually has no EHS_PHOTO_DIR line (it uses the default), and
+  # under `set -o pipefail` a no-match grep silently killed the whole script here.
+  LIVE_PHOTOS="$(grep -s '^EHS_PHOTO_DIR=' /etc/ehs-dna.env | cut -d= -f2- || true)"
   rsync -a --delete "${LIVE_PHOTOS:-/home/ehs-platform/data/photos}/" "$PHOTOS/"
   # Sanity: the copy must be readable and non-empty before staging starts on it.
   sqlite3 "$DB" "PRAGMA quick_check;" | grep -qx ok || { echo "!! Copied database failed its integrity check"; exit 1; }
