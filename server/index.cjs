@@ -3312,6 +3312,11 @@ app.get("/manifest.webmanifest", (req, res, next) => {
   res.set("Cache-Control", "no-cache");
   next();
 });
+// Legal pages change in place (same filename), so they must revalidate rather
+// than inherit the year-long immutable cache used for hashed app assets.
+app.use("/legal", express.static(path.join(DIST, "legal"), {
+  index: false, maxAge: 0, setHeaders: res => res.set("Cache-Control", "no-cache"),
+}));
 app.use(express.static(DIST, { index: false, maxAge: "365d", immutable: true }));
 app.use((req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });

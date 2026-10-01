@@ -229,6 +229,12 @@ export default function LandingPage({ onEnter }) {
         <div style={{ width: "100%", maxWidth: 420, background: C.white, border: `1px solid ${C.line}`, borderRadius: 18, padding: "28px 24px",
                       boxShadow: "0 8px 30px rgba(21,33,43,.06)" }}>
           {panel}
+          <nav aria-label="Legal" style={{ marginTop: 22, paddingTop: 14, borderTop: `1px solid ${C.line}`, display: "flex", justifyContent: "center",
+                                          gap: 16, flexWrap: "wrap", fontSize: ".82rem" }}>
+            <a href="/legal/terms.html" style={{ color: C.slate }}>Terms of Service</a>
+            <a href="/legal/privacy.html" style={{ color: C.slate }}>Privacy Policy</a>
+            <a href="mailto:info@ehsdna.com" style={{ color: C.slate }}>info@ehsdna.com</a>
+          </nav>
         </div>
       </main>
     </div>

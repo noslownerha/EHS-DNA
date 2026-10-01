@@ -140,7 +140,7 @@ function AccountButton() {
   const initial = (account.user.name ?? "?").trim().charAt(0).toUpperCase();
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} title="Account" style={{
+      <button onClick={() => setOpen(o => !o)} title="Account" aria-label="Account menu" aria-expanded={open} style={{
         width: 28, height: 28, borderRadius: "50%",
         background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
         color: "#fff", fontSize: ".78rem", fontWeight: 700, cursor: "pointer",
@@ -166,7 +166,9 @@ function AccountButton() {
             }} style={{ ...menuItemStyle, color: C.pine, fontWeight: 700 }}>← Return to operator</button>
           )}
           <button onClick={() => { setShowPw(true); setOpen(false); }} style={menuItemStyle}>Change password</button>
-          <button onClick={() => { setOpen(false); account.onLogout?.(); }} style={{ ...menuItemStyle, color: "#C0392B" }}>Sign out</button>
+          <a href="/legal/terms.html" target="_blank" rel="noopener" style={{ ...menuItemStyle, display: "block", textDecoration: "none" }}>Terms of Service</a>
+          <a href="/legal/privacy.html" target="_blank" rel="noopener" style={{ ...menuItemStyle, display: "block", textDecoration: "none" }}>Privacy Policy</a>
+          <button onClick={() => { setOpen(false); account.onLogout?.(); }} style={{ ...menuItemStyle, color: C.red }}>Sign out</button>
         </div>
       )}
       {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
