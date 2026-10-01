@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "./Icon.jsx";
 import { COLORS } from "./constants.js";
 import { EHSHeader } from "./AppShell.jsx";
 
@@ -18,9 +19,12 @@ function Progress({ step, total }) {
 
 // A single choice card. Big tap target, icon + label + one-line sub.
 function Card({ icon, label, sub, tone = "neutral", onClick }) {
-  const accent = tone === "injury" ? C.red : tone === "good" ? C.sage : C.ink;
-  const bg     = tone === "injury" ? C.redLt : tone === "good" ? C.foam : "#EFF6F1";
-  const border = tone === "injury" ? `${C.red}44` : tone === "good" ? `${C.sage}55` : "#C9D8D0";
+  // White card, tinted icon tile: injury red, speak-up green, everything else brand.
+  const accent = tone === "injury" ? C.red : C.ink;
+  const tileBg = tone === "injury" ? C.redLt : tone === "good" ? C.greenLt : C.foam;
+  const tileFg = tone === "injury" ? C.red : tone === "good" ? C.green : C.sage;
+  const bg     = C.white;
+  const border = tone === "injury" ? C.red : C.line;
   return (
     <button className="type-tile" onClick={onClick} style={{
       width: "100%", padding: "18px 16px", textAlign: "left",
@@ -28,10 +32,11 @@ function Card({ icon, label, sub, tone = "neutral", onClick }) {
       boxShadow: "0 2px 8px rgba(15,31,23,.08)", fontFamily: "'DM Sans', sans-serif",
       display: "flex", alignItems: "center", gap: 14, transition: "transform .12s",
     }}>
-      <span style={{ fontSize: "1.7rem", flexShrink: 0 }}>{icon}</span>
+      <span style={{ width: 46, height: 46, borderRadius: 13, background: tileBg, color: tileFg, display: "flex", alignItems: "center",
+                     justifyContent: "center", flexShrink: 0 }}><Icon name={icon} size={24} stroke={2} /></span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: "1rem", fontWeight: 700, lineHeight: 1.2, color: accent }}>{label}</div>
-        {sub && <div style={{ fontSize: ".76rem", color: C.mist, marginTop: 2, lineHeight: 1.3 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: ".82rem", color: C.slate, marginTop: 2, lineHeight: 1.3 }}>{sub}</div>}
       </div>
       <span style={{ color: accent, fontSize: "1.1rem", flexShrink: 0 }}>›</span>
     </button>
@@ -84,29 +89,29 @@ export default function S2a1IncidentType({
 
         {step === "top" && (
           <>
-            <Card icon="🩹" label="Report an injury" sub="Someone got hurt or ill" tone="injury"
+            <Card icon="bandage" label="Report an injury" sub="Someone got hurt or ill" tone="injury"
               onClick={() => (onTriage ? onTriage() : proceed("injury"))} />
-            <Card icon="🚩" label="Flag something" sub="A hazard, damage, or an idea to share"
+            <Card icon="flag" label="Flag something" sub="A hazard, damage, or an idea to share"
               onClick={() => setStep("flag")} />
           </>
         )}
 
         {step === "flag" && (
           <>
-            <Card icon="⚠️" label="A risk or hazard" sub="Something unsafe, or a close call"
+            <Card icon="alert" label="A risk or hazard" sub="Something unsafe, or a close call"
               onClick={() => proceed("hazard")} />
-            <Card icon="🔧" label="Damage or a security issue" sub="Property, equipment, or a security concern"
+            <Card icon="wrench" label="Damage or a security issue" sub="Property, equipment, or a security concern"
               onClick={() => proceed("property")} />
-            <Card icon="💡" label="An idea or a shout-out" sub="A better way, or someone doing it right" tone="good"
+            <Card icon="bulb" label="An idea or a shout-out" sub="A better way, or someone doing it right" tone="good"
               onClick={() => setStep("idea")} />
           </>
         )}
 
         {step === "idea" && (
           <>
-            <Card icon="💡" label="I have an idea" sub="A way to make things safer or better" tone="good"
+            <Card icon="bulb" label="I have an idea" sub="A way to make things safer or better" tone="good"
               onClick={() => proceed("idea")} />
-            <Card icon="👏" label="Give a shout-out" sub="Someone did something right" tone="good"
+            <Card icon="thumb" label="Give a shout-out" sub="Someone did something right" tone="good"
               onClick={() => proceed("positive")} />
           </>
         )}

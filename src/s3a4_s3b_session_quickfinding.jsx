@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 
@@ -14,15 +15,15 @@ const SEVERITIES = [
 
 // Spec §13.4: "Positive Obs." renamed to "Positive Note"
 const CATEGORIES = [
-  { id: "ppe",            label: "PPE",              emoji: "🦺" },
-  { id: "housekeeping",   label: "Housekeeping",     emoji: "🧹" },
-  { id: "equipment",      label: "Equipment",        emoji: "⚙️" },
-  { id: "fire",           label: "Fire Safety",      emoji: "🔥" },
-  { id: "ergonomics",     label: "Ergonomics",       emoji: "💺" },
-  { id: "chemical",       label: "Chemical / SDS",  emoji: "🧪" },
-  { id: "documentation",  label: "Documentation",    emoji: "📋" },
-  { id: "positive",       label: "Positive Note",    emoji: "⭐" },  // Spec §13.4
-  { id: "other",          label: "Other",            emoji: "📌" },
+  { id: "ppe",            label: "PPE",              emoji: "shield" },
+  { id: "housekeeping",   label: "Housekeeping",     emoji: "broom" },
+  { id: "equipment",      label: "Equipment",        emoji: "gear" },
+  { id: "fire",           label: "Fire Safety",      emoji: "flame" },
+  { id: "ergonomics",     label: "Ergonomics",       emoji: "posture" },
+  { id: "chemical",       label: "Chemical / SDS",  emoji: "flask" },
+  { id: "documentation",  label: "Documentation",    emoji: "doc" },
+  { id: "positive",       label: "Positive Note",    emoji: "star" },  // Spec §13.4
+  { id: "other",          label: "Other",            emoji: "pin" },
 ];
 
 const ASSIGNEES = ["Site Manager", "Department Lead", "Facility Maintenance", "Safety Officer"];
@@ -78,7 +79,7 @@ export function S3a4SessionComplete({ onHome,
         {/* Score card */}
         <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "22px 18px", marginBottom: 14, textAlign: "center" }}>
           <div style={{ fontSize: "2rem", marginBottom: 8, animation: "popIn .4s ease both" }}>
-            {score >= 90 ? "✅" : score >= 70 ? "⚠️" : "❌"}
+            <Icon name={score >= 90 ? "checkCircle" : score >= 70 ? "alert" : "x"} size={22} stroke={2.2} />
           </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>Inspection complete</h1>
           <p style={{ fontSize: ".82rem", color: C.mist, marginBottom: 16 }}>{templateName} · {site}</p>
@@ -254,7 +255,7 @@ export function S3bQuickFinding({ onHome,
                     ...(cat.id === "positive" ? { borderColor: C.gold, background: category === cat.id ? C.goldLt : C.white } : {}),
                   }}
                 >
-                  <div style={{ fontSize: "1.3rem", marginBottom: 5 }}>{cat.emoji}</div>
+                  <div style={{ display: "flex", justifyContent: "center", color: C.sage, marginBottom: 6 }}><Icon name={cat.emoji} size={24} stroke={2} /></div>
                   <div style={{ fontSize: ".75rem", fontWeight: 600, color: cat.id === "positive" ? C.gold : C.ink, lineHeight: 1.2 }}>
                     {cat.label}
                   </div>
@@ -266,7 +267,7 @@ export function S3bQuickFinding({ onHome,
           <>
             <div className="anim" style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: "1.1rem" }}>{catObj?.emoji}</span>
+                <span style={{ color: C.sage, display: "flex" }}><Icon name={catObj?.emoji} size={20} stroke={2} /></span>
                 <h1 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink }}>{catObj?.label}</h1>
               </div>
               <p style={{ fontSize: ".82rem", color: C.mist }}>Add details — target under 60 seconds</p>
@@ -285,7 +286,7 @@ export function S3bQuickFinding({ onHome,
                 fontSize: ".9rem", color: photo ? C.pine : C.mist,
                 cursor: "pointer", marginBottom: 14,
               }}>
-                📷 {photo ? `✓ Photo added` : "Add photo first"}
+                <Icon name="camera" size={18} style={{ verticalAlign: "-4px", marginRight: 6 }} />{photo ? `✓ Photo added` : "Add photo first"}
               </button>
 
               {/* Description */}

@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
@@ -9,7 +10,7 @@ const C = { ...COLORS };
 const MODES = [
   {
     id: "quick",
-    emoji: "⚡",
+    emoji: "bolt",
     label: "Quick Finding",
     desc: "Log a single observation right now",
     color: C.gold,
@@ -17,7 +18,7 @@ const MODES = [
   },
   {
     id: "checklist",
-    emoji: "✅",
+    emoji: "checkCircle",
     label: "Run Checklist",
     desc: "Work through a structured inspection template",
     color: C.sage,
@@ -25,7 +26,7 @@ const MODES = [
   },
   {
     id: "gemba",
-    emoji: "🚶",
+    emoji: "walk",
     label: "Gemba Walk",
     desc: "Unscheduled floor walkthrough — log as you go",
     color: C.pine,
@@ -33,7 +34,7 @@ const MODES = [
   },
   {
     id: "scheduled",
-    emoji: "📅",
+    emoji: "calendar",
     label: "Scheduled",
     desc: "A planned inspection assigned to you",
     color: C.slate,
@@ -126,7 +127,7 @@ export default function S3a1StartInspection({ onHome,
               padding: "8px 13px", background: C.white, color: C.pine,
               border: `1.5px solid ${C.mint}`, borderRadius: 8, cursor: "pointer",
               fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap",
-            }}>⚙️ Checklists</button>
+            }}><Icon name="gear" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />Checklists</button>
           )}
         </div>
 
@@ -146,7 +147,7 @@ export default function S3a1StartInspection({ onHome,
                 boxShadow: selectedMode === mode.id ? `0 2px 12px ${mode.color}22` : "0 1px 4px rgba(0,0,0,.05)",
               }}
             >
-              <div style={{ fontSize: "1.4rem", marginBottom: 7 }}>{mode.emoji}</div>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: C.foam, color: C.sage, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 9 }}><Icon name={mode.emoji} size={22} stroke={2} /></div>
               <div style={{ fontSize: ".88rem", fontWeight: 700, color: selectedMode === mode.id ? mode.color : C.ink, marginBottom: 3 }}>
                 {mode.label}
               </div>
@@ -159,7 +160,7 @@ export default function S3a1StartInspection({ onHome,
         {DUE_TODAY.length > 0 && (
           <div className="anim" style={{ marginBottom: 20 }}>
             <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.orange, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>🗓</span> Due & overdue
+              <Icon name="calendar" size={15} style={{ verticalAlign: "-2px" }} /> Due & overdue
             </div>
             <div style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", overflow: "hidden" }}>
               {DUE_TODAY.map((item, i) => (

@@ -1,4 +1,5 @@
 import { COLORS, SITES, BRAND } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect, useRef } from "react";
 import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
@@ -220,8 +221,8 @@ export default function S2a2WhatHappened({
 
   // Type-aware copy so the screen speaks the worker's language.
   const COPY = {
-    positive:    { h: "Nice catch! 👍", p: "Tell us what you saw someone do right.", ph: "What did they do well? (e.g. stopped to lock out the line before clearing a jam)" },
-    idea:        { h: "What's your idea? 💡", p: "How could we make things safer or easier?", ph: "Describe your idea — what would you change, and why?" },
+    positive:    { h: "Nice catch!", p: "Tell us what you saw someone do right.", ph: "What did they do well? (e.g. stopped to lock out the line before clearing a jam)" },
+    idea:        { h: "What's your idea?", p: "How could we make things safer or easier?", ph: "Describe your idea — what would you change, and why?" },
     observation: { h: "What did you notice?", p: "Describe what you observed.", ph: "What did you see?" },
     hazard:      { h: "What's the hazard?", p: "Describe what's unsafe so we can fix it.", ph: "What's unsafe, and where?" },
     _default:    { h: "What happened?", p: "Describe it in your own words.", ph: "Describe what happened, what you saw, and what you did…" },
@@ -275,7 +276,7 @@ export default function S2a2WhatHappened({
                 fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column",
                 alignItems: "center", gap: 5,
               }}>
-                <span style={{ fontSize: "1.6rem" }}>📷</span>
+                <Icon name="camera" size={26} />
                 <span style={{ fontSize: ".84rem", fontWeight: 700, color: C.pine }}>Take a photo</span>
               </button>
               <button onClick={() => galleryInput.current?.click()} style={{
@@ -284,7 +285,7 @@ export default function S2a2WhatHappened({
                 fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column",
                 alignItems: "center", gap: 5,
               }}>
-                <span style={{ fontSize: "1.6rem" }}>🖼️</span>
+                <Icon name="image" size={26} />
                 <span style={{ fontSize: ".84rem", fontWeight: 700, color: C.pine }}>Choose photo</span>
               </button>
             </div>
@@ -302,11 +303,11 @@ export default function S2a2WhatHappened({
               <button onClick={() => photoInput.current?.click()} title="Take a photo" style={{
                 width: 72, height: 72, borderRadius: 8, background: C.foam,
                 border: `1.5px dashed ${C.sage}`, cursor: "pointer", fontSize: "1.4rem", color: C.sage,
-              }}>📷</button>
+              }}><Icon name="camera" size={18} /></button>
               <button onClick={() => galleryInput.current?.click()} title="Choose from gallery" style={{
                 width: 72, height: 72, borderRadius: 8, background: C.foam,
                 border: `1.5px dashed ${C.sage}`, cursor: "pointer", fontSize: "1.4rem", color: C.sage,
-              }}>🖼️</button>
+              }}><Icon name="image" size={18} /></button>
             </div>
           )}
         </div>
@@ -323,7 +324,7 @@ export default function S2a2WhatHappened({
                 color: listening ? C.red : C.pine, fontFamily: "'DM Sans', sans-serif",
                 fontSize: ".76rem", fontWeight: 700, cursor: "pointer",
               }}>
-                {listening ? "● Listening…" : "🎤 Speak"}
+                {listening ? "● Listening…" : <><Icon name="mic" size={16} style={{ verticalAlign: "-3px", marginRight: 4 }} />Speak</>}
               </button>
             )}
           </div>
@@ -399,7 +400,7 @@ export default function S2a2WhatHappened({
 
             {gpsCoords ? (
               <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 12px", background: C.foam, borderRadius: 8 }}>
-                <span>📍</span>
+                <Icon name="pin" size={18} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: ".85rem", color: C.pine }}>GPS location captured</div>
                   <div style={{ fontSize: ".72rem", color: C.mist }}>{gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}</div>
@@ -412,7 +413,7 @@ export default function S2a2WhatHappened({
                   width: "100%", padding: "11px 12px", background: C.white, border: `1.5px solid ${C.mint}`,
                   borderRadius: 8, color: C.pine, fontFamily: "'DM Sans', sans-serif",
                   fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
-                }}>📍 Tag my current GPS location</button>
+                }}><Icon name="pin" size={17} style={{ verticalAlign: "-3px", marginRight: 6 }} />Tag my current GPS location</button>
                 <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 6, lineHeight: 1.45 }}>
                   Only use this if you're standing at the spot right now — it records where <em>you</em> are, not where the hazard is.
                 </div>
@@ -429,7 +430,7 @@ export default function S2a2WhatHappened({
                   border: `1.5px solid ${floorPos ? C.sage : C.mint}`,
                   borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
                   fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
-                }}>{floorPos ? "✓ Marked on site map — tap to adjust" : "🗺️ Mark the spot on the site map"}</button>
+                }}>{floorPos ? "✓ Marked on site map — tap to adjust" : <><Icon name="map" size={17} style={{ verticalAlign: "-3px", marginRight: 6 }} />Mark the spot on the site map</>}</button>
                 <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 6, lineHeight: 1.45 }}>
                   More precise than GPS indoors — you place the pin yourself.
                 </div>
@@ -450,7 +451,7 @@ export default function S2a2WhatHappened({
                 }}>
                 <img src={plan} alt="Site floorplan" style={{ width: "100%", display: "block", borderRadius: 8 }} />
                 {floorPos && (
-                  <div style={{ position: "absolute", left: `${floorPos.x}%`, top: `${floorPos.y}%`, transform: "translate(-50%, -90%)", fontSize: "1.6rem", pointerEvents: "none" }}>📍</div>
+                  <div style={{ position: "absolute", left: `${floorPos.x}%`, top: `${floorPos.y}%`, transform: "translate(-50%, -90%)", color: C.red, pointerEvents: "none" }}><Icon name="pin" size={30} stroke={2.2} /></div>
                 )}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>

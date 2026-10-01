@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { printCertificate } from "./s4e_s4f_library_detail.jsx";
@@ -10,18 +11,18 @@ const C = { ...COLORS };
 // Spec §14.1: status chips — current, expiring-soon, overdue, expired
 const STATUS = {
   current:       { label: "Current",       bg: C.foam,     color: C.pine,   icon: "✓" },
-  expiring_soon: { label: "Expiring soon", bg: C.goldLt,   color: C.gold,   icon: "⏱" },
+  expiring_soon: { label: "Expiring soon", bg: C.goldLt,   color: C.gold,   icon: "!" },
   overdue:       { label: "Overdue",       bg: C.redLt,    color: C.red,    icon: "!" },
   expired:       { label: "Expired",       bg: "#EEF1F0",  color: C.slate,  icon: "×" },
   not_started:   { label: "Not started",   bg: C.purpleLt, color: C.purple, icon: "→" },
   needs_retake:  { label: "Needs retake",   bg: C.redLt,    color: C.red,    icon: "↻" },
-  awaiting_confirmation: { label: "Awaiting confirmation", bg: "#FDF0D5", color: "#8A6212", icon: "⏳" },
+  awaiting_confirmation: { label: "Awaiting confirmation", bg: "#FDF0D5", color: "#8A6212", icon: "…" },
   not_confirmed: { label: "Not confirmed", bg: C.redLt, color: C.red, icon: "!" },
 };
 
 const TYPE = {
-  cbt:       { label: "CBT",       emoji: "💻", color: C.purple },
-  in_person: { label: "In-person", emoji: "👥", color: C.pine   },
+  cbt:       { label: "Online course", emoji: "laptop", color: C.purple },
+  in_person: { label: "In person", emoji: "users", color: C.pine   },
 };
 
 function StatusPill({ status }) {
@@ -95,7 +96,7 @@ export default function S4aTrainingQueue({ onHome,
           passed: !!passedComp,
           due: null,
           duration: (() => {
-            if (tr.kind === "in_person") return "In person";
+            if (tr.kind === "in_person") return "With your trainer";
             try {
               const c = tr.content ? JSON.parse(tr.content) : null;
               const n = (c?.slides?.length ?? 0) + (c?.questions?.length ?? 0);
@@ -138,7 +139,7 @@ export default function S4aTrainingQueue({ onHome,
         {/* Header */}
         <div className="anim" style={{ marginBottom: 18 }}>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.ink }}>My training</h1>
-          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>{user.dept} · {user.site}</p>
+          <p style={{ fontSize: ".82rem", color: C.mist, marginTop: 3 }}>{[user.department ?? user.dept, user.site].filter(Boolean).join(" · ")}</p>
         </div>
 
         {/* Urgent banners */}
@@ -160,7 +161,7 @@ export default function S4aTrainingQueue({ onHome,
             border: `1.5px solid #F0D090`, borderRadius: 9,
             marginBottom: 14, fontSize: ".85rem", color: "#7A5A1A",
           }}>
-            <span>⏱</span>
+            <Icon name="clock" size={14} style={{ verticalAlign: "-2px" }} />
             <span><strong>{expiringSoonCount} expiring soon</strong> — renew within 30 days</span>
           </div>
         )}
@@ -206,11 +207,11 @@ export default function S4aTrainingQueue({ onHome,
                 {/* Type icon */}
                 <div style={{
                   width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                  background: typeInfo.color + "14",
+                  background: typeInfo.color + "14", color: typeInfo.color,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: "1.1rem",
                 }}>
-                  {typeInfo.emoji}
+                  <Icon name={typeInfo.emoji} size={20} />
                 </div>
 
                 {/* Info */}
@@ -230,7 +231,7 @@ export default function S4aTrainingQueue({ onHome,
                         background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
                         padding: "2px 9px", fontSize: ".68rem", color: C.pine, cursor: "pointer",
                         fontFamily: "'DM Sans', sans-serif",
-                      }}>🏅 Certificate</button>
+                      }}><Icon name="award" size={15} style={{ verticalAlign: "-3px", marginRight: 4 }} />Certificate</button>
                     )}
                   </div>
                   {t.due && (t.status === "overdue" || t.status === "not_started") && (

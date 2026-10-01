@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
@@ -234,7 +235,7 @@ export default function S2bConfirmationResponse({
           padding: "20px 18px", marginBottom: 14, textAlign: "center",
         }}>
           <div style={{ fontSize: "2.5rem", marginBottom: 10, animation: "popIn .4s ease both" }}>
-            {saveState === "failed" ? "⚠️" : saveState === "saving" ? "⏳" : saveState === "queued" ? "📤" : "✅"}
+            <Icon name={saveState === "failed" ? "alert" : saveState === "saving" ? "clock" : saveState === "queued" ? "upload" : "checkCircle"} size={22} />
           </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: saveState === "failed" ? "#B3261E" : C.pine, marginBottom: 6 }}>
             {saveState === "failed" ? "Report not saved"
