@@ -212,7 +212,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
         <div className="dash-cols">
           <Card>
             <CardHeader title="Needs your attention" right={<span style={{ fontSize: ".82rem", color: C.slate }}>{attention.length} item{attention.length === 1 ? "" : "s"}</span>} />
-            {attention.length === 0 && <div style={{ padding: "4px 16px 16px", color: C.slate, fontSize: ".9rem" }}>Nothing blocked, overdue or critical. 👍</div>}
+            {attention.length === 0 && <div style={{ padding: "4px 16px 16px", color: C.slate, fontSize: ".9rem" }}>Nothing blocked, overdue or critical.</div>}
             {attention.slice(0, 6).map((a, i) => (
               <Row key={i} tone={a.tone} icon={<Icon name={a.icon} size={18} />} title={a.title} meta={a.meta}
                    status={<StatusChip tone={a.tone}>{a.status}</StatusChip>} onClick={() => onNavigate?.(a.dest)} />

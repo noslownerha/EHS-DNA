@@ -1,6 +1,7 @@
 // In-person training is acknowledged by the trainee and CONFIRMED by a
 // trainer/manager — only the confirmation creates the completion record.
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { COLORS } from "./constants.js";
 import { api } from "./api.js";
 
@@ -32,7 +33,7 @@ export function TrainingAcknowledge({ training, onBack }) {
     <div style={{ minHeight: "100vh", background: C.chalk ?? "#F4F7F6", fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "22px 18px 120px" }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: C.pine, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 14 }}>← My training</button>
-        <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.sage }}>👥 In-person training</div>
+        <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.sage }}><Icon name="users" size={14} style={{ verticalAlign: "-3px", marginRight: 5 }} />In-person training</div>
         <h1 style={{ fontSize: "1.3rem", color: C.ink, margin: "4px 0 10px" }}>{training?.title}</h1>
         <p style={{ fontSize: ".9rem", color: C.slate, lineHeight: 1.5, margin: "0 0 18px" }}>
           This course is delivered in person. After you've attended, let your trainer know here —
@@ -41,7 +42,7 @@ export function TrainingAcknowledge({ training, onBack }) {
 
         {pending && (
           <div style={{ background: "#FDF0D5", borderRadius: 10, padding: "14px 16px", marginBottom: 16, color: "#7A5A00" }}>
-            <div style={{ fontWeight: 700 }}>⏳ Waiting for your trainer to confirm</div>
+            <div style={{ fontWeight: 700 }}><Icon name="clock" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />Waiting for your trainer to confirm</div>
             <div style={{ fontSize: ".82rem", marginTop: 3 }}>You told them on {fmt(ack.acknowledged_at)}. Nothing else to do — you'll get a notification.</div>
           </div>
         )}
@@ -62,7 +63,7 @@ export function TrainingAcknowledge({ training, onBack }) {
               style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 9, border: "1.5px solid #D0DEDB",
                        fontFamily: "'DM Sans', sans-serif", fontSize: ".9rem", marginBottom: 14, resize: "vertical" }} />
             <button disabled={busy} onClick={submit} style={{ ...btn(busy ? "#B0C8BA" : C.sage), width: "100%" }}>
-              {busy ? "Sending…" : declined ? "Send again" : "✋ I received this training"}
+              {busy ? "Sending…" : declined ? "Send again" : <><Icon name="checkCircle" size={17} style={{ verticalAlign: "-3px", marginRight: 5 }} />I received this training</>}
             </button>
           </>
         )}
@@ -94,7 +95,7 @@ export function PendingConfirmations() {
   return (
     <div style={{ maxWidth: 900, margin: "14px auto 0", padding: "0 16px" }}>
       <div style={{ background: "#FFFBF2", border: "1px solid #F0D9AE", borderRadius: 12, padding: "14px 16px" }}>
-        <div style={{ fontWeight: 700, color: C.ink, fontSize: ".95rem" }}>✋ Waiting for your confirmation ({rows.length})</div>
+        <div style={{ fontWeight: 700, color: C.ink, fontSize: ".95rem" }}><Icon name="users" size={17} style={{ verticalAlign: "-3px", marginRight: 5 }} />Waiting for your confirmation ({rows.length})</div>
         <div style={{ fontSize: ".78rem", color: C.mist, marginBottom: 8 }}>
           These people say they received in-person training. Confirming records it as complete.
         </div>

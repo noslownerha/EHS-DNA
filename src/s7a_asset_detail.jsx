@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { COLORS, BRAND } from "./constants.js";
 import { api } from "./api.js";
 import AuthImg from "./AuthImg.jsx";
@@ -13,8 +14,8 @@ const STATUS = {
 };
 
 const CATEGORY_ICON = {
-  pump: "🔧", forklift: "🚜", tank: "🛢️", extinguisher: "🧯", aed: "🩺",
-  compressor: "💨", conveyor: "⚙️", boiler: "♨️", electrical: "⚡", default: "📦",
+  pump: "wrench", forklift: "truck", tank: "tank", extinguisher: "flame", aed: "medic",
+  compressor: "gear", conveyor: "gear", boiler: "flame", electrical: "bolt", default: "box",
 };
 
 // The scan-result page: what a worker sees after scanning an asset's QR. Leads with
@@ -35,7 +36,7 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
   }, [assetId]);
 
   const canManage = ["admin", "safety", "site_manager"].includes(user.role);
-  const icon = asset ? (CATEGORY_ICON[asset.category] ?? CATEGORY_ICON.default) : "📦";
+  const icon = asset ? (CATEGORY_ICON[asset.category] ?? CATEGORY_ICON.default) : "box";
   const st = asset ? (STATUS[asset.status] ?? STATUS.in_service) : STATUS.in_service;
 
   return (
@@ -55,7 +56,7 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
         {loading && <div style={{ textAlign: "center", padding: 60, color: C.mist }}>Loading asset…</div>}
         {error && !loading && (
           <div style={{ textAlign: "center", padding: 60 }}>
-            <div style={{ fontSize: "2rem", marginBottom: 10 }}>⚠️</div>
+            <div style={{ color: C.red, marginBottom: 10 }}><Icon name="alert" size={36} /></div>
             <div style={{ fontWeight: 700, color: C.ink, marginBottom: 6 }}>Couldn't load this asset</div>
             <div style={{ fontSize: ".82rem", color: C.mist }}>{error}</div>
           </div>
@@ -71,7 +72,7 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
                   try { ph = asset.photo ? JSON.parse(asset.photo) : null; } catch { ph = null; }
                   return ph
                     ? <AuthImg photo={ph} alt={asset.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", background: "#EEF1F0", flexShrink: 0 }} />
-                    : <div style={{ fontSize: "2.4rem", lineHeight: 1 }}>{icon}</div>;
+                    : <div style={{ width: 64, height: 64, borderRadius: 16, background: C.foam, color: C.sage, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={icon} size={34} stroke={1.8} /></div>;
                 })()}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
@@ -93,7 +94,7 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
 
             {/* LOTO — safety-critical, leads. */}
             {asset.loto?.length > 0 && (
-              <Section title="Lockout / Tagout" icon="🔒" accent={C.red}>
+              <Section title="Lockout / Tagout" icon="lock" accent={C.red}>
                 {asset.loto.map(p => (
                   <ProcedureCard key={p.id} proc={p} open={openProc === p.id}
                     onToggle={() => setOpenProc(openProc === p.id ? null : p.id)} accent={C.red} />
@@ -103,7 +104,7 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
 
             {/* SOPs */}
             {asset.sops?.length > 0 && (
-              <Section title="Standard Operating Procedures" icon="📋" accent={C.pine}>
+              <Section title="Standard Operating Procedures" icon="doc" accent={C.pine}>
                 {asset.sops.map(p => (
                   <ProcedureCard key={p.id} proc={p} open={openProc === p.id}
                     onToggle={() => setOpenProc(openProc === p.id ? null : p.id)} accent={C.pine} />
@@ -118,7 +119,7 @@ export default function S7aAssetDetail({ assetId, user = { role: "staff" }, onHo
                 <button onClick={() => onRunInspection?.(asset.checklist_id, asset)} style={{
                   width: "100%", padding: "13px", background: C.sage, color: C.white, border: "none",
                   borderRadius: 9, fontWeight: 700, fontSize: ".9rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                }}>✅ Run {asset.checklist_name || "inspection"} now</button>
+                }}><Icon name="checkCircle" size={18} style={{ verticalAlign: "-4px", marginRight: 6 }} />Run {asset.checklist_name || "inspection"} now</button>
               ) : (
                 <div style={{ fontSize: ".82rem", color: C.mist }}>
                   No inspection checklist linked to this asset yet.
@@ -148,7 +149,7 @@ function Section({ title, icon, accent, children }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, paddingLeft: 2 }}>
-        <span style={{ fontSize: "1rem" }}>{icon}</span>
+        <span style={{ color: accent, display: "flex" }}><Icon name={icon} size={18} stroke={2} /></span>
         <span style={{ fontSize: ".8rem", fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: accent }}>{title}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
@@ -210,7 +211,7 @@ function MaintenanceSection({ assetId, canManage }) {
 
   return (
     <div style={{ background: C.white, borderRadius: 12, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "16px 18px", marginBottom: 16 }}>
-      <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}>🔧 Maintenance</div>
+      <div style={{ fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.sage, marginBottom: 10 }}><Icon name="wrench" size={14} style={{ verticalAlign: "-2px", marginRight: 5 }} />Maintenance</div>
       {err && <div role="alert" style={{ color: "#B42318", fontSize: ".8rem", fontWeight: 600, marginBottom: 8 }}>⚠ {err}</div>}
       {!rows.length && <div style={{ fontSize: ".82rem", color: C.mist, marginBottom: 8 }}>No scheduled maintenance yet.</div>}
       {rows.map(m => (

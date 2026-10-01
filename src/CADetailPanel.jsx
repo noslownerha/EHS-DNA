@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import Icon from "./Icon.jsx";
 import { COLORS as C, BRAND } from "./constants.js";
 import { api } from "./api.js";
 
@@ -21,10 +22,10 @@ const STATUS_COLORS = {
 function ActivityRow({ a }) {
   const when = a.created_at ? new Date(a.created_at.replace(" ", "T") + "Z") : null;
   const stamp = when ? when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
-  const icon = { note: "💬", status: "◆", assign: "👤", due: "📅", created: "✦", capex: "⛔" }[a.kind] ?? "•";
+  const icon = { note: "chat", status: "checkCircle", assign: "user", due: "calendar", created: "plus", capex: "card" }[a.kind] ?? "chev";
   return (
     <div style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.foam}` }}>
-      <div style={{ fontSize: ".9rem", lineHeight: 1.4, width: 18, textAlign: "center", flexShrink: 0 }}>{icon}</div>
+      <div style={{ width: 18, flexShrink: 0, color: C.sage, display: "flex", justifyContent: "center", paddingTop: 1 }}><Icon name={icon} size={16} /></div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: ".84rem", color: C.ink, lineHeight: 1.4, wordBreak: "break-word" }}>{a.detail}</div>
         <div style={{ fontSize: ".72rem", color: C.mist, marginTop: 2 }}>
@@ -172,7 +173,7 @@ export default function CADetailPanel({ caId, users = [], onClose, onChanged }) 
               <div style={label}>Budget / CapEx</div>
               {ca.status === "capex_blocked" ? (
                 <div style={{ background: "#FFF6E5", borderRadius: 8, padding: "12px 14px" }}>
-                  <div style={{ fontSize: ".82rem", color: "#7A5A00", fontWeight: 600, marginBottom: 4 }}>⛔ Blocked on CapEx — stays open, not counted overdue</div>
+                  <div style={{ fontSize: ".82rem", color: "#7A5A00", fontWeight: 600, marginBottom: 4 }}><Icon name="card" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Blocked on CapEx — stays open, not counted overdue</div>
                   {ca.blocked_reason && <div style={{ fontSize: ".82rem", color: "#7A5A00" }}>{ca.blocked_reason}</div>}
                   <button disabled={saving} onClick={() => patch({ status: "open", blockedReason: null })}
                     style={{ marginTop: 10, padding: "7px 12px", borderRadius: 8, border: "none", background: C.sage, color: "#fff", fontSize: ".8rem", fontWeight: 700, cursor: "pointer" }}>

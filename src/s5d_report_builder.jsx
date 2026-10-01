@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { parseCSV, downloadCSV, readFileText } from "./csv.js";
@@ -422,7 +423,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
             padding: "10px 18px", background: mbrBusy ? "#C8D8CE" : C.sage, color: "#fff", border: "none",
             borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 700,
             cursor: mbrBusy ? "wait" : "pointer", whiteSpace: "nowrap",
-          }}>{mbrBusy ? "Generating…" : "📊 Export MBR slide"}</button>
+          }}>{mbrBusy ? "Generating…" : <><Icon name="chart" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Export MBR slide</>}</button>
         </div>
         {mbrErr && <div style={{ marginTop: -12, marginBottom: 16, fontSize: ".8rem", color: C.red }}>{mbrErr}</div>}
 
@@ -646,7 +647,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
                     marginTop: 10, padding: "8px 14px", background: showHoursEntry ? C.white : C.sage,
                     color: showHoursEntry ? C.sage : C.white, border: `1.5px solid ${C.sage}`, borderRadius: 7,
                     fontSize: ".78rem", fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                  }}>{showHoursEntry ? "− Hide hours entry" : "⏱ Enter actual payroll hours"}</button>
+                  }}>{showHoursEntry ? "− Hide hours entry" : <><Icon name="clock" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Enter actual payroll hours</>}</button>
 
                   {showHoursEntry && (
                     <div className="no-print" style={{ marginTop: 10, padding: "12px 14px", background: C.chalk, borderRadius: 8, border: "1px solid #E8EFec" }}>
@@ -949,7 +950,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               padding: "60px 32px", textAlign: "center",
             }}>
-              <div style={{ fontSize: "2rem", marginBottom: 12, opacity: .4 }}>📊</div>
+              <div style={{ marginBottom: 12, color: C.mist, display: "flex", justifyContent: "center" }}><Icon name="chart" size={34} /></div>
               <div style={{ fontSize: ".92rem", fontWeight: 600, color: C.ink, marginBottom: 6 }}>No report generated yet</div>
               <div style={{ fontSize: ".82rem", color: C.mist, lineHeight: 1.5 }}>
                 Select a time frame and period, then click Generate to preview your report.

@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 
@@ -13,10 +14,10 @@ const NOTIFICATION_RULES = {
 };
 
 const OUTCOME_SEVERITY = {
-  "911":      { label: "Serious",     color: C.alarm,  emoji: "🚨" },
-  "triage":   { label: "Moderate",    color: C.gold,   emoji: "📞" },
-  "firstaid": { label: "Minor",       color: C.pine,   emoji: "🩹" },
-  "secure":   { label: "Property",    color: C.slate,  emoji: "⚠️" },
+  "911":      { label: "Serious",     color: C.alarm,  emoji: "alert" },
+  "triage":   { label: "Moderate",    color: C.gold,   emoji: "phone" },
+  "firstaid": { label: "Minor",       color: C.pine,   emoji: "bandage" },
+  "secure":   { label: "Property",    color: C.slate,  emoji: "alert" },
 };
 
 // ── Notified person row ───────────────────────────────────────────────────────
@@ -103,7 +104,7 @@ export function S0dNotificationsSent({
 
         {/* Header */}
         <div className="a0" style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: "2.8rem", marginBottom: 10 }}>📬</div>
+          <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}><Icon name="bell" size={40} /></div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: C.white, marginBottom: 6 }}>
             Notifications sent
           </h1>
@@ -130,7 +131,7 @@ export function S0dNotificationsSent({
             background: sev.color + "22", color: sev.color,
             border: `1px solid ${sev.color}44`,
           }}>
-            {sev.emoji} {sev.label}
+            <Icon name={sev.emoji} size={15} stroke={2} style={{ verticalAlign: "-3px" }} /> {sev.label}
           </span>
         </div>
 
@@ -250,7 +251,7 @@ export function S0eTriageRecord({
     { label: "Date & time",     value: `${dateStr} at ${timeStr}` },
     { label: "Initiated by",    value: record.responder },
     { label: "Site",            value: record.site },
-    { label: "Outcome",         value: `${sev.emoji} ${sev.label}` },
+    { label: "Outcome",         value: sev.label },
     { label: "Triage call made", value: record.triageCallMade ? "Yes" : "No" },
     { label: "Notified",        value: record.notified.join(", ") || "None" },
   ];

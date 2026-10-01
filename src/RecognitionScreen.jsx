@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { COLORS as C } from "./constants.js";
 import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
@@ -12,7 +13,7 @@ const REASON_LABEL = {
   manual: "Recognition",
 };
 const REASON_ICON = {
-  report_reviewed: "📋", idea: "💡", kudos_given: "🙌", kudos_received: "👏", training: "🎓", manual: "⭐",
+  report_reviewed: "doc", idea: "bulb", kudos_given: "thumb", kudos_received: "star", training: "cap", manual: "star",
 };
 
 // "2026-06" → "June". Used for the champion banner heading.
@@ -80,7 +81,7 @@ export default function RecognitionScreen({ onHome, currentUserName }) {
             {champ?.champion && (
               <div style={{ background: `linear-gradient(135deg, ${C.gold}, #E0A93A)`, borderRadius: 14, padding: "16px 18px", marginBottom: 16, color: "#fff", boxShadow: "0 2px 10px rgba(200,146,42,.25)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ fontSize: "2.2rem", lineHeight: 1 }}>🏆</div>
+                  <div style={{ color: C.gold, display: "flex" }}><Icon name="award" size={38} stroke={1.9} /></div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: ".72rem", opacity: .9, textTransform: "uppercase", letterSpacing: ".05em", fontWeight: 700 }}>
                       {lastMonthName(champ.period)} Champion
@@ -98,7 +99,7 @@ export default function RecognitionScreen({ onHome, currentUserName }) {
             {badgeData?.badges && (
               <div style={{ background: "#fff", borderRadius: 14, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 8px rgba(15,31,23,.06)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}>🎖 Your badges</div>
+                  <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}><Icon name="award" size={17} style={{ verticalAlign: "-3px", marginRight: 6, color: C.sage }} />Your badges</div>
                   <div style={{ fontSize: ".78rem", color: C.mist }}>
                     {badgeData.earnedCount}/{badgeData.total}{badgeData.streak >= 2 ? ` · 🔥 ${badgeData.streak}mo streak` : ""}
                   </div>
@@ -119,7 +120,7 @@ export default function RecognitionScreen({ onHome, currentUserName }) {
             )}
 
             <div style={{ background: "#fff", borderRadius: 14, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 8px rgba(15,31,23,.06)" }}>
-              <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>🏆 {monthName} leaders</div>
+              <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}><Icon name="star" size={17} style={{ verticalAlign: "-3px", marginRight: 6, color: C.sage }} />{monthName} leaders</div>
               <div style={{ fontSize: ".74rem", color: C.mist, marginBottom: 12 }}>Points reset at the start of each month — everyone gets a fresh shot.</div>
               {(!board?.top || board.top.length === 0) ? (
                 <div style={{ fontSize: ".85rem", color: C.mist, padding: "8px 0" }}>No points yet this month. Be the first — flag something or give a teammate a shout-out.</div>
@@ -152,13 +153,13 @@ export default function RecognitionScreen({ onHome, currentUserName }) {
             <div style={{ background: "#fff", borderRadius: 14, padding: "16px 18px", marginBottom: 16, boxShadow: "0 1px 8px rgba(15,31,23,.06)" }}>
               <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink, marginBottom: 10 }}>Ways to earn</div>
               {[
-                ["👏", "Catch a teammate doing it right", "Give a shout-out"],
-                ["⚠️", "Flag a hazard or near miss", "Confirmed when reviewed"],
-                ["💡", "Share a safety idea", "Best value"],
-                ["🎓", "Finish assigned training", ""],
+                ["thumb", "Catch a teammate doing it right", "Give a shout-out"],
+                ["alert", "Flag a hazard or near miss", "Confirmed when reviewed"],
+                ["bulb", "Share a safety idea", "Best value"],
+                ["cap", "Finish assigned training", ""],
               ].map(([ic, label, note], i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                  <span style={{ fontSize: "1.1rem", width: 22, textAlign: "center" }}>{ic}</span>
+                  <span style={{ width: 22, display: "flex", justifyContent: "center", color: C.sage }}><Icon name={ic} size={18} /></span>
                   <span style={{ flex: 1, fontSize: ".86rem", color: C.ink }}>{label}</span>
                   {note && <span style={{ fontSize: ".72rem", color: C.mist }}>{note}</span>}
                 </div>
@@ -171,7 +172,7 @@ export default function RecognitionScreen({ onHome, currentUserName }) {
                 <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink, marginBottom: 10 }}>Your recent activity</div>
                 {me.recent.map((r, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < me.recent.length - 1 ? `1px solid ${C.foam}` : "none" }}>
-                    <span style={{ fontSize: "1rem", width: 22, textAlign: "center" }}>{REASON_ICON[r.reason] ?? "⭐"}</span>
+                    <span style={{ width: 22, display: "flex", justifyContent: "center", color: C.sage }}><Icon name={REASON_ICON[r.reason] ?? "star"} size={17} /></span>
                     <span style={{ flex: 1, fontSize: ".85rem", color: C.ink }}>{REASON_LABEL[r.reason] ?? r.reason}</span>
                     <span style={{ fontSize: ".85rem", fontWeight: 700, color: C.sage }}>+{r.points}</span>
                   </div>

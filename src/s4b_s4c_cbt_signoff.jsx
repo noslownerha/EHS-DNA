@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useRef, useEffect } from "react";
 import { api } from "./api.js";
 import { EHSHeader } from "./AppShell.jsx";
@@ -97,7 +98,7 @@ export function S4bCBTPlayer({ onHome, training, onComplete, onFail, onPassed, o
           @keyframes popIn { 0%{transform:scale(.8);opacity:0;} 60%{transform:scale(1.1);} 100%{transform:scale(1);opacity:1;} }
           * { box-sizing: border-box; margin: 0; padding: 0; }
         `}</style>
-        <div style={{ fontSize: "3rem", marginBottom: 16, animation: "popIn .4s ease both" }}>{passed ? "🎉" : "📚"}</div>
+        <div style={{ fontSize: "3rem", marginBottom: 16, animation: "popIn .4s ease both" }}>{passed ? "🎉" : <Icon name="cap" size={52} stroke={1.8} />}</div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: C.white, textAlign: "center", marginBottom: 8 }}>
           {passed ? "Training complete!" : "Review required"}
         </h1>
@@ -349,7 +350,7 @@ export function S4cInPersonSignOff({ onHome,
     return (
       <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ textAlign: "center", maxWidth: 300 }}>
-          <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
+          <div style={{ marginBottom: 12, color: C.mist, display: "flex", justifyContent: "center" }}><Icon name="lock" size={34} /></div>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>Access restricted</h2>
           <p style={{ fontSize: ".85rem", color: C.mist, lineHeight: 1.5 }}>
             In-person sign-off must be recorded by a trainer, safety officer, site manager, or company admin — not by the person completing the training.
@@ -362,7 +363,7 @@ export function S4cInPersonSignOff({ onHome,
   if (submitted) {
     return (
       <div style={{ minHeight: "100vh", background: C.forest, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 28 }}>
-        <div style={{ fontSize: "2.8rem", marginBottom: 14 }}>✅</div>
+        <div style={{ marginBottom: 14, color: C.green, display: "flex", justifyContent: "center" }}><Icon name="checkCircle" size={46} /></div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.white, textAlign: "center", marginBottom: 8 }}>Completion recorded</h1>
         <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)", textAlign: "center", marginBottom: 24 }}>
           {selectedStaff?.first} {selectedStaff?.last} — {selectedTraining?.title}
@@ -407,7 +408,7 @@ export function S4cInPersonSignOff({ onHome,
                 color: selectedTraining?.id === t.id ? C.pine : C.ink,
                 fontWeight: selectedTraining?.id === t.id ? 600 : 400,
                 transition: "all .15s",
-              }}>👥 {t.title}</div>
+              }}><Icon name="users" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />{t.title}</div>
             ))}
           </div>
         </div>

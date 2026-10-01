@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS, moduleEnabled } from "./constants.js";
 import { api } from "./api.js";
@@ -293,7 +294,7 @@ export default function S5fCompanySettings({ companyName, onHome, onBack }) {
                   → {[...JSON.parse(r.recipient_roles || "[]"),
                        ...JSON.parse(r.recipient_users || "[]").map(id => users.find(u => u.id === id)?.name ?? `#${id}`)
                      ].join(", ") || "no recipients"}
-                  {r.email ? " · 📧 email" : ""}
+                  {r.email ? " · also emailed" : ""}
                 </span>
               </div>
               <button onClick={() => removeRule(r.id)} style={{ background: "none", border: "1px solid #D0DEDB", borderRadius: 6, padding: "4px 10px", fontSize: ".74rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
@@ -374,7 +375,7 @@ export default function S5fCompanySettings({ companyName, onHome, onBack }) {
               <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                 {chip(`${s.name}${s.location ? ` · ${s.location}` : ""}`, () => removeSite(s.id))}
                 <label style={{ fontSize: ".74rem", fontWeight: 600, color: s.hasFloorplan ? C.pine : C.slate, background: s.hasFloorplan ? C.foam : "#EEF2F0", padding: "5px 12px", borderRadius: 20, cursor: "pointer" }}>
-                  🗺️ {s.hasFloorplan ? "Replace floor plan" : "Upload floor plan"}
+                  <Icon name="map" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />{s.hasFloorplan ? "Replace floor plan" : "Upload floor plan"}
                   <input type="file" accept="image/*" style={{ display: "none" }}
                     onChange={e => handleFloorplanUpload(e, s.id)} />
                 </label>

@@ -47,14 +47,8 @@ def main():
             check("create: appears in registry without reload", "E2E Transfer Pump" in pg.inner_text("body"))
 
             # ── Add a LOTO procedure via the edit form (✏️) ──
-            # Click the ✏️ in the smallest element that contains this asset's name.
-            pg.evaluate("""(name) => {
-                const rows = [...document.querySelectorAll('div, tr, li')].filter(el =>
-                    el.offsetParent && el.innerText && el.innerText.includes(name) &&
-                    [...el.querySelectorAll('button')].filter(b => b.innerText.includes('✏️')).length === 1);
-                rows.sort((x, y) => x.innerText.length - y.innerText.length);
-                [...rows[0].querySelectorAll('button')].find(b => b.innerText.includes('✏️')).click();
-            }""", "E2E Transfer Pump"); pg.wait_for_timeout(900)
+            # Edit button found by its accessible label (it used to be an emoji).
+            pg.locator("button[aria-label='Edit E2E Transfer Pump']:visible").first.click(); pg.wait_for_timeout(900)
             pg.locator("button:visible", has_text="+ Add").first.click(); pg.wait_for_timeout(500)   # first = Lockout / Tagout
             pg.fill("input[placeholder='Title']:visible", "E2E LOTO — pump isolation")
             pg.fill("textarea[placeholder^='One step per line']:visible", "Stop pump\nLock breaker 4B\nVerify zero energy")

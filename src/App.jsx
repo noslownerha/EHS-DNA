@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Icon from "./Icon.jsx";
 import { api, getToken } from "./api.js";
 import { startAutoFlush } from "./offlineQueue.js";
 import { ROLE_PERMS, COLORS as C } from "./constants.js";
@@ -509,7 +510,7 @@ function ForcePasswordChange({ onDone, onLogout }) {
     <div style={{ minHeight: "100vh", background: "#1E3328", display: "flex", alignItems: "center",
                   justifyContent: "center", padding: "24px", fontFamily: "'DM Sans', sans-serif" }}>
       <form onSubmit={submit} style={{ width: "100%", maxWidth: 380 }}>
-        <div style={{ fontSize: "1.9rem", marginBottom: 10, textAlign: "center" }}>🔐</div>
+        <div style={{ marginBottom: 10, display: "flex", justifyContent: "center", color: C.sage }}><Icon name="lock" size={34} /></div>
         <h1 style={{ color: "#fff", fontSize: "1.3rem", fontWeight: 700, textAlign: "center", marginBottom: 6 }}>
           Set a new password
         </h1>

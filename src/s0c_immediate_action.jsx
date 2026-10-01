@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 
@@ -12,7 +13,7 @@ const C = { ...COLORS };
 
 const OUTCOMES = {
   "911": {
-    emoji: "🚨",
+    emoji: "alert",
     color: "#B91C1C",
     bgGrad: "linear-gradient(160deg, #7F1D1D 0%, #1C0A0A 100%)",
     heading: "Call 911 now",
@@ -33,7 +34,7 @@ const OUTCOMES = {
   },
 
   "triage": {
-    emoji: "📞",
+    emoji: "phone",
     color: "#B45309",
     bgGrad: "linear-gradient(160deg, #78350F 0%, #1C1007 100%)",
     heading: "Call the triage line",
@@ -52,7 +53,7 @@ const OUTCOMES = {
   },
 
   "firstaid": {
-    emoji: "🩹",
+    emoji: "bandage",
     color: C.pine,
     bgGrad: `linear-gradient(160deg, ${C.forest} 0%, #0A1510 100%)`,
     heading: "Administer first aid",
@@ -71,7 +72,7 @@ const OUTCOMES = {
   },
 
   "secure": {
-    emoji: "⚠️",
+    emoji: "alert",
     color: C.slate,
     bgGrad: "linear-gradient(160deg, #2D3748 0%, #0D1117 100%)",
     heading: "Secure the area",
@@ -137,7 +138,7 @@ function TriageProviderCard({ provider }) {
           transition: "all .15s",
         }}
       >
-        📞 {provider.phone}
+        <Icon name="phone" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />{provider.phone}
       </a>
     </div>
   );
@@ -204,7 +205,7 @@ export default function S0cImmediateAction({
 
         {/* Outcome header */}
         <div className="anim-0" style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: "3rem", marginBottom: 10 }}>{config.emoji}</div>
+          <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}><Icon name={config.emoji} size={46} stroke={2} /></div>
           <h1 style={{
             fontSize: "1.65rem", fontWeight: 700, color: C.white,
             lineHeight: 1.2, marginBottom: 8,
@@ -234,7 +235,7 @@ export default function S0cImmediateAction({
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: "1.2rem", fontWeight: 700,
               }}
-            >🚨 Call 911</a>
+            ><Icon name="phone" size={18} stroke={2.2} style={{ verticalAlign: "-4px", marginRight: 6 }} />Call 911</a>
           </div>
         )}
 

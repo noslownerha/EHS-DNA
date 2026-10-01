@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect, useMemo } from "react";
 import { api } from "./api.js";
 
@@ -116,7 +117,7 @@ export default function S4dGroupSessionLog({ onHome,
   if (!PERMITTED_ROLES.includes(userRole)) {
     return (
       <div style={{ padding: 32, textAlign: "center", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
+        <div style={{ marginBottom: 12, color: C.mist, display: "flex", justifyContent: "center" }}><Icon name="lock" size={34} /></div>
         <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink, marginBottom: 6 }}>Access restricted</div>
         <div style={{ fontSize: ".85rem", color: C.mist }}>Group session logging requires Trainer, Safety Officer, Site Manager, or Company Admin role.</div>
       </div>
@@ -169,7 +170,7 @@ export default function S4dGroupSessionLog({ onHome,
     return (
       <div style={{ padding: "32px 28px", textAlign: "center", fontFamily: "'DM Sans', sans-serif" }}>
         <style>{ `@keyframes popIn { 0%{transform:scale(.8);opacity:0;} 60%{transform:scale(1.1);} 100%{transform:scale(1);opacity:1;} }` }</style>
-        <div style={{ fontSize: "2.8rem", marginBottom: 12, animation: "popIn .35s ease both" }}>✅</div>
+        <div style={{ marginBottom: 12, color: C.green, display: "flex", justifyContent: "center", animation: "popIn .35s ease both" }}><Icon name="checkCircle" size={46} /></div>
         <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: C.ink, marginBottom: 6 }}>Session logged</h2>
         <p style={{ fontSize: ".85rem", color: C.mist, marginBottom: 8 }}>
           {selected.size} completion{selected.size > 1 ? "s" : ""} written for <strong>{training?.title}</strong>

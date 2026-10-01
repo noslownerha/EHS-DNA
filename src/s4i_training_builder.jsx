@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import AuthImg from "./AuthImg.jsx";
@@ -114,7 +115,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
         questions: [...(x.questions ?? []), ...d.questions],
       }));
       setDrafting(false); setDraftText("");
-      setDraftMsg({ text: `✨ Drafted ${d.slides.length} slides and ${d.questions.length} quiz questions. This is a first draft — check every slide and answer against your document before you Save.` });
+      setDraftMsg({ text: `Drafted ${d.slides.length} slides and ${d.questions.length} quiz questions. This is a first draft — check every slide and answer against your document before you Save.` });
     } catch (err) { setDraftMsg({ error: true, text: `⚠ ${err.message}` }); }
     setDraftBusy(false);
   }
@@ -242,11 +243,11 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {BRAND.features?.aiDraft && (
                       <button onClick={() => { setDrafting(d => !d); setDraftMsg(null); }} style={{ ...btn(C.white, C.pine), border: `1.5px solid ${C.mint}` }}>
-                        ✨ Draft from a document
+                        <Icon name="bulb" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Draft from a document
                       </button>
                     )}
                     <label style={{ ...btn(C.white, C.pine), border: `1.5px solid ${C.mint}`, display: "inline-block", cursor: importing ? "default" : "pointer", opacity: importing ? .6 : 1 }}>
-                      {importing ? "Importing…" : "📥 Import PowerPoint"}
+                      {importing ? "Importing…" : <><Icon name="upload" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Import PowerPoint</>}
                       <input type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                         disabled={importing} onChange={importDeck} style={{ display: "none" }} aria-label="Import PowerPoint" />
                     </label>
@@ -263,7 +264,7 @@ export default function S4iTrainingBuilder({ onHome, companyName, onBack, initia
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <button disabled={draftBusy || draftText.trim().length < 200} onClick={draftFromText}
                           style={btn(draftBusy || draftText.trim().length < 200 ? "#B0C8BA" : C.sage)}>
-                          {draftBusy ? "Drafting… (up to a minute)" : "✨ Draft course"}
+                          {draftBusy ? "Drafting… (up to a minute)" : "Draft course"}
                         </button>
                         <span style={{ fontSize: ".72rem", color: C.mist }}>{draftText.trim().length < 200 ? "Paste at least a few paragraphs" : `${draftText.length.toLocaleString()} characters`}</span>
                       </div>

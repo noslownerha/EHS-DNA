@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -213,7 +214,7 @@ export function S3cAgingTracker({ onHome, companyName, onViewFinding }) {
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
               placeholder="Search findings…"
               style={{ padding: "8px 12px 8px 30px", width: 200, border: `1.5px solid ${sfocused ? C.sage : "#D0DEDB"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", boxShadow: sfocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}><Icon name="search" size={14} /></span>
           </div>
 
           {[
@@ -517,7 +518,7 @@ export function S3dFindingDetail({ onHome, findingId, companyName, user, onBack 
                 {/* Spec §13.2: CapEx badge navy */}
                 {finding.capex && pill("CapEx required", C.navyLt, C.navy)}
                 {finding.linkedIncidentId && (
-                  <span style={{ fontSize: ".75rem", color: C.sage, fontStyle: "italic" }}>🔗 Incident: {finding.linkedIncidentId}</span>
+                  <span style={{ fontSize: ".75rem", color: C.sage, fontStyle: "italic" }}><Icon name="link" size={13} style={{ verticalAlign: "-3px", marginRight: 5 }} />Incident: {finding.linkedIncidentId}</span>
                 )}
               </div>
             </div>

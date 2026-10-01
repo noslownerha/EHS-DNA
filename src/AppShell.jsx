@@ -121,7 +121,7 @@ function NotificationBell() {
               <div style={{ fontSize: ".82rem", fontWeight: 700, color: C.ink }}>{n.title}</div>
               {n.body && <div style={{ fontSize: ".76rem", color: "#4A5568", marginTop: 2 }}>{n.body}</div>}
               <div style={{ fontSize: ".68rem", color: "#8FA3A0", marginTop: 3 }}>
-                {(n.created_at ?? "").slice(0, 16).replace("T", " ")}{n.emailed ? " · 📧 emailed" : ""}
+                {(n.created_at ?? "").slice(0, 16).replace("T", " ")}{n.emailed ? " · emailed" : ""}
               </div>
             </div>
           ))}
@@ -401,7 +401,7 @@ export default function AppShell({ user, children, activeTab, onTab }) {
             ? (pending > 0
                 ? `⚠ Offline — ${pending} report${pending === 1 ? "" : "s"} saved on this device, will send automatically`
                 : "⚠ Offline — anything you report is saved and sent when you reconnect")
-            : `📤 Sending ${pending} saved report${pending === 1 ? "" : "s"}…`}
+            : `Sending ${pending} saved report${pending === 1 ? "" : "s"}…`}
         </div>
       )}
       <style>{`
@@ -514,7 +514,7 @@ export default function AppShell({ user, children, activeTab, onTab }) {
             fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", flexShrink: 0,
           }}>
             <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              🛠️ Support mode — viewing <strong>{user.supportTenant}</strong>
+              <Icon name="wrench" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />Support mode — viewing <strong>{user.supportTenant}</strong>
             </span>
             <button onClick={exitSupportMode} style={{
               background: "#fff", color: "#806000", border: "none", borderRadius: 6,

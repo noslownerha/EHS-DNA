@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -12,9 +13,11 @@ const TYPE_LABELS = {
   injury: "Injury", near_miss: "Near Miss", property: "Property Damage",
   environmental: "Environmental Release", vehicle: "Vehicle Incident", security: "Security Event",
 };
-const TYPE_EMOJI = {
-  injury: "🩹", near_miss: "⚠️", property: "🏗", environmental: "🌿", vehicle: "🚛", security: "🔒",
+const TYPE_ICON = {
+  injury: "bandage", near_miss: "alert", hazard: "alert", property: "wrench", environmental: "leaf", vehicle: "truck",
+  security: "lock", idea: "bulb", positive: "thumb",
 };
+const TypeIcon = ({ type }) => <Icon name={TYPE_ICON[type] || "flag"} size={14} stroke={2} style={{ verticalAlign: "-2px" }} />;
 const SEV_COLORS = {
   minor: C.pine, significant: C.gold, serious: C.red,
 };
@@ -236,7 +239,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
                 transition: "all .18s",
               }}
             />
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: ".8rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: ".8rem", color: C.mist, pointerEvents: "none" }}><Icon name="search" size={15} /></span>
           </div>
 
           {[
@@ -297,7 +300,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
                   {pill(inc.status === "open" ? "Open" : "Closed", inc.status === "open" ? C.foam : "#EEF1F0", inc.status === "open" ? C.pine : C.slate)}
                 </div>
                 <div style={{ fontSize: ".92rem", color: C.ink, fontWeight: 600, marginBottom: 4 }}>
-                  {TYPE_EMOJI[inc.type]} {TYPE_LABELS[inc.type]}
+                  <TypeIcon type={inc.type} /> {TYPE_LABELS[inc.type]}
                 </div>
                 <div style={{ fontSize: ".8rem", color: C.slate, marginBottom: 8 }}>
                   {inc.site} · <span style={{ color: SEV_COLORS[inc.severity], fontWeight: 600 }}>
@@ -344,7 +347,7 @@ export function S2cIncidentList({ companyName, onViewIncident, onNewIncident, on
                       {inc.id}
                     </td>
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".85rem", color: C.ink, whiteSpace: "nowrap" }}>
-                      {TYPE_EMOJI[inc.type]} {TYPE_LABELS[inc.type]}
+                      <TypeIcon type={inc.type} /> {TYPE_LABELS[inc.type]}
                     </td>
                     <td style={{ padding: "11px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".83rem", color: C.slate }}>
                       {inc.site}
@@ -573,7 +576,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
   );
   if (phase === "notfound") return (
     <div style={{ padding: "60px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: "2rem", marginBottom: 10 }}>🔎</div>
+      <div style={{ color: C.mist, marginBottom: 10 }}><Icon name="search" size={34} /></div>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Incident not found</div>
       <div style={{ color: "#7A8B82", fontSize: ".85rem", marginBottom: 16 }}>{incidentId} isn't on the server — it may not have saved.</div>
       <button onClick={onBack} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #CBD9D1", background: "#fff", fontWeight: 600 }}>← Back</button>
@@ -777,7 +780,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: ".85rem", color: C.sage, fontWeight: 600, whiteSpace: "nowrap" }}>{incident.id}</span>
             </div>
             <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink, overflowWrap: "anywhere", wordBreak: "normal" }}>
-              {TYPE_EMOJI[incident.type]} {TYPE_LABELS[incident.type]} — {incident.site}
+              <TypeIcon type={incident.type} /> {TYPE_LABELS[incident.type]} — {incident.site}
             </h1>
             <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
               {pill(incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1), SEV_COLORS[incident.severity] + "18", SEV_COLORS[incident.severity])}
@@ -791,7 +794,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
               )}
               {incident.triageId && (
                 <span style={{ fontSize: ".75rem", color: C.sage, fontStyle: "italic" }}>
-                  🔗 Triage: {incident.triageId}
+                  <Icon name="link" size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />Triage: {incident.triageId}
                 </span>
               )}
             </div>
@@ -837,7 +840,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                   <div style={{ fontSize: ".7rem", fontWeight: 600, letterSpacing: ".07em", textTransform: "uppercase", color: C.mist, marginBottom: 8 }}>Marked location</div>
                   <div style={{ position: "relative", maxWidth: 420 }}>
                     <img src={floorRef.plan} alt="Floor plan" style={{ width: "100%", borderRadius: 8, border: "1px solid #E2EBE6", display: "block" }} />
-                    <div style={{ position: "absolute", left: `${floorRef.pos.x}%`, top: `${floorRef.pos.y}%`, transform: "translate(-50%, -90%)", fontSize: "1.4rem", pointerEvents: "none" }}>📍</div>
+                    <div style={{ position: "absolute", left: `${floorRef.pos.x}%`, top: `${floorRef.pos.y}%`, transform: "translate(-50%, -90%)", color: C.red, pointerEvents: "none" }}><Icon name="pin" size={28} stroke={2.2} /></div>
                   </div>
                 </div>
               )}
@@ -849,7 +852,7 @@ export function S2dIncidentDetail({ incidentId, companyName, onBack, onHome }) {
                   <a href={`https://www.google.com/maps?q=${incident.latitude},${incident.longitude}`}
                      target="_blank" rel="noopener noreferrer"
                      style={{ fontSize: ".8rem", color: C.sage, fontWeight: 600, textDecoration: "none" }}>
-                    📍 GPS captured — view on map
+                    <Icon name="pin" size={15} style={{ verticalAlign: "-3px", marginRight: 4 }} />GPS captured — view on map
                   </a>
                 </div>
               )}

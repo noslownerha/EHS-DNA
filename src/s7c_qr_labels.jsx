@@ -2,6 +2,7 @@
 // one at a time or as a whole sheet, and to set up inspection points (a spot
 // like an eyewash station whose QR starts its checklist when scanned).
 import { useState, useEffect, useMemo } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { COLORS, BRAND } from "./constants.js";
 import { api } from "./api.js";
@@ -65,7 +66,7 @@ function Row({ checked, onToggle, title, sub, onPrint, onRemove }) {
         <div style={{ fontSize: ".74rem", color: C.mist }}>{sub}</div>
       </div>
       <button onClick={onPrint} aria-label={`Print label for ${title}`} title="Print this label" style={{
-        background: "none", border: "1px solid #D0DEDB", borderRadius: 7, padding: "6px 9px", cursor: "pointer", fontSize: ".78rem" }}>🖨️ Print</button>
+        background: "none", border: "1px solid #D0DEDB", borderRadius: 7, padding: "6px 9px", cursor: "pointer", fontSize: ".78rem" }}><Icon name="qr" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Print</button>
       {onRemove && (
         <button onClick={onRemove} aria-label={`Remove ${title}`} title="Remove inspection point" style={{
           background: "none", border: "none", color: C.mist, cursor: "pointer", fontSize: "1rem", padding: 4 }}>×</button>
@@ -160,7 +161,7 @@ export default function S7cQrLabels({ onHome, onBack, user }) {
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "20px 16px" }}>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 700, color: C.ink, margin: 0 }}>QR labels</h1>
         <p style={{ fontSize: ".84rem", color: C.mist, margin: "4px 0 14px" }}>
-          Tick any mix and print them on one sheet, or print one with its 🖨️ button.
+          Tick any mix and print them on one sheet, or print one with its Print button.
         </p>
         <select value={site} onChange={e => setSite(e.target.value)} style={{ ...field, width: "auto", marginBottom: 14 }} aria-label="Filter by site">
           <option value="">All sites</option>
@@ -201,7 +202,7 @@ export default function S7cQrLabels({ onHome, onBack, user }) {
         <button disabled={!selected.length} onClick={() => printLabels(selected, setError)} style={{
           width: "100%", maxWidth: 760, display: "block", margin: "0 auto", padding: "13px", borderRadius: 10, border: "none",
           background: selected.length ? C.pine : "#B0C8BA", color: "#fff", fontSize: ".95rem", fontWeight: 700, cursor: selected.length ? "pointer" : "default" }}>
-          {selected.length ? `🖨️ Print ${selected.length} label${selected.length === 1 ? "" : "s"}` : "Tick labels to print"}
+          {selected.length ? `Print ${selected.length} label${selected.length === 1 ? "" : "s"}` : "Tick labels to print"}
         </button>
       </div>
     </div>

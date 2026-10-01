@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api as apiClient } from "./api.js";
@@ -6,7 +7,7 @@ import { api as apiClient } from "./api.js";
 const C = { ...COLORS };
 
 const TYPE_COLOR = { cbt: C.purple, in_person: C.pine };
-const TYPE_EMOJI = { cbt: "💻", in_person: "👥" };
+const TYPE_EMOJI = { cbt: "laptop", in_person: "users" };
 const TYPE_LABEL = { cbt: "CBT", in_person: "In-person" };
 
 const STATUS = {
@@ -109,7 +110,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
                 border: `1.5px solid ${C.mint}`, borderRadius: 7,
                 fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", fontWeight: 600,
                 cursor: "pointer", transition: "all .15s",
-              }}>👥 Log group session</button>
+              }}><Icon name="users" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Log group session</button>
             )}
             <button className="create-btn" onClick={onCreateTraining} style={{
               padding: "9px 18px", background: C.sage, color: C.white,
@@ -127,7 +128,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
               placeholder="Search trainings…"
               style={{ padding: "8px 12px 8px 30px", width: 220, border: `1.5px solid ${sfocused ? C.sage : "#D0DEDB"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", boxShadow: sfocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}><Icon name="search" size={14} /></span>
           </div>
           <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{
             padding: "8px 28px 8px 10px", border: "1.5px solid #D0DEDB", borderRadius: 7,
@@ -163,7 +164,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: ".8rem", fontWeight: 600, color: TYPE_COLOR[t.type] }}>
-                      {TYPE_EMOJI[t.type]} {TYPE_LABEL[t.type]}
+                      <Icon name={TYPE_EMOJI[t.type] || "cap"} size={14} style={{ verticalAlign: "-2px" }} /> {TYPE_LABEL[t.type]}
                     </span>
                   </td>
                   <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".8rem", color: C.slate }}>
@@ -186,7 +187,7 @@ export function S4eTrainingLibrary({ onHome, companyName, userRole = "admin", on
                     {onEditTraining ? (
                       <button aria-label={`Edit ${t.title}`} onClick={e => { e.stopPropagation(); onEditTraining(t.id); }} style={{
                         padding: "6px 12px", borderRadius: 7, border: `1.5px solid ${C.mint}`, background: C.white, color: C.pine,
-                        fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>✏️ Edit</button>
+                        fontFamily: "'DM Sans', sans-serif", fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}><Icon name="edit" size={14} style={{ verticalAlign: "-3px", marginRight: 5 }} />Edit</button>
                     ) : <span style={{ color: C.mist, fontSize: ".8rem" }}>→</span>}
                   </td>
                 </tr>
@@ -322,7 +323,7 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
               <h1 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>{training.title}</h1>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: ".82rem", fontWeight: 600, color: TYPE_COLOR[training.type] }}>
-                  {TYPE_EMOJI[training.type]} {TYPE_LABEL[training.type]}
+                  <Icon name={TYPE_EMOJI[training.type] || "cap"} size={15} style={{ verticalAlign: "-2px" }} /> {TYPE_LABEL[training.type]}
                 </span>
                 {pill(`v${training.version}`, "#EEF1F0", C.slate)}
                 {pill(`Recurs every ${training.recurrence} months`, C.foam, C.pine)}
@@ -335,7 +336,7 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
                 border: `1.5px solid ${C.mint}`, borderRadius: 7,
                 fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
                 cursor: "pointer", transition: "all .15s", flexShrink: 0,
-              }}>👥 Log group session</button>
+              }}><Icon name="users" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Log group session</button>
             )}
           </div>
         </div>
@@ -406,7 +407,7 @@ export function S4fTrainingDetail({ onHome, trainingId, companyName, onBack, use
                           background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
                           padding: "4px 10px", fontSize: ".72rem", color: C.pine, cursor: "pointer",
                           fontFamily: "'DM Sans', sans-serif",
-                        }}>🏅 Certificate</button>
+                        }}><Icon name="award" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Certificate</button>
                       )}
                     </td>
                     <td style={{ padding: "10px 14px", borderBottom: "1px solid #F0F4F2", fontSize: ".78rem", color: C.mist }}>

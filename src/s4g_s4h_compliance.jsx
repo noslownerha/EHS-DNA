@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -146,7 +147,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff, onMan
                   padding: "8px 14px", background: C.sage, color: C.white,
                   border: "none", borderRadius: 8, cursor: "pointer",
                   fontFamily: "'DM Sans', sans-serif", fontSize: ".82rem", fontWeight: 700,
-                }}>📚 Add / edit courses</button>
+                }}><Icon name="cap" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Add / edit courses</button>
               )}
             </div>
           )}
@@ -215,7 +216,7 @@ export function S4gComplianceDashboard({ onHome, companyName, onViewStaff, onMan
               onFocus={() => setSfocused(true)} onBlur={() => setSfocused(false)}
               placeholder="Search staff…"
               style={{ padding: "8px 12px 8px 30px", width: 200, border: `1.5px solid ${sfocused ? C.sage : "#D0DEDB"}`, borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".83rem", color: C.ink, background: C.white, outline: "none", boxShadow: sfocused ? `0 0 0 3px rgba(74,140,92,.12)` : "none", transition: "all .18s" }} />
-            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}>🔍</span>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: ".78rem", color: C.mist, pointerEvents: "none" }}><Icon name="search" size={14} /></span>
           </div>
           {[
             { label: "All sites", value: filterSite, set: setFilterSite, options: sites },

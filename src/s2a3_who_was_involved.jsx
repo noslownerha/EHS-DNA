@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api } from "./api.js";
@@ -168,7 +169,7 @@ function TelehealthPrompt({ provider, onDismiss }) {
       animation: "fadeUp .2s ease both",
     }}>
       <div style={{ fontWeight: 600, fontSize: ".85rem", color: "#7A5A1A", marginBottom: 6 }}>
-        📞 Consider calling triage first
+        <Icon name="phone" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />Consider calling triage first
       </div>
       <p style={{ fontSize: ".82rem", color: "#9A7A3A", lineHeight: 1.5, marginBottom: 10 }}>
         Before seeking outside medical care, a quick call to your triage provider can help determine the right level of care — and may affect OSHA recordability.

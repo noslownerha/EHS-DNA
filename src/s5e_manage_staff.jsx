@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 import { BRAND, COLORS } from "./constants.js";
 import { api } from "./api.js";
@@ -208,7 +209,7 @@ export default function S5eManageStaff({ companyName, onHome, onBack }) {
             padding: "9px 16px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`,
             borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".84rem", fontWeight: 700,
             cursor: "pointer",
-          }}>📥 Bulk import</button>
+          }}><Icon name="upload" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Bulk import</button>
         </div>
 
         {error && (
@@ -292,7 +293,7 @@ export default function S5eManageStaff({ companyName, onHome, onBack }) {
                       background: "none", border: "1px solid #D0DEDB", borderRadius: 6,
                       padding: "5px 12px", fontSize: ".76rem", color: C.slate, cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif", marginRight: 6,
-                    }}>🎁 Log reward</button>
+                    }}><Icon name="star" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Log reward</button>
                     <button onClick={() => setEditing({
                       id: u.id, name: u.name, role: u.role, email: u.email,
                       siteId: sites.find(s => s.name === u.site)?.id ?? "",
@@ -364,7 +365,7 @@ export default function S5eManageStaff({ companyName, onHome, onBack }) {
                 <button onClick={() => {
                   const rows = importResult.results.filter(r => !r.error);
                   navigator.clipboard?.writeText(rows.map(r => `${r.name}\t${r.email}\t${r.tempPassword}`).join("\n"));
-                }} style={{ padding: "8px 16px", background: C.white, border: "1.5px solid #D0DEDB", borderRadius: 7, fontSize: ".8rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>📋 Copy all temp passwords</button>
+                }} style={{ padding: "8px 16px", background: C.white, border: "1.5px solid #D0DEDB", borderRadius: 7, fontSize: ".8rem", color: C.slate, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}><Icon name="doc" size={15} style={{ verticalAlign: "-3px", marginRight: 5 }} />Copy all temp passwords</button>
                 <p style={{ fontSize: ".72rem", color: C.mist, marginTop: 8 }}>Temp passwords are shown once — copy before closing. Staff change them on first login via the avatar menu.</p>
               </>
             )}

@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 import { api, setToken } from "./api.js";
@@ -147,7 +148,7 @@ export default function S5hOpsConsole({ section = "attention", onHome, onOpenBil
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
             onClick={() => setShowLeads(s => !s)}>
             <div style={{ fontSize: ".98rem", fontWeight: 700, color: C.ink }}>
-              🎯 Demo requests <span style={{ color: C.mist, fontWeight: 500 }}>({leads.length})</span>
+              <Icon name="users" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />Demo requests <span style={{ color: C.mist, fontWeight: 500 }}>({leads.length})</span>
             </div>
             <span style={{ color: C.sage, fontWeight: 700 }}>{showLeads ? "▾" : "▸"}</span>
           </div>
@@ -261,7 +262,7 @@ export default function S5hOpsConsole({ section = "attention", onHome, onOpenBil
                 borderRadius: 7, fontFamily: "'DM Sans', sans-serif", fontSize: ".8rem", fontWeight: 700, cursor: "pointer",
               }}>Billing & invoices →</button>
             </div>
-            {!t.active && <div style={{ marginTop: 8, fontSize: ".74rem", color: C.red, fontWeight: 700 }}>⛔ {t.suspensionReason === "billing" ? "Paused — non-payment (AP notified via login message)" : "Suspended"} — logins blocked</div>}
+            {!t.active && <div style={{ marginTop: 8, fontSize: ".74rem", color: C.red, fontWeight: 700 }}><Icon name="x" size={14} style={{ verticalAlign: "-3px", marginRight: 5 }} />{t.suspensionReason === "billing" ? "Paused — non-payment (AP notified via login message)" : "Suspended"} — logins blocked</div>}
             {openUsers === t.id && (
               <div style={{ marginTop: 12, borderTop: "1px solid #F0F4F2", paddingTop: 10 }}>
                 {resetInfo && (
@@ -461,7 +462,7 @@ function OperatorAttention({ data, onOpenTenantBilling }) {
   if (!items.length) {
     return (
       <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", padding: "40px 24px", textAlign: "center" }}>
-        <div style={{ fontSize: "1.8rem", marginBottom: 8 }}>✅</div>
+        <div style={{ marginBottom: 8, color: C.sage, display: "flex", justifyContent: "center" }}><Icon name="checkCircle" size={32} /></div>
         <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}>Nothing needs your attention</div>
         <div style={{ fontSize: ".8rem", color: C.mist, marginTop: 4 }}>No suspended accounts, unpaid invoices, or tenants gone quiet.</div>
       </div>
@@ -614,7 +615,7 @@ function DemoAccountCard({ onEnter }) {
     <div style={{ background: "#F2F6FB", border: "1px solid #CFDDF0", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <div>
-          <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}>🎬 Demo account</div>
+          <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.ink }}><Icon name="building" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />Demo account</div>
           <div style={{ fontSize: ".78rem", color: C.mist, marginTop: 3 }}>
             {status?.exists
               ? `${status.name} · ${status.users} people · ${status.incidents} incidents · excluded from revenue`

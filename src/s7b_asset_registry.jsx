@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "./Icon.jsx";
 import { COLORS, BRAND } from "./constants.js";
 import { api } from "./api.js";
 import AuthImg from "./AuthImg.jsx";
@@ -8,8 +9,8 @@ const C = { ...COLORS };
 
 const CATEGORIES = ["pump", "forklift", "tank", "extinguisher", "aed", "compressor", "conveyor", "boiler", "electrical", "other"];
 const CATEGORY_ICON = {
-  pump: "🔧", forklift: "🚜", tank: "🛢️", extinguisher: "🧯", aed: "🩺",
-  compressor: "💨", conveyor: "⚙️", boiler: "♨️", electrical: "⚡", other: "📦",
+  pump: "wrench", forklift: "truck", tank: "tank", extinguisher: "flame", aed: "medic",
+  compressor: "gear", conveyor: "gear", boiler: "flame", electrical: "bolt", other: "box",
 };
 const STATUS = {
   in_service:     { label: "In service",     bg: C.foam,   color: C.pine },
@@ -100,7 +101,7 @@ export default function S7bAssetRegistry({ user = { role: "admin" }, onHome, onB
           }}>+ New asset</button>
         </div>
 
-        <input placeholder="🔍 Search assets…" value={search} onChange={e => setSearch(e.target.value)}
+        <input placeholder="Search assets…" aria-label="Search assets" value={search} onChange={e => setSearch(e.target.value)}
           style={{ ...input, marginBottom: 16 }} />
 
         {loading && <div style={{ textAlign: "center", padding: 50, color: C.mist }}>Loading…</div>}
@@ -115,7 +116,7 @@ export default function S7bAssetRegistry({ user = { role: "admin" }, onHome, onB
             const st = STATUS[a.status] ?? STATUS.in_service;
             return (
               <div key={a.id} className="asset-row" style={{ background: C.white, borderRadius: 10, boxShadow: "0 1px 8px rgba(15,31,23,.06)", padding: "13px 15px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ fontSize: "1.5rem" }}>{CATEGORY_ICON[a.category] ?? CATEGORY_ICON.other}</div>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: C.foam, color: C.sage, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={CATEGORY_ICON[a.category] ?? CATEGORY_ICON.other} size={21} /></div>
                 <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => onOpenAsset?.(a.id)}>
                   <div style={{ fontSize: ".92rem", fontWeight: 600, color: C.ink }}>{a.name}</div>
                   <div style={{ fontSize: ".76rem", color: C.mist, marginTop: 1 }}>
@@ -124,8 +125,8 @@ export default function S7bAssetRegistry({ user = { role: "admin" }, onHome, onB
                 </div>
                 <span style={{ fontSize: ".68rem", fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: st.bg, color: st.color, flexShrink: 0 }}>{st.label}</span>
                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                  <button onClick={() => api.getAssetQr(a.id, 6).then(printAssetLabel)} title="Print QR" style={iconBtn}>🏷️</button>
-                  <button onClick={() => setEditing(a)} title="Edit" style={iconBtn}>✏️</button>
+                  <button onClick={() => api.getAssetQr(a.id, 6).then(printAssetLabel)} title="Print QR label" aria-label={`Print QR label for ${a.name}`} style={iconBtn}><Icon name="qr" size={18} /></button>
+                  <button onClick={() => setEditing(a)} title="Edit" aria-label={`Edit ${a.name}`} style={iconBtn}><Icon name="edit" size={18} /></button>
                 </div>
               </div>
             );
@@ -213,7 +214,7 @@ function AssetEditor({ asset, sites, checklists, onClose, onSaved }) {
               {photo ? (
                 <AuthImg photo={photo} alt="Asset" style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", background: "#EEF1F0" }} />
               ) : (
-                <div style={{ width: 64, height: 64, borderRadius: 8, background: "#EEF1F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem" }}>📷</div>
+                <div style={{ width: 64, height: 64, borderRadius: 8, background: "#EEF1F0", display: "flex", alignItems: "center", justifyContent: "center", color: C.mist }}><Icon name="camera" size={24} /></div>
               )}
               <label style={{ padding: "8px 14px", background: C.foam, color: C.pine, border: `1.5px solid ${C.mint}`, borderRadius: 8, fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>
                 {photo ? "Change photo" : "Add photo"}
@@ -226,7 +227,7 @@ function AssetEditor({ asset, sites, checklists, onClose, onSaved }) {
             <div style={{ flex: 1 }}><label style={label}>Asset tag</label><input style={input} value={form.asset_tag} onChange={e => set("asset_tag", e.target.value)} placeholder="PMP-014" /></div>
             <div style={{ flex: 1 }}><label style={label}>Category</label>
               <select style={input} value={form.category} onChange={e => set("category", e.target.value)}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICON[c]} {c}</option>)}
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
@@ -323,7 +324,7 @@ function ProcedureManager({ assetId, procs, onChange }) {
       {procError && <div role="alert" style={{ color: "#B42318", fontSize: ".8rem", fontWeight: 600, marginBottom: 8 }}>⚠ {procError}</div>}
       {["loto", "sop"].map(kind => {
         const list = kind === "loto" ? procs.loto : procs.sops;
-        const heading = kind === "loto" ? "🔒 Lockout / Tagout" : "📋 SOPs";
+        const heading = kind === "loto" ? <><Icon name="lock" size={14} style={{ verticalAlign: "-2px", marginRight: 5 }} />Lockout / Tagout</> : <><Icon name="doc" size={14} style={{ verticalAlign: "-2px", marginRight: 5 }} />SOPs</>;
         return (
           <div key={kind} style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -338,7 +339,7 @@ function ProcedureManager({ assetId, procs, onChange }) {
                 <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.white, borderRadius: 7, padding: "8px 11px", marginBottom: 5, fontSize: ".82rem", color: C.ink }}>
                   <span style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(kind, p)}>{p.title}</span>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <button onClick={() => startEdit(kind, p)} title="Edit" style={{ background: "none", border: "none", color: C.sage, cursor: "pointer", fontSize: ".8rem" }}>✏️</button>
+                    <button onClick={() => startEdit(kind, p)} title="Edit" style={{ background: "none", border: "none", color: C.sage, cursor: "pointer", fontSize: ".8rem" }}><Icon name="edit" size={16} /></button>
                     <button onClick={() => remove(p.id)} title="Remove" style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: ".9rem" }}>×</button>
                   </div>
                 </div>

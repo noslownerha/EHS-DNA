@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { EHSHeader } from "./AppShell.jsx";
 
 const C = { ...COLORS };
@@ -36,7 +37,7 @@ export default function S0aTriageEntry({
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px 24px" }}>
 
         <div className="a1" style={{ marginBottom: 32, textAlign: "center" }}>
-          <div style={{ fontSize: "3rem", marginBottom: 14 }}>🚨</div>
+          <div style={{ marginBottom: 14, display: "flex", justifyContent: "center", color: "#FF8A80" }}><Icon name="alert" size={52} stroke={2} /></div>
           <h1 style={{ fontSize: "1.45rem", fontWeight: 800, color: C.white, lineHeight: 1.25, marginBottom: 10 }}>
             Did something just happen?
           </h1>

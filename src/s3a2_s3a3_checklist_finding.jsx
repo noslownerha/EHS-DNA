@@ -1,4 +1,5 @@
 import { COLORS } from "./constants.js";
+import Icon from "./Icon.jsx";
 import { useState, useRef } from "react";
 import { EHSHeader } from "./AppShell.jsx";
 
@@ -85,7 +86,7 @@ function InlineFindingForm({ item, onSubmit, onCancel }) {
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
           }}
         >
-          <span>📷</span> {photo ? `✓ ${photo}` : "Add photo (recommended)"}
+          <Icon name="camera" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />{photo ? `✓ ${photo}` : "Add photo (recommended)"}
         </button>
       </div>
 
@@ -321,7 +322,7 @@ export function S3a2ChecklistInProgress({ onHome,
           <button onClick={onBack} style={{ background: "none", border: "none", color: C.mint, fontSize: ".85rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-          <div style={{ fontSize: "2.2rem", marginBottom: 12 }}>📋</div>
+          <div style={{ marginBottom: 12, color: C.mist, display: "flex", justifyContent: "center" }}><Icon name="doc" size={36} /></div>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: C.ink, marginBottom: 8 }}>This checklist has no items yet</h2>
           <p style={{ fontSize: ".86rem", color: C.mist, lineHeight: 1.5, maxWidth: 320 }}>
             There's nothing to inspect against. An admin can add items to this checklist in the checklist builder, then it'll be ready to run.
@@ -472,7 +473,7 @@ export function S3a3LogFinding({ onHome, prefill = {}, onSubmit, onBack }) {
             fontSize: ".9rem", color: photo ? C.pine : C.mist,
             cursor: "pointer", marginBottom: 14,
           }}>
-            📷 {photo ? `✓ ${photo}` : "Take or upload photo"}
+            <Icon name="camera" size={16} style={{ verticalAlign: "-3px", marginRight: 5 }} />{photo ? `✓ ${photo}` : "Take or upload photo"}
           </button>
 
           <div style={{ marginBottom: 12 }}>
