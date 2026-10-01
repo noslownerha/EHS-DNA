@@ -12,7 +12,9 @@ module.exports = function mountMbr(app, db, auth, requireRole, deps) {
 
   // NAICS 312 (Beverage & Tobacco Mfg) BLS benchmarks — the same reference the
   // WhistlePig deck cites. Stored here so the slide can show "vs industry avg".
-  const BENCH = { dart: 2.5, trir: 4.1, naics: "312" };
+  // Per-company benchmark (Settings → Industry benchmark). Was hard-coded to
+  // NAICS 312 for every customer.
+  const benchFor = tenantId => db.prepare("SELECT trir_benchmark AS trir, dart_benchmark AS dart, benchmark_source AS source FROM tenants WHERE id = ?").get(tenantId) || {};
 
   // ── Gather real metrics for a period ("YYYY-MM" monthly, or a year for YTD) ──
   function gatherMbr(tenantId, period) {
@@ -119,8 +121,8 @@ module.exports = function mountMbr(app, db, auth, requireRole, deps) {
     const highlights = highlightRows.map(r => r.investigation_notes.slice(0, 180));
 
     return {
-      company: tenant?.name ?? "Company", periodLabel, cadence: "Monthly", year, prevYear, naics: BENCH.naics,
-      benchmarks: { dart: BENCH.dart, trir: BENCH.trir },
+      company: tenant?.name ?? "Company", periodLabel, cadence: "Monthly", year, prevYear,
+      benchmarks: benchFor(tenantId),
       kpis: {
         recordablesYTD: recYTD, recordablesPrevYear: recPrev,
         lostTimeYTD: ltYTD, lostTimePrevYear: ltPrev,
@@ -157,8 +159,8 @@ module.exports = function mountMbr(app, db, auth, requireRole, deps) {
     const kpis = [
       { label: "Recordable Injuries", cur: K.recordablesYTD, prev: K.recordablesPrevYear, sub: `${K.recordablesPrevYear} in ${D.prevYear}` },
       { label: "Lost-Time / Restricted", cur: K.lostTimeYTD, prev: K.lostTimePrevYear, sub: `${K.lostTimePrevYear} in ${D.prevYear}` },
-      { label: "DART Rate", cur: K.dartYTD, prev: K.dartPrevYear, sub: `NAICS ${D.naics} avg ${D.benchmarks.dart}`, decimal: true },
-      { label: "TRIR", cur: K.trirYTD, prev: K.trirPrevYear, sub: `NAICS ${D.naics} avg ${D.benchmarks.trir}`, decimal: true },
+      { label: "DART Rate", cur: K.dartYTD, prev: K.dartPrevYear, sub: D.benchmarks.dart != null ? `Industry avg ${D.benchmarks.dart}` : "No industry benchmark set", decimal: true },
+      { label: "TRIR", cur: K.trirYTD, prev: K.trirPrevYear, sub: D.benchmarks.trir != null ? `Industry avg ${D.benchmarks.trir}` : "No industry benchmark set", decimal: true },
     ];
     kpis.forEach((k, i) => {
       const x = kpiX0 + i * (kpiW + kpiGap);

@@ -103,6 +103,15 @@ def main():
         check("rules: a non-matching report doesn't notify", n1 == n0, (n0, n1))
         check("rules: a matching report notifies the role", n2 > n1, (n1, n2))
 
+        # Industry benchmark: drives TRIR colour; validated
+        st, _ = call("/api/config", "PUT", {"benchmark": {"trir": 2.7, "dart": 1.4, "source": "BLS 2024 · E2E"}}, adm)
+        b = api("/api/config", "GET", None, adm).get("benchmark", {})
+        check("benchmark: saved and returned to the app", st == 200 and b.get("trir") == 2.7 and b.get("source") == "BLS 2024 · E2E", (st, b))
+        st, _ = call("/api/config", "PUT", {"benchmark": {"trir": 99}}, adm)
+        check("benchmark: implausible rate refused", st == 400, st)
+        st, _ = call("/api/config", "PUT", {"benchmark": {"trir": None}}, adm)
+        check("benchmark: can be cleared (TRIR then shows no colour)", api("/api/config", "GET", None, adm)["benchmark"]["trir"] is None)
+
         # Triage line
         st, _ = call("/api/config", "PUT", {"triage": {"enabled": True, "providerName": "E2E Triage Co", "providerPhone": "(800) 555-0101"}}, adm)
         cfg = api("/api/config", "GET", None, stok)

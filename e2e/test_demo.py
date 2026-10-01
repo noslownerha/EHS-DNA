@@ -72,6 +72,10 @@ def main():
             check("pitch (admin): lands on a populated dashboard", "Northfield" in body and "Dayton Plant" in body, body[:300])
             check("pitch (admin): no forced password change for the shared login", "Set a new password" not in body)
             check("branding: header shows the tenant's own name, not WhistlePig", "WhistlePig" not in body, body[:200])
+            check("TRIR: judged against the company's industry benchmark (1.43 vs BLS 3.2)", "Below industry 3.2" in body, body[:600])
+            pg.locator("button:visible", has_text="Settings").first.click(); pg.wait_for_timeout(1000)
+            pg.locator("button", has_text="Home").last.click(); pg.wait_for_timeout(1000)
+            check("nav: Home from Settings returns to the dashboard (used to do nothing)", "Needs your attention" in pg.inner_text("body"))
             pg.locator("button", has_text="Analyze").last.click()
             try: pg.get_by_text("Report Builder").first.wait_for(timeout=8000)
             except Exception:

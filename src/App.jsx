@@ -80,6 +80,10 @@ function App() {
   // Bumped on every Training-tab tap so tapping it always returns to the queue
   // (it used to leave you on whatever screen you were on, e.g. a failed quiz).
   const [trainingNonce, setTrainingNonce] = useState(0);
+  // Same for Home and Analyze: tapping the tab you're already "in" must return
+  // to its root. From Settings / Manage Staff / Equipment (all opened from the
+  // dashboard), tapping Home used to do nothing at all.
+  const [homeNonce, setHomeNonce] = useState(0);
   // An operator's nav has no "home" tab, so the default would highlight nothing.
   // Send them to the worklist instead — "what needs me today" is the first
   // question, and it's the console's landing section.
@@ -134,7 +138,7 @@ function App() {
     setCurrentUser(null);
   }
 
-  function handleHome() { setActiveTab("home"); }
+  function handleHome() { setHomeNonce(n => n + 1); setActiveTab("home"); }
   useEffect(() => {
     function onDeepLink(e) {
       const { kind } = e.detail ?? {};
@@ -182,6 +186,7 @@ function App() {
     if (tabId === "flag") { setFlagScreen(INCIDENT_SCREENS.TYPE); setPickerStep("top"); setAfterTriage(false); setFlagPreset(null); }
     if (tabId === "inspect") { setPendingChecklistId(null); setPendingPointId(null); setInspectScreen(INSPECTION_SCREENS.START); }
     if (tabId === "training") setTrainingNonce(n => n + 1);
+    if (tabId === "home" || tabId === "reports") setHomeNonce(n => n + 1);
     setActiveTab(tabId);
   }
   function openFlag(screen) {
@@ -247,7 +252,7 @@ function App() {
         }
         return (
           <MobileFrame>
-            <DashboardProvider key="dash-home" user={userObj} companyName={BRAND.company} initialScreen={defaultScreenForRole(currentUser.role, currentUser.isOperator)}>
+            <DashboardProvider key={`dash-home-${homeNonce}`} user={userObj} companyName={BRAND.company} initialScreen={defaultScreenForRole(currentUser.role, currentUser.isOperator)}>
               <DashboardRouter
                 onTriage={()        => handleTab("triage")}
                 onReportIncident={() => handleTab("flag")}
@@ -365,7 +370,7 @@ function App() {
                 the tree. Without distinct keys React reused the Home instance, and
                 initialScreen only applies on mount — so Home → Analyze kept showing
                 the dashboard with the Analyze tab highlighted. */}
-            <DashboardProvider key="dash-reports" user={userObj} companyName={BRAND.company} initialScreen={DASHBOARD_SCREENS.REPORT}>
+            <DashboardProvider key={`dash-reports-${homeNonce}`} user={userObj} companyName={BRAND.company} initialScreen={DASHBOARD_SCREENS.REPORT}>
               <DashboardRouter onDone={handleHome} />
             </DashboardProvider>
           </MobileFrame>

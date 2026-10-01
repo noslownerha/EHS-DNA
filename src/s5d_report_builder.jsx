@@ -59,7 +59,9 @@ function BarChart({ data, showBls, showPrevYear, blsRate }) {
           const prevVal   = data[label].prevYearTrir;
           const barH      = val > 0 ? Math.max((val / maxVal) * chartH, 4) : 0;
           const prevBarH  = (showPrevYear && prevVal != null && prevVal > 0) ? Math.max((prevVal / maxVal) * chartH, 4) : 0;
-          const barColor  = val > blsRate ? C.red : val > blsRate * 0.5 ? C.gold : C.sage;
+          // Same rule as the dashboard: at/under the industry rate green, up to 25%
+          // over amber, beyond that red. No benchmark → neutral (no colour claimed).
+          const barColor  = blsRate == null ? C.navy : val <= blsRate ? C.green : val <= blsRate * 1.25 ? C.amberGfx : C.red;
 
           return (
             <div key={label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end", position: "relative" }}>
@@ -249,7 +251,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
     const cur = monthlyByYm[m.month];
     const prev = monthlyByYm[priorYm(m.month)];
     return [labelOf(m.month), { incidents: cur.recordables, hours: cur.hours, trir: cur.trir,
-                                prevYearTrir: prev ? prev.trir : null, blsRate: 2.8 }];
+                                prevYearTrir: prev ? prev.trir : null, blsRate: BRAND.benchmark?.trir ?? null }];
   }));
 
   const quarterOf = ym => `Q${Math.floor((Number(ym.slice(5, 7)) - 1) / 3) + 1} ${ym.slice(0, 4)}`;
@@ -269,7 +271,7 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
     const cur = quarterAgg[q];
     const prev = quarterAgg[priorQ(q)];
     return [q, { incidents: cur.recordables, hours: cur.hours, trir: cur.trir,
-                 prevYearTrir: prev ? prev.trir : null, blsRate: 2.8 }];
+                 prevYearTrir: prev ? prev.trir : null, blsRate: BRAND.benchmark?.trir ?? null }];
   }));
 
   const monthlyPeriods   = Object.keys(MONTHLY_LIVE);
@@ -282,8 +284,10 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
   }, [frameType, rawMonths.length]); // eslint-disable-line
 
   const chartData = frameType === "monthly" ? MONTHLY_LIVE : QUARTERLY_LIVE;
-  const blsRate   = 2.8; // BLS industry avg for beverage manufacturing
-  const blsEntered = true;
+  const blsRate   = BRAND.benchmark?.trir ?? null;   // company's industry benchmark (Settings)
+  // The company's own industry benchmark (Settings). Was hard-coded to 2.8 —
+  // a beverage-industry rate — for every customer, and claimed "Spirits / Distilling".
+  const blsEntered = BRAND.benchmark?.trir != null;
 
   // Scheduled report config
   const [scheduledCadence, setScheduledCadence] = useState("Monthly");
@@ -503,12 +507,12 @@ export default function S5dReportBuilder({ companyName = BRAND.company, onBack, 
 
                 <Toggle
                   label="BLS industry rate"
-                  sublabel={blsEntered ? `${blsRate} (Spirits / Distilling, 2024)` : "Not entered — add in site settings"}
+                  sublabel={blsEntered ? `${blsRate}${BRAND.benchmark?.source ? ` · ${BRAND.benchmark.source}` : ""}` : "Not set — add it in Settings → Industry benchmark"}
                   checked={showBls && blsEntered}
                   onChange={v => blsEntered ? setShowBls(v) : null}
                 />
                 {!blsEntered && (
-                  <div style={{ fontSize: ".72rem", color: C.gold, marginBottom: 4 }}>⚠ Enter BLS rate in site settings to enable this overlay.</div>
+                  <div style={{ fontSize: ".72rem", color: C.gold, marginBottom: 4 }}>⚠ Add your industry benchmark in Settings to enable this overlay.</div>
                 )}
 
                 <div style={{ height: 1, background: "#E8EFec", margin: "8px 0" }} />

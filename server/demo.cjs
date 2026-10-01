@@ -361,6 +361,11 @@ function seedDemo(db, tenantId) {
     insPts.run(T, u.id, pick([10, 10, 15, 25]), pick(["Hazard reported", "Near-miss reported", "Peer shout-out", "Training completed on time"]),
                admin.id, iso(ago).slice(0, 7), iso(ago));
   }
+  // Published figure, not a guess: BLS 2024 total recordable case rate for
+  // fabricated metal product manufacturing (NAICS 332) is 3.2 per 100 FTE
+  // (bls.gov/iag/tgs/iag332.htm, checked Sep 2026).
+  db.prepare("UPDATE tenants SET trir_benchmark = 3.2, dart_benchmark = NULL, benchmark_source = ? WHERE id = ?")
+    .run("BLS SOII 2024 · Fabricated metal products (NAICS 332)", T);
   return { users: users.length, incidents: incIds.length, assets: ASSETS.length, trainings: trainings.length };
 }
 

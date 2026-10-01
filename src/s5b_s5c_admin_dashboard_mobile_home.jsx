@@ -68,8 +68,19 @@ function StatusShape({ tone }) {
   const s = STATUS_SHAPE[tone] || STATUS_SHAPE.green;
   return <svg width="16" height="16" viewBox="0 0 16 16" role="img" aria-label={s.label} style={{ flexShrink: 0 }}>{s.d}</svg>;
 }
-const TILE_STRIP = { green: COLORS.green, amber: COLORS.amberFill, red: COLORS.red, blue: COLORS.navy };
+const TILE_STRIP = { green: COLORS.green, amber: COLORS.amberFill, red: COLORS.red, blue: COLORS.navy, gray: COLORS.line };
 const dayMs = 86400000;
+
+// TRIR colour is EARNED against the company's own industry benchmark
+// (Settings → Industry benchmark): at/under it green, up to 25% over amber,
+// beyond that red. With no benchmark it stays neutral — it used to be green
+// whatever the number was.
+function trirStatus(value, bench) {
+  if (bench == null) return { tone: "gray", chip: "No benchmark set" };
+  if (value <= bench) return { tone: "green", chip: `Below industry ${bench}` };
+  if (value <= bench * 1.25) return { tone: "amber", chip: `Near industry ${bench}` };
+  return { tone: "red", chip: `Above industry ${bench}` };
+}
 
 export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNavigate, onHome }) {
   const [sites, setSites] = useState(null);
@@ -120,7 +131,7 @@ export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNaviga
   const first = (me.name || "").split(/\s+/)[0];
 
   const kpis = [
-    trir && { label: "TRIR", value: trir.value, tone: "green", chip: "12 months", note: `${trir.rec} recordable${trir.rec === 1 ? "" : "s"} · ${Math.round(trir.hrs).toLocaleString()} hours`, dest: "report", module: "reporting" },
+    trir && { label: "TRIR · 12 months", value: trir.value, ...trirStatus(Number(trir.value), BRAND.benchmark?.trir), note: `${trir.rec} recordable${trir.rec === 1 ? "" : "s"} · ${Math.round(trir.hrs).toLocaleString()} hours`, dest: "report", module: "reporting" },
     { label: "Open incidents", value: totalIncidents, tone: totalIncidents ? "blue" : "green", chip: totalIncidents ? "In progress" : "None open", note: "Reported and not yet closed", dest: "incidents", module: "incidents" },
     { label: "Open corrective actions", value: totalCAs, tone: attention.some(a => a.dest === "cas" && a.tone === "red") ? "red" : totalCAs ? "amber" : "green",
       chip: attention.some(a => a.dest === "cas" && a.status === "Blocked") ? `${attention.filter(a => a.status === "Blocked").length} blocked` : totalCAs ? "Open" : "All closed", note: "Blocked, overdue and in progress", dest: "cas", module: "corrective_actions" },

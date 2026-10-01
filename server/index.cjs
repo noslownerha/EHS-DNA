@@ -505,6 +505,7 @@ app.get("/api/config", auth, (req, res) => {
     modules: [...enabledModules(req.auth.tenant)],
     // Optional features that depend on server setup. aiDraft is only true when
     // an Anthropic API key is configured — the button stays hidden otherwise.
+    benchmark: { trir: t.trir_benchmark ?? null, dart: t.dart_benchmark ?? null, source: t.benchmark_source ?? null },
     features: { aiDraft: !!process.env.ANTHROPIC_API_KEY },
     // "staging" shows a banner on every screen so the two copies are never confused.
     environment: process.env.EHS_STAGING === "1" ? "staging" : "production",
@@ -513,6 +514,16 @@ app.get("/api/config", auth, (req, res) => {
 });
 app.put("/api/config", auth, requireRole(...ADMINISH), (req, res) => {
   const { company, shortName, industry, tagline, triage } = req.body || {};
+  // Benchmark: explicit null clears it; a number must be a plausible rate.
+  if (req.body?.benchmark !== undefined) {
+    const b = req.body.benchmark || {};
+    const num = v => (v === null || v === "" || v === undefined) ? null : Number(v);
+    const trir = num(b.trir), dart = num(b.dart);
+    for (const [k, v] of [["TRIR", trir], ["DART", dart]])
+      if (v !== null && (!Number.isFinite(v) || v <= 0 || v > 50)) return res.status(400).json({ error: `${k} benchmark must be a rate between 0 and 50.` });
+    db.prepare("UPDATE tenants SET trir_benchmark = ?, dart_benchmark = ?, benchmark_source = ? WHERE id = ?")
+      .run(trir, dart, String(b.source ?? "").trim().slice(0, 200) || null, req.auth.tenant);
+  }
   // Sanitize custom triage questions: array of {id,text}, text trimmed & capped,
   // max 20 questions. Undefined → leave unchanged (COALESCE null).
   let triageQuestionsJson = null;

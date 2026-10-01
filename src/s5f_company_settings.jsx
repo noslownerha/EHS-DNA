@@ -85,6 +85,7 @@ export default function S5fCompanySettings({ companyName, onHome, onBack }) {
   }
 
   function set(field, value) { setCfg(c => ({ ...c, [field]: value })); setSaved(false); }
+  function setBench(field, value) { setCfg(c => ({ ...c, benchmark: { ...(c.benchmark || {}), [field]: value } })); setSaved(false); }
   function setTriage(field, value) { setCfg(c => ({ ...c, triage: { ...c.triage, [field]: value } })); setSaved(false); }
 
   async function saveCompany() {
@@ -93,6 +94,7 @@ export default function S5fCompanySettings({ companyName, onHome, onBack }) {
       await api.updateConfig({
         company: cfg.company, shortName: cfg.shortName, industry: cfg.industry,
         tagline: cfg.tagline, triage: cfg.triage,
+        benchmark: { trir: cfg.benchmark?.trir ?? null, dart: cfg.benchmark?.dart ?? null, source: cfg.benchmark?.source ?? null },
       });
       await api.fetchConfig();  // re-sync BRAND so every screen updates
       setSaved(true);
@@ -203,6 +205,27 @@ export default function S5fCompanySettings({ companyName, onHome, onBack }) {
               <input style={inputStyle} value={cfg.industry ?? ""} onChange={e => set("industry", e.target.value)} /></div>
             <div><label style={labelStyle}>Tagline</label>
               <input style={inputStyle} value={cfg.tagline ?? ""} onChange={e => set("tagline", e.target.value)} /></div>
+            {/* Industry benchmark — drives TRIR colouring on the dashboard, the
+                Report Builder's benchmark line and the monthly slide. */}
+            <div style={{ gridColumn: "1 / -1", flexBasis: "100%", width: "100%", marginTop: 6, padding: "12px 14px", background: C.chalk, borderRadius: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.ink }}>Industry benchmark</div>
+              <div style={{ fontSize: ".8rem", color: C.slate, margin: "2px 0 10px" }}>
+                The national injury rate for your industry, so TRIR can be judged against it. Find your NAICS code's
+                "total recordable cases" rate at <a href="https://www.bls.gov/iif/" target="_blank" rel="noreferrer" style={{ color: C.sage, fontWeight: 600 }}>bls.gov/iif</a>.
+                Leave blank to show TRIR without a colour.
+              </div>
+              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+                <div><label style={labelStyle} htmlFor="bench-trir">TRIR benchmark</label>
+                  <input id="bench-trir" style={inputStyle} type="number" step="0.1" min="0" max="50" placeholder="e.g. 3.2"
+                         value={cfg.benchmark?.trir ?? ""} onChange={e => setBench("trir", e.target.value === "" ? null : e.target.value)} /></div>
+                <div><label style={labelStyle} htmlFor="bench-dart">DART benchmark (optional)</label>
+                  <input id="bench-dart" style={inputStyle} type="number" step="0.1" min="0" max="50" placeholder="e.g. 1.9"
+                         value={cfg.benchmark?.dart ?? ""} onChange={e => setBench("dart", e.target.value === "" ? null : e.target.value)} /></div>
+                <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle} htmlFor="bench-src">Source</label>
+                  <input id="bench-src" style={inputStyle} placeholder="e.g. BLS 2024 · NAICS 332 Fabricated metal products"
+                         value={cfg.benchmark?.source ?? ""} onChange={e => setBench("source", e.target.value)} /></div>
+              </div>
+            </div>
           </div>
         </Card>
 

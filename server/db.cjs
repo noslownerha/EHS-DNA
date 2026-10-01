@@ -494,6 +494,22 @@ try { db.exec("CREATE INDEX IF NOT EXISTS idx_asset_maint ON asset_maintenance(t
 // Which inspection point (if any) a checklist run was started from.
 try { db.exec("ALTER TABLE inspections ADD COLUMN inspection_point_id INTEGER"); } catch {}
 
+// Industry injury-rate benchmark, per company (BLS rate for their NAICS code).
+// It used to be hard-coded to the beverage industry — and inconsistently: 2.8 in
+// the Report Builder, 4.1 on the monthly slide — for every customer. Status
+// colours on TRIR are only shown once a company has a benchmark.
+let addedBenchmark = false;
+try { db.exec("ALTER TABLE tenants ADD COLUMN trir_benchmark REAL"); addedBenchmark = true; } catch {}
+try { db.exec("ALTER TABLE tenants ADD COLUMN dart_benchmark REAL"); } catch {}
+try { db.exec("ALTER TABLE tenants ADD COLUMN benchmark_source TEXT"); } catch {}
+if (addedBenchmark) {
+  // One time only: beverage/spirits companies keep the value their monthly slide
+  // already showed, clearly marked for verification. Everyone else starts unset.
+  db.prepare(`UPDATE tenants SET trir_benchmark = 4.1, dart_benchmark = 2.5,
+              benchmark_source = 'BLS · NAICS 312 Beverage & tobacco (carried over from the old built-in value — please verify)'
+              WHERE trir_benchmark IS NULL AND (industry LIKE '%spirit%' OR industry LIKE '%distill%' OR industry LIKE '%beverage%')`).run();
+}
+
 // Demo tenant flag (server/demo.cjs). Reset only ever touches is_demo = 1, and
 // demo tenants are excluded from operator revenue, attention and analytics.
 try { db.exec("ALTER TABLE tenants ADD COLUMN is_demo INTEGER DEFAULT 0"); } catch {}
@@ -682,6 +698,11 @@ function seed() {
   });
   seedTx();
   console.log("Seeded tenant: WhistlePig Whiskey (4 sites, 6 departments, 1 admin)");
+  // A brand-new database seeds the pilot company after the benchmark migration
+  // ran, so give it the same carried-over value an existing install gets.
+  db.prepare(`UPDATE tenants SET trir_benchmark = 4.1, dart_benchmark = 2.5,
+              benchmark_source = 'BLS · NAICS 312 Beverage & tobacco (carried over from the old built-in value — please verify)'
+              WHERE trir_benchmark IS NULL AND (industry LIKE '%spirit%' OR industry LIKE '%distill%' OR industry LIKE '%beverage%')`).run();
 }
 seed();
 
