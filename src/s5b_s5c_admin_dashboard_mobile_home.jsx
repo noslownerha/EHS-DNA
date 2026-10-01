@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { EHSHeader } from "./AppShell.jsx";
-import { BRAND, COLORS, moduleEnabled } from "./constants.js";
+import { BRAND, COLORS, FONTS, moduleEnabled } from "./constants.js";
+import Icon from "./Icon.jsx";
+import { StatusChip, Card, CardHeader, Row } from "./ui.jsx";
 import { api } from "./api.js";
 
 const C = { ...COLORS };
@@ -52,198 +54,208 @@ function DaysBadge({ days }) {
 // ════════════════════════════════════════════════════════════════════════════
 // S5b — Company Admin Dashboard (desktop)
 // ════════════════════════════════════════════════════════════════════════════
-export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNavigate, onHome }) {
-  const [SITES, setSites] = useState([]);
-  useEffect(() => {
-    api.dashboardSummary().then(setSites).catch(err => console.error("Dashboard summary failed:", err.message));
-  }, []);
-  const safeSites = SITES.length ? SITES : [{ name: "—", location: "", staff: 0, daysSince: 0, compliance: 0, openIncidents: 0, openCAs: 0, criticalFindings: 0 }];
+// ── S5b · Company dashboard ("Clarity with character") ──────────────────────
+// Visual management: every tile and site metric carries a status (green on
+// track · amber watch · red act now · blue in progress) as colour + shape +
+// words. Opens with one sentence saying what needs the admin today, then the
+// items themselves, then a site scorecard.
+const STATUS_SHAPE = {
+  green: { label: "On track", d: <><circle cx="8" cy="8" r="7" fill={COLORS.green} /><path d="m4.8 8.2 2.1 2.1 4.3-4.3" stroke="#fff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></> },
+  amber: { label: "Watch", d: <><path d="M8 1.2 15.2 14H.8z" fill={COLORS.amberGfx} /><path d="M8 6v3.6M8 11.6v.1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></> },
+  red:   { label: "Act now", d: <><path d="M5 .8h6L15.2 5v6L11 15.2H5L.8 11V5z" fill={COLORS.red} /><path d="m5.5 5.5 5 5m0-5-5 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></> },
+};
+function StatusShape({ tone }) {
+  const s = STATUS_SHAPE[tone] || STATUS_SHAPE.green;
+  return <svg width="16" height="16" viewBox="0 0 16 16" role="img" aria-label={s.label} style={{ flexShrink: 0 }}>{s.d}</svg>;
+}
+const TILE_STRIP = { green: COLORS.green, amber: COLORS.amberFill, red: COLORS.red, blue: COLORS.navy };
+const dayMs = 86400000;
 
-  // Company-wide aggregates
-  const totalStaff      = SITES.reduce((n, s) => n + s.staff, 0);
-  const totalIncidents  = SITES.reduce((n, s) => n + s.openIncidents, 0);
-  const totalCAs        = SITES.reduce((n, s) => n + s.openCAs, 0);
-  const totalCritical   = SITES.reduce((n, s) => n + s.criticalFindings, 0);
-  const avgCompliance   = SITES.length ? Math.round(SITES.reduce((n, s) => n + s.compliance, 0) / SITES.length) : 0;
-  const belowThreshold  = SITES.filter(s => s.compliance < 80).length;
-  // Average days since the last incident across sites that HAVE had one. A site
-  // with no recordable on record (server sends null) is excluded
-  // rather than counted as a real streak, so the average stays honest.
-  const sitesWithHistory = SITES.filter(s => s.daysSince !== null && s.daysSince !== undefined);
-  const avgDaysSince = sitesWithHistory.length
-    ? Math.round(sitesWithHistory.reduce((n, s) => n + s.daysSince, 0) / sitesWithHistory.length)
-    : null;
+export function S5bCompanyAdminDashboard({ companyName = BRAND.company, onNavigate, onHome }) {
+  const [sites, setSites] = useState(null);
+  const [attention, setAttention] = useState([]);
+  const [trir, setTrir] = useState(null);
+  const isOperator = JSON.parse(sessionStorage.getItem("ehs_user") || "{}").isOperator;
+  const me = JSON.parse(sessionStorage.getItem("ehs_user") || "{}");
+
+  useEffect(() => {
+    api.dashboardSummary().then(setSites).catch(() => setSites([]));
+    const today = new Date(new Date().toDateString()).getTime();
+    Promise.all([
+      moduleEnabled("corrective_actions") ? api.listCAs().catch(() => []) : [],
+      moduleEnabled("inspections") ? api.listFindings().catch(() => []) : [],
+    ]).then(([cas, findings]) => {
+      const items = [];
+      (Array.isArray(cas) ? cas : []).forEach(c => {
+        if (["done", "verified", "closed"].includes(c.status)) return;
+        const due = c.due_date ? Math.round((new Date(c.due_date).getTime() - today) / dayMs) : null;
+        if (c.status === "blocked") items.push({ tone: "red", rank: 0, icon: "wrench", title: c.title, meta: c.blocked_reason || "Blocked — needs help", status: "Blocked", dest: "cas" });
+        else if (c.status === "capex_blocked") items.push({ tone: "blue", rank: 4, icon: "card", title: c.title, meta: c.blocked_reason || "Waiting on capital budget", status: "CapEx hold", dest: "cas" });
+        else if (due !== null && due < 0) items.push({ tone: "red", rank: 1, icon: "wrench", title: c.title, meta: `Was due ${-due} day${due === -1 ? "" : "s"} ago`, status: `Overdue ${-due} d`, dest: "cas" });
+        else if (due !== null && due <= 3) items.push({ tone: "amber", rank: 2, icon: "wrench", title: c.title, meta: due === 0 ? "Due today" : `Due in ${due} day${due === 1 ? "" : "s"}`, status: due === 0 ? "Due today" : `Due in ${due} d`, dest: "cas" });
+      });
+      (Array.isArray(findings) ? findings : []).forEach(f => {
+        if (f.status === "resolved" || f.safety_relevant === 0) return;
+        if (f.severity === "critical") items.push({ tone: "red", rank: 1, icon: "alert", title: f.description, meta: [f.site_name, "critical finding"].filter(Boolean).join(" · "), status: "Critical", dest: "findings" });
+      });
+      items.sort((a, b) => a.rank - b.rank);
+      setAttention(items);
+    });
+    if (moduleEnabled("reporting")) {
+      api.reportIncidentSummary().then(s => {
+        const months = (s?.months || []).slice(-12);
+        let rec = 0, hrs = 0;
+        months.forEach(m => (m.sites || []).forEach(x => { rec += x.recordables || 0; hrs += x.estHours || 0; }));
+        setTrir(hrs > 0 ? { value: (rec * 200000 / hrs).toFixed(2), rec, hrs } : null);
+      }).catch(() => setTrir(null));
+    }
+  }, []);
+
+  const S = sites || [];
+  const sum = k => S.reduce((n, s) => n + (s[k] || 0), 0);
+  const totalStaff = sum("staff"), totalIncidents = sum("openIncidents"), totalCAs = sum("openCAs"), totalCritical = sum("criticalFindings");
+  const fullyTrained = S.length ? Math.round(S.reduce((n, s) => n + s.compliance * (s.staff || 1), 0) / S.reduce((n, s) => n + (s.staff || 1), 0)) : 0;
+  const lowSites = S.filter(s => s.compliance < 80);
+  const reds = attention.filter(a => a.tone === "red").length, ambers = attention.filter(a => a.tone === "amber").length;
+  const first = (me.name || "").split(/\s+/)[0];
 
   const kpis = [
-    { label: "Open incidents",      value: totalIncidents, color: C.red,    dest: "incidents", module: "incidents" },
-    { label: "Open corrective actions",            value: totalCAs,       color: C.orange, dest: "cas",       module: "corrective_actions" },
-    { label: "Critical findings",   value: totalCritical,  color: C.gold,   dest: "findings",  module: "inspections" },
-    { label: "Sites < 80% training",value: belowThreshold, color: C.purple, dest: "training",  module: "lms" },
-  ].filter(k => !k.module || moduleEnabled(k.module));
+    trir && { label: "TRIR", value: trir.value, tone: "green", chip: "12 months", note: `${trir.rec} recordable${trir.rec === 1 ? "" : "s"} · ${Math.round(trir.hrs).toLocaleString()} hours`, dest: "report", module: "reporting" },
+    { label: "Open incidents", value: totalIncidents, tone: totalIncidents ? "blue" : "green", chip: totalIncidents ? "In progress" : "None open", note: "Reported and not yet closed", dest: "incidents", module: "incidents" },
+    { label: "Open corrective actions", value: totalCAs, tone: attention.some(a => a.dest === "cas" && a.tone === "red") ? "red" : totalCAs ? "amber" : "green",
+      chip: attention.some(a => a.dest === "cas" && a.status === "Blocked") ? `${attention.filter(a => a.status === "Blocked").length} blocked` : totalCAs ? "Open" : "All closed", note: "Blocked, overdue and in progress", dest: "cas", module: "corrective_actions" },
+    { label: "Critical findings", value: totalCritical, tone: totalCritical ? "red" : "green", chip: totalCritical ? "Act now" : "None", note: "Open, safety-relevant", dest: "findings", module: "inspections" },
+    { label: "Staff fully trained", value: `${fullyTrained}%`, tone: lowSites.length ? "amber" : "green", chip: lowSites.length ? `${lowSites.length} site${lowSites.length === 1 ? "" : "s"} low` : "On target",
+      note: lowSites.length ? `${lowSites.map(s => s.name).join(", ")} below 80%` : "Every site at or above 80%", dest: "training", module: "lms" },
+  ].filter(k => k && (!k.module || moduleEnabled(k.module)));
 
-  const thStyle = {
-    padding: "9px 14px", textAlign: "left",
-    fontSize: ".7rem", fontWeight: 600, letterSpacing: ".06em",
-    textTransform: "uppercase", color: C.mist,
-    borderBottom: "1px solid #E2EBE6", background: C.chalk,
-    whiteSpace: "nowrap",
-  };
+  const metric = (tone, text) => <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: FONTS.mono, fontSize: ".92rem" }}><StatusShape tone={tone} />{text}</span>;
+  const links = [
+    isOperator && ["ops", "EHS Ops"], isOperator && ["billing", "Billing"],
+    ["settings", "Settings"], ["staff", "Manage Staff"],
+    moduleEnabled("equipment") && ["equipment", "Equipment"],
+    (moduleEnabled("equipment") || moduleEnabled("inspections")) && ["qr", "QR labels"],
+    ["report", "Reports"],
+  ].filter(Boolean);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.chalk, fontFamily: FONTS.body, color: C.ink }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        .anim { animation: fadeUp .25s ease both; }
-        .kpi-tile:active { transform: scale(.97); }
-        .kpi-tile:hover { box-shadow: 0 4px 18px rgba(15,31,23,.13); }
-        .site-row:hover td { background: ${C.foam} !important; cursor: pointer; }
-        .nav-btn:hover { background: ${C.foam} !important; }
+        .dash-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .dash-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        .site-grid { display: none; }
+        .site-cards { display: block; }
+        @media (min-width: 900px) {
+          .dash-kpis { grid-template-columns: repeat(${Math.min(kpis.length, 5)}, minmax(0, 1fr)); gap: 14px; }
+          .dash-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
+          .site-grid { display: block; } .site-cards { display: none; }
+        }
+        .kpi-tile { transition: box-shadow .15s ease; } .kpi-tile:hover { box-shadow: 0 6px 18px rgba(21,33,43,.08); }
+        .dash-link:hover { background: ${C.foam}; }
+        /* Phones: shortcuts are one swipeable row instead of three rows of buttons */
+        @media (max-width: 899px) { .dash-links { flex-wrap: nowrap !important; overflow-x: auto; padding-bottom: 4px; } }
       `}</style>
+      <EHSHeader onHome={onHome} title={companyName} rightContent={<span className="hdr-context" style={{ fontSize: ".75rem", color: "rgba(255,255,255,.82)" }}>Company Dashboard</span>} />
 
-      <DesktopNav onHome={onHome} companyName={companyName} label="Company Dashboard" />
-
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
-
-        {/* Header */}
-        <div className="anim" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 110px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: C.ink }}>{companyName}</h1>
-            <p style={{ fontSize: ".85rem", color: C.mist, marginTop: 3 }}>
-              {SITES.length} sites · {totalStaff} staff{avgDaysSince != null ? ` · avg ${avgDaysSince} days since last incident` : ""}
-            </p>
+            <div style={{ fontSize: ".85rem", color: C.slate }}>{companyName} · {S.length} site{S.length === 1 ? "" : "s"} · {totalStaff} people</div>
+            <h1 style={{ margin: "2px 0 0", fontSize: "1.9rem", fontWeight: 700 }}>{first ? `Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, ${first}` : companyName}</h1>
+            <div style={{ marginTop: 6, fontSize: ".95rem", color: C.slate }}>
+              {reds + ambers === 0 ? "Nothing needs you right now." : <>
+                {reds > 0 && <strong style={{ color: C.red }}>{reds} item{reds === 1 ? "" : "s"} to act on</strong>}
+                {reds > 0 && ambers > 0 && " and "}
+                {ambers > 0 && <strong style={{ color: C.gold }}>{ambers} due soon</strong>} need you today.
+              </>}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {JSON.parse(sessionStorage.getItem("ehs_user") || "{}").isOperator && (<>
-            <button className="nav-btn" onClick={() => onNavigate?.("ops")} style={{
-              padding: "8px 16px", background: C.forest, color: C.mint,
-              border: `1.5px solid ${C.forest}`, borderRadius: 7,
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-              cursor: "pointer", transition: "all .15s",
-            }}>EHS Ops →</button>
-            <button className="nav-btn" onClick={() => onNavigate?.("billing")} style={{
-              padding: "8px 16px", background: C.white, color: C.pine,
-              border: `1.5px solid ${C.mint}`, borderRadius: 7,
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-              cursor: "pointer", transition: "all .15s",
-            }}>Billing →</button>
-            </>)}
-            <button className="nav-btn" onClick={() => onNavigate?.("settings")} style={{
-              padding: "8px 16px", background: C.white, color: C.pine,
-              border: `1.5px solid ${C.mint}`, borderRadius: 7,
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-              cursor: "pointer", transition: "all .15s",
-            }}>Settings →</button>
-            <button className="nav-btn" onClick={() => onNavigate?.("staff")} style={{
-              padding: "8px 16px", background: C.white, color: C.pine,
-              border: `1.5px solid ${C.mint}`, borderRadius: 7,
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-              cursor: "pointer", transition: "all .15s",
-            }}>Manage Staff →</button>
-            {moduleEnabled("equipment") && (
-              <button className="nav-btn" onClick={() => onNavigate?.("equipment")} style={{
-                padding: "8px 16px", background: C.white, color: C.pine,
-                border: `1.5px solid ${C.mint}`, borderRadius: 7,
-                fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-                cursor: "pointer", transition: "all .15s",
-              }}>Equipment →</button>
-            )}
-            {(moduleEnabled("equipment") || moduleEnabled("inspections")) && (
-              <button className="nav-btn" onClick={() => onNavigate?.("qr")} style={{
-                padding: "8px 16px", background: C.white, color: C.pine,
-                border: `1.5px solid ${C.mint}`, borderRadius: 7,
-                fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-                cursor: "pointer", transition: "all .15s",
-              }}>🏷️ QR labels →</button>
-            )}
-            <button className="nav-btn" onClick={() => onNavigate?.("report")} style={{
-              padding: "8px 16px", background: C.white, color: C.pine,
-              border: `1.5px solid ${C.mint}`, borderRadius: 7,
-              fontFamily: "'DM Sans', sans-serif", fontSize: ".85rem", fontWeight: 600,
-              cursor: "pointer", transition: "all .15s",
-            }}>Reports →</button>
+          <div className="dash-links" style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: "100%" }}>
+            {links.map(([dest, label]) => (
+              <button key={dest} className="dash-link" onClick={() => onNavigate?.(dest)} style={{ height: 38, padding: "0 14px", borderRadius: 10,
+                      border: `1px solid ${C.field}`, background: C.white, color: C.ink, fontWeight: 600, fontSize: ".85rem", cursor: "pointer", fontFamily: FONTS.body,
+                      flexShrink: 0, whiteSpace: "nowrap" }}>
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* KPI tiles */}
-        <div className="anim" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 8 }}>
-          {kpis.map((kpi, i) => (
-            <button key={i} onClick={() => onNavigate?.(kpi.dest)} className="kpi-tile clickable-card" style={{
-              background: C.white, borderRadius: 10,
-              boxShadow: "0 2px 12px rgba(15,31,23,.07)",
-              padding: "20px 22px", height: 90, cursor: "pointer",
-              display: "flex", flexDirection: "column", justifyContent: "center",
-              border: "none", borderTop: `3px solid ${kpi.color}`,
-              textAlign: "left", fontFamily: "'DM Sans', sans-serif",
-              transition: "transform .12s, box-shadow .12s",
-            }}>
-              <div style={{ fontSize: "1.75rem", fontWeight: 700, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-              <div style={{ fontSize: ".8rem", color: C.slate, marginTop: 4, fontWeight: 500 }}>{kpi.label} →</div>
+        <div className="dash-kpis">
+          {kpis.map(k => (
+            <button key={k.label} className="kpi-tile" onClick={() => onNavigate?.(k.dest)} style={{ display: "flex", flexDirection: "column", padding: 0, textAlign: "left",
+                    background: C.white, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", cursor: "pointer", fontFamily: FONTS.body, color: C.ink }}>
+              <span style={{ height: 6, alignSelf: "stretch", background: TILE_STRIP[k.tone] }} />
+              <span style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6, alignSelf: "stretch" }}>
+                <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: ".82rem", fontWeight: 600, color: C.slate }}>{k.label}</span>
+                  <StatusChip tone={k.tone}>{k.chip}</StatusChip>
+                </span>
+                <span style={{ fontFamily: FONTS.display, fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.02em" }}>{k.value}</span>
+                <span style={{ fontSize: ".8rem", color: C.slate }}>{k.note}</span>
+              </span>
             </button>
           ))}
         </div>
 
-        {/* Supporting context */}
-        <div className="anim" style={{ fontSize: ".78rem", color: C.mist, marginBottom: 22, paddingLeft: 4 }}>
-          Staff fully current on training: <strong style={{ color: avgCompliance >= 80 ? C.pine : C.gold }}>{avgCompliance}%</strong>
-          &nbsp;· {belowThreshold} site{belowThreshold !== 1 ? "s" : ""} below 80% threshold
-        </div>
+        <div className="dash-cols">
+          <Card>
+            <CardHeader title="Needs your attention" right={<span style={{ fontSize: ".82rem", color: C.slate }}>{attention.length} item{attention.length === 1 ? "" : "s"}</span>} />
+            {attention.length === 0 && <div style={{ padding: "4px 16px 16px", color: C.slate, fontSize: ".9rem" }}>Nothing blocked, overdue or critical. 👍</div>}
+            {attention.slice(0, 6).map((a, i) => (
+              <Row key={i} tone={a.tone} icon={<Icon name={a.icon} size={18} />} title={a.title} meta={a.meta}
+                   status={<StatusChip tone={a.tone}>{a.status}</StatusChip>} onClick={() => onNavigate?.(a.dest)} />
+            ))}
+          </Card>
 
-        {/* Per-site summary table */}
-        <div className="anim" style={{ background: C.white, borderRadius: 10, boxShadow: "0 2px 12px rgba(15,31,23,.07)", overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid #E2EBE6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h2 style={{ fontSize: ".95rem", fontWeight: 600, color: C.ink }}>Site breakdown</h2>
-            <p style={{ fontSize: ".75rem", color: C.mist }}>Click a site to open its dashboard</p>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-<table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {["Site", "Days since recordable", "Open incidents", "Open corrective actions", "Critical findings", "Fully trained", ""].map((h, i) => (
-                  <th key={i} style={thStyle}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {SITES.map((site, i) => (
-                <tr key={site.name} className="site-row" onClick={() => onNavigate?.("site", site.name)}>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                    <div style={{ fontWeight: 600, fontSize: ".88rem", color: C.ink }}>📍 {site.name}</div>
-                    <div style={{ fontSize: ".72rem", color: C.mist }}>{site.location} · {site.staff} staff</div>
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                    <DaysBadge days={site.daysSince} />
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                    {site.openIncidents > 0
-                      ? <span style={{ fontWeight: 700, color: C.red, fontSize: ".88rem" }}>{site.openIncidents}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
-                    }
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                    {site.openCAs > 0
-                      ? <span style={{ fontWeight: 700, color: C.orange, fontSize: ".88rem" }}>{site.openCAs}</span>
-                      : <span style={{ color: C.mist, fontSize: ".82rem" }}>—</span>
-                    }
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2" }}>
-                    {site.criticalFindings > 0
-                      ? <span style={{ fontWeight: 700, color: C.red, fontSize: ".88rem" }}>{site.criticalFindings}</span>
-                      : <span style={{ fontSize: ".82rem" }}>✓ <span style={{ color: C.mist }}>None</span></span>
-                    }
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", minWidth: 140 }}>
-                    <ComplianceBar pct={site.compliance} compact />
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #F0F4F2", color: C.mist, fontSize: ".8rem" }}>→</td>
-                </tr>
+          <Card>
+            <CardHeader title="Sites at a glance" right={
+              <span style={{ display: "flex", gap: 12, fontSize: ".78rem", color: C.slate, flexWrap: "wrap" }}>
+                {["green", "amber", "red"].map(t => <span key={t} style={{ display: "flex", alignItems: "center", gap: 5 }}><StatusShape tone={t} />{STATUS_SHAPE[t].label}</span>)}
+              </span>} />
+            {/* Desktop: scorecard table */}
+            <div className="site-grid">
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1.3fr 1fr 1fr 1fr 1.4fr", gap: 10, padding: "9px 16px", background: "#FAF8F4",
+                            borderTop: `1px solid ${C.line}`, fontSize: ".75rem", fontWeight: 700, color: C.slate }}>
+                <span>Site</span><span>Since recordable</span><span>Incidents</span><span>Actions</span><span>Critical</span><span>Fully trained</span>
+              </div>
+              {S.map(s => (
+                <button key={s.name} className="site-row" onClick={() => onNavigate?.("site", s.name)} style={{ display: "grid", gridTemplateColumns: "2fr 1.3fr 1fr 1fr 1fr 1.4fr",
+                        gap: 10, alignItems: "center", width: "100%", padding: "12px 16px", border: "none", borderTop: `1px solid ${C.line}`, background: "transparent",
+                        textAlign: "left", cursor: "pointer", fontFamily: FONTS.body, color: C.ink }}>
+                  <span><span style={{ display: "block", fontWeight: 600 }}>{s.name}</span><span style={{ fontSize: ".78rem", color: C.slate }}>{[s.location, `${s.staff} people`].filter(Boolean).join(" · ")}</span></span>
+                  {metric(s.daysSince == null ? "green" : s.daysSince < 30 ? "red" : s.daysSince < 90 ? "amber" : "green", s.daysSince == null ? "None" : `${s.daysSince} d`)}
+                  {metric(s.openIncidents === 0 ? "green" : "amber", s.openIncidents)}
+                  {metric(s.openCAs === 0 ? "green" : s.openCAs >= 3 ? "red" : "amber", s.openCAs)}
+                  {metric(s.criticalFindings ? "red" : "green", s.criticalFindings)}
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ flex: 1, height: 8, borderRadius: 4, background: "#EEEAE2" }}>
+                      <span style={{ display: "block", width: `${s.compliance}%`, height: 8, borderRadius: 4, background: s.compliance >= 80 ? C.green : C.amberGfx }} />
+                    </span>
+                    <span style={{ fontFamily: FONTS.mono, fontSize: ".85rem" }}>{s.compliance}%</span>
+                  </span>
+                </button>
               ))}
-            </tbody>
-          </table>
-</div>
+            </div>
+            {/* Phone: one card per site */}
+            <div className="site-cards">
+              {S.map(s => (
+                <button key={s.name} onClick={() => onNavigate?.("site", s.name)} style={{ display: "block", width: "100%", padding: "12px 16px", border: "none",
+                        borderTop: `1px solid ${C.line}`, background: "transparent", textAlign: "left", cursor: "pointer", fontFamily: FONTS.body, color: C.ink }}>
+                  <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontWeight: 600 }}>{s.name}</span>
+                    <StatusChip tone={s.compliance >= 80 ? "green" : "amber"}>{s.compliance}% trained</StatusChip>
+                  </span>
+                  <span style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap", fontSize: ".82rem", color: C.slate }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}><StatusShape tone={s.daysSince == null ? "green" : s.daysSince < 30 ? "red" : s.daysSince < 90 ? "amber" : "green"} />{s.daysSince == null ? "No recordable" : `${s.daysSince} days since recordable`}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}><StatusShape tone={s.openCAs === 0 ? "green" : s.openCAs >= 3 ? "red" : "amber"} />{s.openCAs} actions</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

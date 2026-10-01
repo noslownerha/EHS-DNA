@@ -37,7 +37,7 @@ export function EHSHeader({ onHome, onBack, title, rightContent, dark = false })
             lineHeight: 1, padding: "8px 6px 8px 0", marginRight: 2, display: "flex", alignItems: "center",
           }}><Icon name="back" size={22} stroke={2} /></button>
         )}
-        <button onClick={onHome} aria-label="EHS DNA — home" style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, minWidth: 0 }}>
+        <button onClick={onHome} aria-label="EHS DNA — home" className="ehs-hdr-logo" style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, minWidth: 0 }}>
           <Logo size={26} />
         </button>
       </div>
@@ -271,11 +271,68 @@ function BottomTabBar({ tabs, activeTab, onTab }) {
   );
 }
 
+// ── Desktop sidebar ─────────────────────────────────────────────────────────
+// On wide screens a left sidebar replaces the bottom tab bar (same destinations,
+// same labels). Decided in JS, not CSS, so only one nav exists in the page.
+const DESKTOP_MIN = 1024;
+function useIsDesktop() {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.innerWidth >= DESKTOP_MIN);
+  useEffect(() => {
+    const on = () => setWide(window.innerWidth >= DESKTOP_MIN);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return wide;
+}
+
+function SideNav({ tabs, activeTab, onTab, user }) {
+  const initials = (user?.name || "?").split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <nav aria-label="Main" className="side-nav" style={{
+      position: "fixed", top: 0, left: 0, bottom: 0, width: 232, zIndex: 250,
+      background: C.forest, padding: "20px 12px", display: "flex", flexDirection: "column", gap: 4,
+    }}>
+      <div style={{ padding: "2px 10px 22px" }}><Logo size={30} /></div>
+      {tabs.map(tabId => {
+        const cfg = TAB_CONFIG[tabId]; if (!cfg) return null;
+        const active = activeTab === tabId;
+        return (
+          <button key={tabId} onClick={() => onTab(tabId)} aria-current={active ? "page" : undefined} style={{
+            display: "flex", alignItems: "center", gap: 12, width: "100%", height: 42, padding: "0 12px", border: "none", borderRadius: 10,
+            background: active ? "rgba(127,209,195,.16)" : "transparent", color: active ? "#FFFFFF" : "rgba(255,255,255,.8)",
+            fontFamily: "'DM Sans', sans-serif", fontSize: ".92rem", fontWeight: active ? 700 : 500, cursor: "pointer", textAlign: "left",
+            boxShadow: active ? `inset 3px 0 0 ${C.mint}` : "none",
+          }}>
+            <Icon name={TAB_ICON[tabId] || "home"} size={19} stroke={active ? 2.1 : 1.8} />
+            <span>{cfg.label}</span>
+          </button>
+        );
+      })}
+      <div style={{ flex: 1 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 10px 2px", borderTop: "1px solid rgba(255,255,255,.14)" }}>
+        <span style={{ width: 34, height: 34, borderRadius: "50%", background: C.mint, color: C.forest, display: "flex", alignItems: "center",
+                       justifyContent: "center", fontWeight: 700, fontSize: ".8rem", flexShrink: 0 }}>{initials}</span>
+        <span style={{ minWidth: 0 }}>
+          <span style={{ display: "block", color: "#fff", fontWeight: 600, fontSize: ".86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.name}</span>
+          <span style={{ display: "block", color: "rgba(255,255,255,.78)", fontSize: ".75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{BRAND.company}</span>
+        </span>
+      </div>
+    </nav>
+  );
+}
+
 // ── AppShell ───────────────────────────────────────────────────────────────────
 // Bucket 1.4 fix: paddingBottom on inner content wrapper = 58px (nav height) + 20px buffer = 78px
 // This ensures bottom CTAs on ALL screens are never hidden behind the nav bar.
 export default function AppShell({ user, children, activeTab, onTab }) {
   const perms = ROLE_PERMS[user.role] ?? ROLE_PERMS.staff;
+  const isDesktop = useIsDesktop();
+  // Shift the whole page right of the sidebar, and hide the header's own logo
+  // there (the sidebar carries it).
+  useEffect(() => {
+    document.body.classList.toggle("ehs-desktop", isDesktop);
+    return () => document.body.classList.remove("ehs-desktop");
+  }, [isDesktop]);
   // Show a tab only if the tenant has the module that powers it. No-op until the
   // server reports modules (visibleTabs passes everything through when unset).
   const tabs  = visibleTabs(perms.tabs, BRAND.modules);
@@ -351,6 +408,9 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
         body { background: ${C.chalk}; color: ${C.ink}; }
+        body.ehs-desktop { padding-left: 232px; }
+        body.ehs-desktop .ehs-hdr-logo { display: none !important; }
+        body.ehs-desktop .ehs-content-root > * { padding-bottom: 32px !important; }
         /* Headlines get the display face; body stays DM Sans (continuity). */
         h1, h2, .display { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; letter-spacing: -0.01em; }
         /* Visible keyboard focus (WCAG 2.4.7): teal ring + white halo shows on light and dark. */
@@ -470,7 +530,9 @@ export default function AppShell({ user, children, activeTab, onTab }) {
         {/* The operator console navigates via its own internal sections, so the
             customer tab bar is omitted there rather than shown with the wrong
             (customer) destinations. */}
-        <BottomTabBar tabs={isOperatorConsole ? OPERATOR_TABS : tabs} activeTab={activeTab} onTab={onTab} />
+        {isDesktop
+          ? <SideNav tabs={isOperatorConsole ? OPERATOR_TABS : tabs} activeTab={activeTab} onTab={onTab} user={user} />
+          : <BottomTabBar tabs={isOperatorConsole ? OPERATOR_TABS : tabs} activeTab={activeTab} onTab={onTab} />}
       </div>
     </RoleContext.Provider>
   );
