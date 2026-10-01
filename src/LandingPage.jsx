@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { BRAND, COLORS as C } from "./constants.js";
+import { BRAND, COLORS as C, FONTS } from "./constants.js";
+import Icon, { Logo } from "./Icon.jsx";
 import { api } from "./api.js";
 
+// Light form fields on a white card (the page used to be dark-on-dark).
 const inputStyle = {
-  width: "100%", padding: "13px 16px",
-  background: "rgba(255,255,255,.06)",
-  border: "1px solid rgba(168,213,181,.15)",
-  borderRadius: 10, color: "#fff",
-  fontSize: ".92rem", fontFamily: "'DM Sans', sans-serif",
-  outline: "none", boxSizing: "border-box",
+  width: "100%", height: 50, padding: "0 14px", borderRadius: 12,
+  border: `1.5px solid ${C.field}`, background: C.white, color: C.ink,
+  fontFamily: FONTS.body, fontSize: "1rem", outline: "none",
 };
 
 export default function LandingPage({ onEnter }) {
@@ -81,208 +80,157 @@ export default function LandingPage({ onEnter }) {
     window.location.reload();
   }
 
+  // Inline "forgot password" (replaces window.prompt + alert pop-ups).
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotBusy, setForgotBusy] = useState(false);
+  async function handleForgot(e) {
+    e.preventDefault();
+    setForgotBusy(true);
+    try { await api.forgotPassword(forgotEmail); } catch { /* same answer either way: never reveal whether an account exists */ }
+    setForgotBusy(false); setForgotSent(true);
+  }
+
+  const isStaging = /^staging\./.test(window.location.hostname);
+  const primaryBtn = busyFlag => ({
+    width: "100%", height: 52, marginTop: 4, border: "none", borderRadius: 12,
+    background: busyFlag ? C.mist : C.sage, color: "#fff", cursor: busyFlag ? "default" : "pointer",
+    fontFamily: FONTS.display, fontSize: "1.05rem", fontWeight: 700,
+  });
+  const linkBtn = { background: "none", border: "none", color: C.sage, fontWeight: 600, fontSize: ".9rem", cursor: "pointer", fontFamily: FONTS.body, padding: 6 };
+  const errBox = msg => msg && (
+    <div role="alert" style={{ fontSize: ".88rem", color: C.red, background: C.redLt, border: `1px solid ${C.red}`, borderRadius: 10, padding: "10px 12px" }}>{msg}</div>
+  );
+  const heading = t => <h2 style={{ margin: "0 0 4px", fontFamily: FONTS.display, fontSize: "1.6rem", fontWeight: 700, color: C.ink }}>{t}</h2>;
+  const sub = t => <p style={{ margin: "0 0 20px", fontSize: ".95rem", color: C.slate, lineHeight: 1.5 }}>{t}</p>;
+
+  let panel;
+  if (resetToken && resetDone) {
+    panel = (<>
+      {heading("Password updated")}
+      {sub("Your password has been changed. Sign in with your new password.")}
+      <button type="button" onClick={backToSignIn} style={primaryBtn(false)}>Back to sign in →</button>
+    </>);
+  } else if (resetToken) {
+    panel = (<>
+      {heading("Set a new password")}
+      {sub("Choose a password with at least 8 characters.")}
+      <form onSubmit={handleResetSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <label className="sr-only" htmlFor="reset-pw">New password</label>
+        <input id="reset-pw" type="password" required autoComplete="new-password" placeholder="New password (8+ characters)"
+               value={resetPw} onChange={e => setResetPw(e.target.value)} style={inputStyle} />
+        <label className="sr-only" htmlFor="reset-pw2">Confirm new password</label>
+        <input id="reset-pw2" type="password" required autoComplete="new-password" placeholder="Confirm new password"
+               value={resetPw2} onChange={e => setResetPw2(e.target.value)} style={inputStyle} />
+        {errBox(resetErr)}
+        <button type="submit" disabled={resetBusy} style={primaryBtn(resetBusy)}>{resetBusy ? "Saving…" : "Set new password →"}</button>
+      </form>
+      <div style={{ marginTop: 14, textAlign: "center" }}><button type="button" onClick={backToSignIn} style={linkBtn}>← Back to sign in</button></div>
+    </>);
+  } else if (forgotOpen) {
+    panel = forgotSent ? (<>
+      {heading("Check your email")}
+      {sub(`If an account exists for ${forgotEmail}, we've sent a link to reset the password. It works for 1 hour — check spam if it doesn't arrive.`)}
+      <button type="button" onClick={() => { setForgotOpen(false); setForgotSent(false); }} style={primaryBtn(false)}>Back to sign in</button>
+    </>) : (<>
+      {heading("Reset your password")}
+      {sub("Enter the email you sign in with and we'll send you a reset link.")}
+      <form onSubmit={handleForgot} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <label className="sr-only" htmlFor="forgot-email">Email</label>
+        <input id="forgot-email" type="email" required autoComplete="email" placeholder="Email" value={forgotEmail}
+               onChange={e => setForgotEmail(e.target.value)} style={inputStyle} />
+        <button type="submit" disabled={forgotBusy} style={primaryBtn(forgotBusy)}>{forgotBusy ? "Sending…" : "Send reset link"}</button>
+      </form>
+      <div style={{ marginTop: 14, textAlign: "center" }}><button type="button" onClick={() => setForgotOpen(false)} style={linkBtn}>← Back to sign in</button></div>
+    </>);
+  } else {
+    panel = (<>
+      {heading("Sign in")}
+      {sub("Welcome back. Use the email your administrator set up for you.")}
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <label className="sr-only" htmlFor="signin-email">Email</label>
+        <input id="signin-email" type="email" required autoComplete="email" placeholder="Email"
+               value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
+        <div style={{ position: "relative" }}>
+          <label className="sr-only" htmlFor="signin-pw">Password</label>
+          <input id="signin-pw" type={showPw ? "text" : "password"} required autoComplete="current-password" placeholder="Password"
+                 value={password} onChange={e => setPassword(e.target.value)} style={{ ...inputStyle, paddingRight: 84 }} />
+          <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? "Hide password" : "Show password"}
+                  style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", ...linkBtn, fontSize: ".82rem" }}>
+            {showPw ? "Hide" : "Show"}
+          </button>
+        </div>
+        {errBox(error)}
+        <button type="submit" disabled={busy} style={primaryBtn(busy)}>{busy ? "Signing in…" : "Sign in →"}</button>
+      </form>
+      <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => { setForgotEmail(email); setForgotOpen(true); }} style={linkBtn}>Forgot password?</button>
+        <span style={{ fontSize: ".8rem", color: C.slate }}>Access is set up by your administrator</span>
+      </div>
+    </>);
+  }
+
+  const points = [
+    ["flag", "Report a hazard or injury in under a minute, from any phone"],
+    ["check", "Inspections, findings and corrective actions in one place"],
+    ["cap", "Training and certificates that track themselves"],
+  ];
   return (
-    // Bucket 1.5: use 100dvh so it fills exactly the device viewport with no scroll
-    <div style={{
-      height: "100dvh", minHeight: "100vh",
-      background: "#0B1610",
-      fontFamily: "'DM Sans', sans-serif",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      padding: "24px 24px",
-      position: "relative", overflow: "hidden",
-    }}>
-      {/^staging\./.test(window.location.hostname) && (
+    <div className="signin-root" style={{ minHeight: "100dvh", background: C.chalk, fontFamily: FONTS.body, color: C.ink }}>
+      {isStaging && (
         <div role="note" aria-label="Staging environment" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400,
           background: "#E8871E", color: "#fff", textAlign: "center", fontSize: ".72rem", fontWeight: 700, letterSpacing: ".06em", padding: "3px 8px" }}>
           STAGING — test copy, not the live app
         </div>
       )}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .landing-grid::before {
-          content: '';
-          position: absolute; inset: 0;
-          background-image: linear-gradient(rgba(74,140,92,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(74,140,92,.05) 1px, transparent 1px);
-          background-size: 40px 40px; pointer-events: none;
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=DM+Sans:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .signin-root { display: flex; flex-direction: column; }
+        .signin-brand { background: ${C.forest}; color: #fff; padding: 28px 24px 30px; }
+        .signin-points { display: none; }
+        .signin-h1 { font-size: 1.45rem; }
+        .signin-form { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 24px 20px 40px; }
+        input:focus-visible, button:focus-visible { outline: 3px solid ${C.sage}; outline-offset: 2px; box-shadow: 0 0 0 5px #fff; }
+        @media (min-width: 900px) {
+          .signin-root { flex-direction: row; }
+          .signin-brand { width: 44%; max-width: 560px; padding: 56px 52px; display: flex; flex-direction: column; justify-content: space-between; }
+          .signin-points { display: flex; }
+          .signin-h1 { font-size: 2.1rem; }
+          .signin-form { align-items: center; padding: 40px; }
         }
-        .landing-glow::after {
-          content: '';
-          position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
-          width: 500px; height: 320px;
-          background: radial-gradient(ellipse, rgba(74,140,92,.1) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes pulse-ring { 0%,100%{box-shadow:0 0 0 0 rgba(74,140,92,.3);} 70%{box-shadow:0 0 0 10px rgba(74,140,92,0);} }
-        .a1 { animation: fadeUp .45s ease .05s both; }
-        .a2 { animation: fadeUp .45s ease .18s both; }
-        .a3 { animation: fadeUp .45s ease .3s both; }
-        .a4 { animation: fadeUp .45s ease .42s both; }
-        .role-btn { transition: transform .15s ease, box-shadow .15s ease; }
-        .role-btn:hover { transform: translateY(-2px); }
-        .role-btn:active { transform: scale(.97); }
       `}</style>
 
-      <div className="landing-grid landing-glow" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
-
-      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", alignItems: "center" }}>
-
-        {/* Logo mark */}
-        <div className="a1" style={{ marginBottom: 10 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 13,
-            background: `linear-gradient(135deg, ${C.pine}, ${C.sage})`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 4px 20px rgba(74,140,92,.3)",
-            animation: "pulse-ring 3s ease infinite",
-          }}>
-            <span style={{ fontSize: "1.25rem" }}>🧬</span>
-          </div>
-        </div>
-
-        {/* Brand */}
-        <div className="a1" style={{ marginBottom: 5, textAlign: "center" }}>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "1.85rem", fontWeight: 600, letterSpacing: ".08em", color: "#fff" }}>
-            <span style={{ color: C.mint }}>EHS</span> DNA
-          </div>
-        </div>
-
-        {/* Tagline */}
-        <div className="a2" style={{ marginBottom: 36, textAlign: "center" }}>
-          <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.78)", letterSpacing: ".02em", lineHeight: 1.5 }}>
-            {BRAND.tagline}
+      <aside className="signin-brand">
+        <div>
+          <Logo size={40} />
+          <h1 className="signin-h1" style={{ margin: "18px 0 6px", fontFamily: FONTS.display, fontWeight: 700, lineHeight: 1.15, letterSpacing: "-0.02em" }}>
+            Keeping the right eyes on what matters.
+          </h1>
+          <p style={{ margin: 0, fontSize: "1rem", color: "rgba(255,255,255,.82)", lineHeight: 1.5, maxWidth: 420 }}>
+            Safety management for manufacturers — on the floor, on the phone, and in the boardroom.
           </p>
         </div>
+        <ul className="signin-points" style={{ listStyle: "none", padding: 0, margin: "36px 0 0", flexDirection: "column", gap: 16 }}>
+          {points.map(([icon, text]) => (
+            <li key={icon} style={{ display: "flex", alignItems: "center", gap: 14, fontSize: ".98rem", color: "rgba(255,255,255,.9)" }}>
+              <span style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(127,209,195,.16)", color: C.mint, display: "flex",
+                             alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name={icon} size={20} /></span>
+              {text}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
-        {resetToken ? (
-          resetDone ? (
-            <>
-              {/* Reset succeeded */}
-              <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
-                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.78)" }}>
-                  Password updated
-                </p>
-              </div>
-              <div className="a4" style={{ width: "100%", textAlign: "center" }}>
-                <p style={{ fontSize: ".85rem", color: "rgba(255,255,255,.7)", lineHeight: 1.6, marginBottom: 20 }}>
-                  Your password has been changed. Sign in with your new password.
-                </p>
-                <button type="button" onClick={backToSignIn} style={{
-                  width: "100%", padding: "14px 18px", background: C.sage, border: "1px solid rgba(168,213,181,.2)",
-                  borderRadius: 11, cursor: "pointer", fontSize: ".95rem", fontWeight: 700, color: "#fff",
-                  fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 16px rgba(74,140,92,.25)",
-                }}>Back to sign in →</button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Set new password (landed here from an emailed reset link) */}
-              <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
-                <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.78)" }}>
-                  Set a new password
-                </p>
-              </div>
-              <form className="a4" onSubmit={handleResetSubmit} style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                <input
-                  type="password" required autoComplete="new-password" placeholder="New password (8+ characters)"
-                  value={resetPw} onChange={e => setResetPw(e.target.value)}
-                  style={inputStyle}
-                />
-                <input
-                  type="password" required autoComplete="new-password" placeholder="Confirm new password"
-                  value={resetPw2} onChange={e => setResetPw2(e.target.value)}
-                  style={inputStyle}
-                />
-                {resetErr && (
-                  <div style={{ fontSize: ".78rem", color: "#F0A5A5", background: "rgba(220,80,80,.12)", border: "1px solid rgba(220,80,80,.25)", borderRadius: 8, padding: "8px 12px" }}>
-                    {resetErr}
-                  </div>
-                )}
-                <button type="submit" disabled={resetBusy} style={{
-                  width: "100%", padding: "14px 18px", marginTop: 2,
-                  background: resetBusy ? "rgba(74,140,92,.5)" : C.sage,
-                  border: "1px solid rgba(168,213,181,.2)",
-                  borderRadius: 11, cursor: resetBusy ? "default" : "pointer",
-                  fontSize: ".95rem", fontWeight: 700, color: "#fff",
-                  fontFamily: "'DM Sans', sans-serif",
-                  boxShadow: "0 4px 16px rgba(74,140,92,.25)",
-                }}>
-                  {resetBusy ? "Saving…" : "Set new password →"}
-                </button>
-              </form>
-              <div style={{ marginTop: 20, textAlign: "center" }}>
-                <button type="button" onClick={backToSignIn} style={{ background: "none", border: "none", color: "rgba(168,213,181,.6)", fontSize: ".78rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                  ← Back to sign in
-                </button>
-              </div>
-            </>
-          )
-        ) : (
-        <>
-        {/* Sign-in label */}
-        <div className="a3" style={{ marginBottom: 12, textAlign: "center", width: "100%" }}>
-          <p style={{ fontSize: ".68rem", fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.78)" }}>
-            Sign in
-          </p>
+      <main className="signin-form">
+        <div style={{ width: "100%", maxWidth: 420, background: C.white, border: `1px solid ${C.line}`, borderRadius: 18, padding: "28px 24px",
+                      boxShadow: "0 8px 30px rgba(21,33,43,.06)" }}>
+          {panel}
         </div>
-
-        {/* Login form */}
-        <form className="a4" onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-          <input
-            type="email" required autoComplete="email" placeholder="Email"
-            value={email} onChange={e => setEmail(e.target.value)}
-            style={inputStyle}
-          />
-          <div style={{ position: "relative" }}>
-            <input
-              type={showPw ? "text" : "password"} required autoComplete="current-password" placeholder="Password"
-              value={password} onChange={e => setPassword(e.target.value)}
-              style={{ ...inputStyle, width: "100%", paddingRight: 48 }}
-            />
-            <button type="button" onClick={() => setShowPw(s => !s)}
-              aria-label={showPw ? "Hide password" : "Show password"} style={{
-                position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                background: "none", border: "none", cursor: "pointer", fontSize: "1.05rem",
-                color: "rgba(255,255,255,.78)", padding: 4, lineHeight: 1,
-              }}>{showPw ? "🙈" : "👁️"}</button>
-          </div>
-          {error && (
-            <div style={{ fontSize: ".78rem", color: "#F0A5A5", background: "rgba(220,80,80,.12)", border: "1px solid rgba(220,80,80,.25)", borderRadius: 8, padding: "8px 12px" }}>
-              {error}
-            </div>
-          )}
-          <button type="submit" disabled={busy} style={{
-            width: "100%", padding: "14px 18px", marginTop: 2,
-            background: busy ? "rgba(74,140,92,.5)" : C.sage,
-            border: "1px solid rgba(168,213,181,.2)",
-            borderRadius: 11, cursor: busy ? "default" : "pointer",
-            fontSize: ".95rem", fontWeight: 700, color: "#fff",
-            fontFamily: "'DM Sans', sans-serif",
-            boxShadow: "0 4px 16px rgba(74,140,92,.25)",
-          }}>
-            {busy ? "Signing in…" : "Sign in →"}
-          </button>
-        </form>
-
-        <div style={{ marginTop: 28, textAlign: "center" }}>
-          <button type="button" onClick={async () => {
-            const em = email || window.prompt("Enter your account email:");
-            if (!em) return;
-            try { await api.forgotPassword(em); } catch {}
-            setError(null);
-            alert(`If an account exists for ${em}, we've emailed a link to reset the password. Check your inbox (and spam folder) — the link is valid for 1 hour.`);
-          }} style={{ background: "none", border: "none", color: "rgba(168,213,181,.6)", fontSize: ".78rem", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
-            Forgot password?
-          </button>
-          <p style={{ fontSize: ".67rem", color: "rgba(255,255,255,.78)", letterSpacing: ".04em", lineHeight: 1.6 }}>
-            Access is provisioned by your administrator
-          </p>
-        </div>
-        </>
-        )}
-      </div>
+      </main>
     </div>
   );
 }

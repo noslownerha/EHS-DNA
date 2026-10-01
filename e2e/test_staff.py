@@ -81,6 +81,21 @@ def main():
             check("new-hire path: no JS errors", not errs, errs)
             pg.context.close()
 
+        # ── Inline "forgot password" (was window.prompt + alert pop-ups) ──
+        with sync_playwright() as p2:
+            b2 = p2.chromium.launch(); pg = b2.new_context(**PHONE).new_page(); errs = watch_errors(pg)
+            dialogs = []; pg.on("dialog", lambda d: (dialogs.append(d.message), d.dismiss()))
+            pg.goto(BASE + "/"); pg.wait_for_timeout(1000)
+            pg.get_by_role("button", name="Forgot password?").click(); pg.wait_for_timeout(300)
+            pg.fill("#forgot-email", NEW_EMAIL); pg.get_by_role("button", name="Send reset link").click(); pg.wait_for_timeout(1200)
+            body = pg.inner_text("body")
+            check("forgot: inline confirmation, no browser pop-ups", "Check your email" in body and not dialogs, (body[:200], dialogs))
+            check("forgot: reset token created for that account", q("SELECT COUNT(*) n FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE u.email = ?", NEW_EMAIL)[0]["n"] >= 1)
+            pg.get_by_role("button", name="Back to sign in").click(); pg.wait_for_timeout(300)
+            check("forgot: back to sign in", pg.locator("#signin-email").count() == 1)
+            check("sign-in page: no JS errors", not errs, errs)
+            b2.close()
+
         # ── Reset, deactivate, lockout, foot-guns (API; UI already exercised above) ──
         uid = q("SELECT id FROM users WHERE email=?", NEW_EMAIL)[0]["id"]
         st, live = call("/api/auth/login", "POST", {"email": NEW_EMAIL, "password": NEW_PW}); live = live.get("token")
